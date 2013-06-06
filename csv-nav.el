@@ -74,14 +74,6 @@
 	       (forward-char 1))))	; break
       (nreverse result))))
 
-(defun csv-nav-parse-buffer ()
-  "Parse the current line and return the list of values."
-  (goto-char (point-min))
-  (let (data (max (point-max)))
-    (while (< (point) max)
-      (setq data (cons (csv-nav-parse-line) data)))
-    (nreverse data)))
-
 (defun csv-nav-get-columns ()
   "Get the field names of the buffer."
   (save-excursion
@@ -93,10 +85,11 @@
   (interactive)
   (let ((columns (csv-nav-get-columns))
 	(current-buffer-v (current-buffer))
-	start end cells source)
+	start end line-no cells source)
     (save-excursion
       (beginning-of-line)
-      (setq start (point-marker)
+      (setq line-no (line-number-at-pos (point))
+	    start (point-marker)
 	    cells (csv-nav-parse-line)
 	    end (point-marker)
 	    source (list (current-buffer) start end)))
@@ -106,15 +99,20 @@
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (setq buffer-read-only nil)
     (erase-buffer)
-    (while columns
-      (when (> (length (car cells)) 0)
-	(insert (propertize (concat (car columns) ": ")
-			    'field 'column
-			    'face 'bold
-			    'rear-nonsticky t)
-		(car cells) "\n"))
-      (setq columns (cdr columns)
-	    cells (cdr cells)))
+    (insert "FILE: " 
+	    (buffer-name current-buffer-v)
+	    " LINE: " (format "%d" line-no) "\n\n")
+    (let ((width (reduce 'max columns :key 'length)))
+      (while columns
+	(when (> (length (car cells)) 0)
+	  (insert (propertize (concat  (car columns) ":")
+			      'field 'column
+			      'face 'bold
+			      'rear-nonsticky t))
+	  (move-to-column (+ 4 width) t)
+	  (insert (car cells) "\n"))
+	(setq columns (cdr columns)
+	      cells (cdr cells))))
     (setq buffer-read-only t)
     (goto-char (point-min))
     (pop-to-buffer current-buffer-v)))
