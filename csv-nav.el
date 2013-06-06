@@ -30,8 +30,8 @@
 (define-generic-mode csv-nav-mode
   nil '(",") nil '(".csv\\'")
   '((lambda ()
-      (local-set-key (kbd "RET") 'csv-nav-edit)))
-  "Major mode for viewing and editing CSV files.")
+      (local-set-key (kbd "RET") 'csv-nav-show)))
+  "Major mode for viewing CSV files.")
 
 (defvar csv-nav-syntax-table
   (let ((table (make-syntax-table)))
@@ -88,8 +88,8 @@
     (goto-char (point-min))
     (csv-nav-parse-line)))
 
-(defun csv-nav-edit ()
-  "Edit the current row."
+(defun csv-nav-show ()
+  "Show the current row."
   (interactive)
   (let ((columns (csv-nav-get-columns))
 	start end cells source)
@@ -105,9 +105,7 @@
     (pop-to-buffer (get-buffer-create
 		    (car (delete "" (copy-sequence cells)))))
     (erase-buffer)
-    (text-mode)
-    (local-set-key (kbd "C-c C-c") 'csv-nav-edit-save)
-    (local-set-key (kbd "C-c C-n") 'csv-nav-insert)
+    ;; (text-mode)
     (set (make-local-variable 'csv-nav-source) source)
     (while columns
       (when (> (length (car cells)) 0)
@@ -118,97 +116,8 @@
 		(car cells) "\n"))
       (setq columns (cdr columns)
 	    cells (cdr cells)))
+    (set 'buffer-read-only 0)
     (goto-char (point-min))))
-
-(defun csv-nav-quote-field (str)
-  "Strip leading and trailing whitespace, quote double quotes."
-  (let ((rules '(("\"" . "\"\"")
-		 ("\\s-+$" . "")
-		 ("^\\s-+" . "")
-		 ("\n" . "\r\n"))))
-    (dolist (rule rules)
-      (setq str (replace-regexp-in-string (car rule) (cdr rule) str)))
-    (when (string-match "\n\\|," str)
-      (setq str (concat "\"" str "\"")))
-    str))
-
-(defun csv-nav-parse-edit-buffer (columns)
-  "Parse the edit buffer back into data for CSV files.
-The source buffer knows COLUMNS.  Parses buffers that use the following
-format:
-
-column: text
-
-column: text
-text text text
-
-The COLUMN must be a known value from the COLUMNS list.  Empty
-lines separate fields.  The COLUMN must be inserted using
-`csv-nav-edit-add-column'."
-  (let (data-alist column start)
-    (goto-char (point-min))
-    (while (not (eobp))
-      (let* ((next-change
-	      (or (next-single-property-change (point) 'field (current-buffer))
-		  (point-max)))
-	     (str (buffer-substring (point) next-change)))
-	(cond ((get-text-property (point) 'field)
-	       (when (equal ": " (substring str -2))
-		 (setq column (substring str 0 -2))); strip ": "
-	       (unless (member column columns)
-		 (error "Column %s is not known in the source buffer" column)))
-	      (column
-	       (setq data-alist (cons (cons column (csv-nav-quote-field str))
-				      data-alist)))
-	      (t
-	       (error "Text before the first field is ignored")))
-	(goto-char next-change)))
-    (let ((result (nreverse (mapcar (lambda (key)
-				      (cdr (assoc key data-alist)))
-				    columns))))
-      ;; strip empty fields at the back
-      (while (not (car result))
-	(setq result (cdr result)))
-      (nreverse result))))
-
-(defun csv-nav-edit-save ()
-  "Save the current buffer back to the file."
-  (interactive)
-  (when (not (boundp 'csv-nav-source))
-      (error "This buffer doesn't know where to save the edit"))
-  (let* ((buf (car csv-nav-source))
-	 (start (nth 1 csv-nav-source))
-	 (end (nth 2 csv-nav-source))
-	 (data (csv-nav-parse-edit-buffer
-		(with-current-buffer buf
-		  (csv-nav-get-columns)))))
-    (bury-buffer)
-    (switch-to-buffer buf)
-    (goto-char start)
-    (delete-region start end)
-    (insert (mapconcat 'identity data ",") "\n")))
-
-(defun csv-nav-insert ()
-  "Insert a new field."
-  (interactive)
-  (when (not (boundp 'csv-nav-source))
-      (error "This buffer doesn't know where to save the edit"))
-  (let* ((buf (car csv-nav-source))
-	 (columns (with-current-buffer buf
-		    (csv-nav-get-columns)))
-	 (data (csv-nav-parse-edit-buffer columns))
-	 table)
-    (while columns
-      (unless (car data); only the ones without data!
-	(setq table (cons (list (car columns)) table)))
-      (setq data (cdr data)
-	    columns (cdr columns)))
-    (insert (propertize (concat (completing-read "Field: " table) ": ")
-			'field 'column
-			'face 'bold
-			'rear-nonsticky t)
-	    "\n\n")
-    (forward-char -2)))
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
