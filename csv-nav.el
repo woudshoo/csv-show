@@ -102,8 +102,7 @@
     (when (< (length columns)
 	     (length cells))
       (error "Not enough columns for all the cells"))
-    (pop-to-buffer (get-buffer-create
-		    (car (delete "" (copy-sequence cells)))))
+    (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (erase-buffer)
     ;; (text-mode)
     (set (make-local-variable 'csv-nav-source) source)
