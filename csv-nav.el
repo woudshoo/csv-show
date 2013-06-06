@@ -115,7 +115,7 @@
 			    'field 'column
 			    'face 'bold
 			    'rear-nonsticky t)
-		(car cells) "\n\n"))
+		(car cells) "\n"))
       (setq columns (cdr columns)
 	    cells (cdr cells)))
     (goto-char (point-min))))
