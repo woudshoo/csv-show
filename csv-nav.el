@@ -74,14 +74,6 @@
 	       (forward-char 1))))	; break
       (nreverse result))))
 
-(defun csv-nav-parse-buffer ()
-  "Parse the current line and return the list of values."
-  (goto-char (point-min))
-  (let (data (max (point-max)))
-    (while (< (point) max)
-      (setq data (cons (csv-nav-parse-line) data)))
-    (nreverse data)))
-
 (defun csv-nav-get-columns ()
   "Get the field names of the buffer."
   (save-excursion
