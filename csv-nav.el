@@ -102,9 +102,9 @@
     (when (< (length columns)
 	     (length cells))
       (error "Not enough columns for all the cells"))
+    (set 'current-buffer-v (window-buffer))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (erase-buffer)
-    ;; (text-mode)
     (set (make-local-variable 'csv-nav-source) source)
     (while columns
       (when (> (length (car cells)) 0)
@@ -115,8 +115,9 @@
 		(car cells) "\n"))
       (setq columns (cdr columns)
 	    cells (cdr cells)))
-    (set 'buffer-read-only 0)
-    (goto-char (point-min))))
+    (goto-char (point-min))
+    (pop-to-buffer current-buffer-v)
+    ))
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
