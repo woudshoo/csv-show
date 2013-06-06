@@ -106,7 +106,6 @@
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (setq buffer-read-only nil)
     (erase-buffer)
-    (set (make-local-variable 'csv-nav-source) source)
     (while columns
       (when (> (length (car cells)) 0)
 	(insert (propertize (concat (car columns) ": ")
@@ -119,7 +118,6 @@
     (setq buffer-read-only t)
     (goto-char (point-min))
     (pop-to-buffer current-buffer-v)))
-
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
