@@ -103,6 +103,7 @@
 	     (length cells))
       (error "Not enough columns for all the cells"))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
+    (setq buffer-read-only nil)
     (erase-buffer)
     ;; (text-mode)
     (set (make-local-variable 'csv-nav-source) source)
@@ -115,7 +116,7 @@
 		(car cells) "\n"))
       (setq columns (cdr columns)
 	    cells (cdr cells)))
-    (set 'buffer-read-only 0)
+    (setq buffer-read-only t)
     (goto-char (point-min))))
 
 (provide 'csv-nav)
