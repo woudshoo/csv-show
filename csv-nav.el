@@ -92,6 +92,7 @@
   "Show the current row."
   (interactive)
   (let ((columns (csv-nav-get-columns))
+	(current-buffer-v (current-buffer))
 	start end cells source)
     (save-excursion
       (beginning-of-line)
@@ -105,7 +106,6 @@
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (setq buffer-read-only nil)
     (erase-buffer)
-    ;; (text-mode)
     (set (make-local-variable 'csv-nav-source) source)
     (while columns
       (when (> (length (car cells)) 0)
@@ -117,7 +117,9 @@
       (setq columns (cdr columns)
 	    cells (cdr cells)))
     (setq buffer-read-only t)
-    (goto-char (point-min))))
+    (goto-char (point-min))
+    (pop-to-buffer current-buffer-v)))
+
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
