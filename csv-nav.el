@@ -1,7 +1,9 @@
 ;;; csv-nav.el --- navigate and edit CSV files
 
 ;; Copyright (C) 2006  Alex Schroeder <alex@gnu.org>
-
+;; Copyright (C) 2013  Tom Koelman
+;; Copyright (C) 2013  Willem Rein Oudshoorn <woudshoo@xs4all.nl>
+;;
 ;; This file is not part of GNU Emacs.
 
 ;; This is free software; you can redistribute it and/or modify it under
@@ -21,27 +23,21 @@
 
 ;;; Commentary:
 
-;; Use `csv-nav-mode' to edit CSV files such as contacts exported from
-;; other applications.
+;; Use the `csv-select-show-mode' minor mode in a CSV file to activate
+;; the csv-show feature.
+;;
+;; When this minor mode is enabled C-return will open up a new buffer
+;; showing the content of the current CSV row in a table format.
+;;
+;; In this CSV-Show buffer the keys `n' and 'p' will select the next
+;; or previous row to display.
 
 ;;; Code:
 
 ;;;###autoload
-(define-generic-mode csv-nav-mode
-  nil '(",") nil '(".csv\\'")
-  '((lambda ()
-      (local-set-key (kbd "RET") 'csv-nav-show)))
-  "Major mode for viewing CSV files.")
-
-(defvar csv-nav-syntax-table
-  (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?\"  "\"" table)
-    (modify-syntax-entry ?,  "." table)
-    table))
-
-(define-generic-mode csv-show-mode
-  nil nil nil nil '(csv-show-setup)
-  "Major mode for viewing CSV file records.")
+(define-minor-mode csv-select-show-mode 
+  "Shows a row in a CSV file in a separate buffer."
+  nil " CSV-SHOW" '(([C-return] . csv-show-select)))
 
 (setq csv-show-map 
       (let ((map (make-sparse-keymap)))
@@ -49,12 +45,28 @@
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	map))
 
+(define-generic-mode csv-show-mode
+  nil nil nil nil '(csv-show-setup)
+  "Major mode for viewing CSV file records.
+
+This mode is enabled for buffers that are created by the
+`csv-show-select' function.  It should not be toggled by the user.")
+
 (defun csv-show-setup ()
-  "Main code to setup the csv-show major mode."
+  "Main code to setup the csv-show major mode.
+This mode should not be selected by the user, but by 
+the `csv-show-select' function."
   (setq font-lock-defaults nil) 
   (use-local-map csv-show-map)
   (make-local-variable 'csv-nav-source-marker)
   (make-local-variable 'csv-nav-source-line-no))
+
+
+(defvar csv-nav-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?\"  "\"" table)
+    (modify-syntax-entry ?,  "." table)
+    table))
 
 (defun csv-nav-parse-field (start)
   "Return field starting at START and ending at point."
@@ -101,7 +113,7 @@
     (goto-char (point-min))
     (csv-nav-parse-line)))
 
-(defun csv-nav-show ()
+(defun csv-show-select ()
   "Show the current row."
   (interactive)
   (let ((columns (csv-nav-get-columns))
@@ -117,6 +129,7 @@
 	     (length cells))
       (error "Not enough columns for all the cells"))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
+    (csv-show-mode)
     (setq csv-nav-source-marker start
 	  csv-nav-source-line-no line-no)
     (csv-show-fill-buffer columns cells)
