@@ -39,6 +39,23 @@
     (modify-syntax-entry ?,  "." table)
     table))
 
+(define-generic-mode csv-show-mode
+  nil nil nil nil '(csv-show-setup)
+  "Major mode for viewing CSV file records.")
+
+(setq csv-show-map 
+      (let ((map (make-sparse-keymap)))
+	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
+	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
+	map))
+
+(defun csv-show-setup ()
+  "Main code to setup the csv-show major mode."
+  (setq font-lock-defaults nil) 
+  (use-local-map csv-show-map)
+  (make-local-variable 'csv-nav-source-marker)
+  (make-local-variable 'csv-nav-source-line-no))
+
 (defun csv-nav-parse-field (start)
   "Return field starting at START and ending at point."
   (let ((field (buffer-substring start (point))))
@@ -89,37 +106,62 @@
   (interactive)
   (let ((columns (csv-nav-get-columns))
 	(current-buffer-v (current-buffer))
-	start end line-no cells source)
+	line-no start
+	cells)
     (save-excursion
       (beginning-of-line)
       (setq line-no (line-number-at-pos (point))
 	    start (point-marker)
-	    cells (csv-nav-parse-line)
-	    end (point-marker)
-	    source (list (current-buffer) start end)))
+	    cells (csv-nav-parse-line)))
     (when (< (length columns)
 	     (length cells))
       (error "Not enough columns for all the cells"))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
+    (setq csv-nav-source-marker start
+	  csv-nav-source-line-no line-no)
+    (csv-show-fill-buffer columns cells)
+    (pop-to-buffer current-buffer-v)))
+
+(defun csv-show-fill-buffer (columns cells)
+  "Fills the buffer with the content of the cells."
     (setq buffer-read-only nil)
     (erase-buffer)
-    (insert "FILE: " 
-	    (buffer-name current-buffer-v)
-	    " LINE: " (format "%d" line-no) "\n\n")
+
+    (insert "FILE: " (buffer-name (marker-buffer csv-nav-source-marker))
+	    " LINE: " (format "%d" csv-nav-source-line-no) "\n\n")
+    
     (let ((width (reduce 'max columns :key 'length)))
       (while columns
 	(when (> (length (car cells)) 0)
 	  (insert (propertize (concat  (car columns) ":")
 			      'field 'column
-			      'face 'bold
+			      'face 'font-lock-keyword-face
 			      'rear-nonsticky t))
 	  (move-to-column (+ 4 width) t)
 	  (insert (car cells) "\n"))
 	(setq columns (cdr columns)
-	      cells (cdr cells))))
-    (setq buffer-read-only t)
-    (goto-char (point-min))
-    (pop-to-buffer current-buffer-v)))
+	      cells (cdr cells)))
+      (setq buffer-read-only t))
+    (goto-char (point-min)))
+
+(defun csv-show-next/prev (&optional dir)
+  "Shows the next or previous record."
+  (interactive "p")
+  (let ((old-marker csv-nav-source-marker)
+	new-marker line-no 
+	cells columns)
+    (save-excursion
+      (set-buffer (marker-buffer old-marker))
+      (goto-char old-marker)
+      (forward-line (or dir 1))
+      (setq line-no (line-number-at-pos (point))
+	    new-marker (point-marker)
+	    cells (csv-nav-parse-line)
+	    columns (csv-nav-get-columns)))
+
+    (setq csv-nav-source-marker new-marker
+	  csv-nav-source-line-no line-no)
+    (csv-show-fill-buffer columns cells)))
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
