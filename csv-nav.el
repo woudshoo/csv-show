@@ -50,6 +50,10 @@
 	    (replace-regexp-in-string
 	     "\r" "" (replace-regexp-in-string
 		      "\"\"" "\"" (substring field 1 -1)))))
+    ;; Remove leading spaces from field
+    (setq field (replace-regexp-in-string "^ " "" field))
+    ;; Remove trailing spaces from field
+    (setq field (replace-regexp-in-string " $" "" field))
     field))
 
 (defun csv-nav-parse-line ()
