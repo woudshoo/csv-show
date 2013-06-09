@@ -181,24 +181,17 @@ the `csv-show-select' function."
 (defun csv-get-current-value-for-field (field)
   "Returns the value of the given field for the current record"
   (let ((old-marker csv-nav-source-marker)
-        cells 
-        columns
-        value)
+        cells columns)
     (save-excursion
       (set-buffer (marker-buffer old-marker))
       (goto-char old-marker)
       (setq cells (csv-nav-parse-line)
-            columns (csv-nav-get-columns))
-      )
-    (while columns
-      (when (equal (car columns) field)
-        (setq value (car cells))
-        (setq columns nil)
-        )
-      (setq columns (cdr columns)
-            cells (cdr cells)))
-    ; Don't know how to properly return a value, so set a variable to itself
-    (setq value value)))
+            columns (csv-nav-get-columns)))
+    (while (and columns cells
+		(not (equal (car columns) field)))
+      (pop columns)
+      (pop cells))
+    (and columns cells (car cells))))
 
 (defun csv-get-current-statistictime ()
   "Returns the StatisticTime value of the current record"
@@ -213,17 +206,11 @@ the `csv-show-select' function."
 (defun csv-show-next/prev-statistictime (&optional dir)
   "Shows the next or previous record for which the StatisticTime field is different than the current, and InstanceID is identical."
   (interactive)
-  (let ((current-statistictime (csv-get-current-statistictime))
-        new-statistictime
-        (current-instanceid (csv-get-current-instanceid))
-        new-instanceid)
-    (setq new-statistictime current-statistictime)
-    (setq new-instanceid current-instanceid)
-    (while (or (equal current-statistictime new-statistictime)
-               (not (equal current-instanceid new-instanceid)))
+  (let* ((current-statistictime (csv-get-current-statistictime))
+        (current-instanceid (csv-get-current-instanceid)))
+    (while (or (equal current-statistictime (csv-get-current-statistictime))
+               (not (equal current-instanceid (csv-get-current-instanceid))))
       (csv-show-next/prev dir)
-      (setq new-statistictime (csv-get-current-statistictime))
-      (setq new-instanceid (csv-get-current-instanceid))
       ;(message (concat "Current: " current-statistictime " New: " new-statistictime))
     )))
 
