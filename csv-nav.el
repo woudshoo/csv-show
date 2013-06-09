@@ -42,7 +42,9 @@
 (setq csv-show-map 
       (let ((map (make-sparse-keymap)))
 	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
+	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
+	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	map))
 
 (define-generic-mode csv-show-mode
@@ -175,6 +177,55 @@ the `csv-show-select' function."
     (setq csv-nav-source-marker new-marker
 	  csv-nav-source-line-no line-no)
     (csv-show-fill-buffer columns cells)))
+
+(defun csv-get-current-value-for-field (field)
+  "Returns the value of the given field for the current record"
+  (let ((old-marker csv-nav-source-marker)
+        cells 
+        columns
+        value)
+    (save-excursion
+      (set-buffer (marker-buffer old-marker))
+      (goto-char old-marker)
+      (setq cells (csv-nav-parse-line)
+            columns (csv-nav-get-columns))
+      )
+    (while columns
+      (when (equal (car columns) field)
+        (setq value (car cells))
+        (setq columns nil)
+        )
+      (setq columns (cdr columns)
+            cells (cdr cells)))
+    ; Don't know how to properly return a value, so set a variable to itself
+    (setq value value)))
+
+(defun csv-get-current-statistictime ()
+  "Returns the StatisticTime value of the current record"
+  (csv-get-current-value-for-field "StatisticTime"))
+
+(defun csv-get-current-instanceid ()
+  "Returns the InstanceID value of the current record"
+  (csv-get-current-value-for-field "InstanceID"))
+  
+; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
+; csv buffer
+(defun csv-show-next/prev-statistictime (&optional dir)
+  "Shows the next or previous record for which the StatisticTime field is different than the current, and InstanceID is identical."
+  (interactive)
+  (let ((current-statistictime (csv-get-current-statistictime))
+        new-statistictime
+        (current-instanceid (csv-get-current-instanceid))
+        new-instanceid)
+    (setq new-statistictime current-statistictime)
+    (setq new-instanceid current-instanceid)
+    (while (or (equal current-statistictime new-statistictime)
+               (not (equal current-instanceid new-instanceid)))
+      (csv-show-next/prev dir)
+      (setq new-statistictime (csv-get-current-statistictime))
+      (setq new-instanceid (csv-get-current-instanceid))
+      ;(message (concat "Current: " current-statistictime " New: " new-statistictime))
+    )))
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
