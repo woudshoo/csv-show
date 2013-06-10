@@ -161,7 +161,7 @@ the `csv-show-select' function."
       (setq buffer-read-only t))
     (goto-char (point-min)))
 
-(defun csv-show--mark-forward/backward (&optional dir)
+(defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
 Note that this does not updat the content of the buffer,
 it will parse the column, cells and put these into the
@@ -173,19 +173,20 @@ variable.
 For updatint the content see the function `csv-show-fill-buffer'."
   (let ((old-marker csv-nav-source-marker)
 	new-marker line-no cells columns)
-    (save-excursion
-      (set-buffer (marker-buffer old-marker))
-      (goto-char old-marker)
-      (forward-line (or dir 1))
-      (beginning-of-line)
-      (setq new-marker (point-marker)
-	    line-no (line-number-at-pos (point))
-	    columns (csv-nav--get-columns)
-	    cells (csv-nav--get-cells)))
+    (with-current-buffer (marker-buffer old-marker)
+      (save-excursion
+	(goto-char old-marker)
+	(forward-line (or dir 1))
+	(beginning-of-line)
+	(setq new-marker (point-marker)
+	      line-no (line-number-at-pos (point))
+	      columns (unless do-not-parse-headers (csv-nav--get-columns))
+	      cells (csv-nav--get-cells))))
     (setq csv-nav-source-marker new-marker
 	  csv-nav-source-line-no line-no
-	  csv-nav-columns columns
-	  csv-nav-cells cells)))
+	  csv-nav-cells cells)
+    (unless do-not-parse-headers
+      (setq csv-nav-columns columns))))
 
 (defun csv-show-current ()
   (interactive)
@@ -193,6 +194,7 @@ For updatint the content see the function `csv-show-fill-buffer'."
 	(with-current-buffer (marker-buffer csv-nav-source-marker)
 	  (save-excursion
 	    (beginning-of-line)
+	    (message "Point: %s Marker: %s" (point) (point-marker))
 	    (point-marker))))
   (csv-show--mark-forward/backward 0)
   (csv-show-fill-buffer))
@@ -200,7 +202,7 @@ For updatint the content see the function `csv-show-fill-buffer'."
 (defun csv-show-next/prev (&optional dir)
   "Shows the next or previous record."
   (interactive "p")
-  (csv-show--mark-forward/backward dir)
+  (csv-show--mark-forward/backward dir t)
   (csv-show-fill-buffer))
 
 (defun csv-get-current-value-for-field (field)
@@ -232,7 +234,7 @@ identical."
         (current-instanceid (csv-get-current-instanceid)))
     (while (or (equal current-statistictime (csv-get-current-statistictime))
                (not (equal current-instanceid (csv-get-current-instanceid))))
-      (csv-show--mark-forward/backward dir))
+      (csv-show--mark-forward/backward dir t))
     (csv-show-fill-buffer)))
 
 
