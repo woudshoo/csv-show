@@ -225,9 +225,11 @@ the `csv-show-select' function."
         (current-instanceid (csv-get-current-instanceid)))
     (while (or (equal current-statistictime (csv-get-current-statistictime))
                (not (equal current-instanceid (csv-get-current-instanceid))))
-      (csv-show-next/prev dir)
+      (csv-show-next/prev-without-updating-detail-buffer dir)
       ;(message (concat "Current: " current-statistictime " New: " new-statistictime))
-    )))
+    ))
+  (csv-show-fill-buffer-with-current-line)
+)
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
