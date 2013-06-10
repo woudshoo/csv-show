@@ -204,15 +204,16 @@ the `csv-show-select' function."
 ; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
 ; csv buffer
 (defun csv-show-next/prev-statistictime (&optional dir)
-  "Shows the next or previous record for which the StatisticTime field is different than the current, and InstanceID is identical."
+  "Shows the next or previous record for which the StatisticTime
+field is different than the current, and InstanceID is
+identical."
   (interactive)
-  (let* ((current-statistictime (csv-get-current-statistictime))
+  (let ((current-statistictime (csv-get-current-statistictime))
         (current-instanceid (csv-get-current-instanceid)))
     (while (or (equal current-statistictime (csv-get-current-statistictime))
                (not (equal current-instanceid (csv-get-current-instanceid))))
-      (csv-show-next/prev dir)
-      ;(message (concat "Current: " current-statistictime " New: " new-statistictime))
-    )))
+      (csv-show--mark-forward/backward dir))
+    (csv-show-fill-buffer)))
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
