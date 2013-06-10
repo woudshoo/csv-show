@@ -43,6 +43,7 @@
       (let ((map (make-sparse-keymap)))
 	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
 	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
+	(define-key map "." (lambda () (interactive) (csv-show-current)))
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	map))
@@ -61,7 +62,9 @@ the `csv-show-select' function."
   (setq font-lock-defaults nil) 
   (use-local-map csv-show-map)
   (make-local-variable 'csv-nav-source-marker)
-  (make-local-variable 'csv-nav-source-line-no))
+  (make-local-variable 'csv-nav-source-line-no)
+  (make-local-variable 'csv-nav-columns)
+  (make-local-variable 'csv-nav-cells))
 
 
 (defvar csv-nav-syntax-table
@@ -109,35 +112,34 @@ the `csv-show-select' function."
 	       (forward-char 1))))	; break
       (nreverse result))))
 
-(defun csv-nav-get-columns ()
+(defun csv-nav--get-columns ()
   "Get the field names of the buffer."
   (save-excursion
     (goto-char (point-min))
     (csv-nav-parse-line)))
 
+(defun csv-nav--get-cells ()
+  (save-excursion
+    (csv-nav-parse-line)))
+
 (defun csv-show-select ()
   "Show the current row."
   (interactive)
-  (let ((columns (csv-nav-get-columns))
-	(current-buffer-v (current-buffer))
-	line-no start
-	cells)
+  (let ((current-buffer-v (current-buffer))
+	start)
     (save-excursion
       (beginning-of-line)
-      (setq line-no (line-number-at-pos (point))
-	    start (point-marker)
-	    cells (csv-nav-parse-line)))
-    (when (< (length columns)
-	     (length cells))
-      (error "Not enough columns for all the cells"))
+      (setq start (point-marker)))
+
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (csv-show-mode)
-    (setq csv-nav-source-marker start
-	  csv-nav-source-line-no line-no)
-    (csv-show-fill-buffer columns cells)
+    (message "start: %s" start)
+    (setq csv-nav-source-marker start)
+    (csv-show--mark-forward/backward 0)
+    (csv-show-fill-buffer)
     (pop-to-buffer current-buffer-v)))
 
-(defun csv-show-fill-buffer (columns cells)
+(defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (setq buffer-read-only nil)
     (erase-buffer)
@@ -145,8 +147,10 @@ the `csv-show-select' function."
     (insert "FILE: " (buffer-name (marker-buffer csv-nav-source-marker))
 	    " LINE: " (format "%d" csv-nav-source-line-no) "\n\n")
     
-    (let ((width (reduce 'max columns :key 'length)))
-      (while columns
+    (let ((width (reduce 'max csv-nav-columns :key 'length))
+	  (columns csv-nav-columns)
+	  (cells csv-nav-cells))
+      (while (and columns cells)
 	(when (> (length (car cells)) 0)
 	  (insert (propertize (concat  (car columns) ":")
 			      'field 'column
@@ -154,39 +158,57 @@ the `csv-show-select' function."
 			      'rear-nonsticky t))
 	  (move-to-column (+ 4 width) t)
 	  (insert (car cells) "\n"))
-	(setq columns (cdr columns)
-	      cells (cdr cells)))
+	(pop columns)
+	(pop cells))
       (setq buffer-read-only t))
     (goto-char (point-min)))
 
-(defun csv-show-next/prev (&optional dir)
-  "Shows the next or previous record."
-  (interactive "p")
+(defun csv-show--mark-forward/backward (&optional dir)
+  "Move the selection to the next or previous record.
+Note that this does not updat the content of the buffer,
+it will parse the column, cells and put these into the
+corresponding local variables of the CSV-Detail buffer.
+
+Also move the mark down or up and update the line-no
+variable.
+
+For updatint the content see the function `csv-show-fill-buffer'."
   (let ((old-marker csv-nav-source-marker)
-	new-marker line-no 
-	cells columns)
+	new-marker line-no cells columns)
     (save-excursion
       (set-buffer (marker-buffer old-marker))
       (goto-char old-marker)
       (forward-line (or dir 1))
-      (setq line-no (line-number-at-pos (point))
-	    new-marker (point-marker)
-	    cells (csv-nav-parse-line)
-	    columns (csv-nav-get-columns)))
-
+      (beginning-of-line)
+      (setq new-marker (point-marker)
+	    line-no (line-number-at-pos (point))
+	    columns (csv-nav--get-columns)
+	    cells (csv-nav--get-cells)))
     (setq csv-nav-source-marker new-marker
-	  csv-nav-source-line-no line-no)
-    (csv-show-fill-buffer columns cells)))
+	  csv-nav-source-line-no line-no
+	  csv-nav-columns columns
+	  csv-nav-cells cells)))
+
+(defun csv-show-current ()
+  (interactive)
+  (setq csv-nav-source-marker 
+	(with-current-buffer (marker-buffer csv-nav-source-marker)
+	  (save-excursion
+	    (beginning-of-line)
+	    (point-marker))))
+  (csv-show--mark-forward/backward 0)
+  (csv-show-fill-buffer))
+
+(defun csv-show-next/prev (&optional dir)
+  "Shows the next or previous record."
+  (interactive "p")
+  (csv-show--mark-forward/backward dir)
+  (csv-show-fill-buffer))
 
 (defun csv-get-current-value-for-field (field)
   "Returns the value of the given field for the current record"
-  (let ((old-marker csv-nav-source-marker)
-        cells columns)
-    (save-excursion
-      (set-buffer (marker-buffer old-marker))
-      (goto-char old-marker)
-      (setq cells (csv-nav-parse-line)
-            columns (csv-nav-get-columns)))
+  (let ((columns csv-nav-columns)
+	(cells csv-nav-cells))
     (while (and columns cells
 		(not (equal (car columns) field)))
       (pop columns)
