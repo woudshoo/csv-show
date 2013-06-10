@@ -159,24 +159,39 @@ the `csv-show-select' function."
       (setq buffer-read-only t))
     (goto-char (point-min)))
 
-(defun csv-show-next/prev (&optional dir)
-  "Shows the next or previous record."
-  (interactive "p")
+(defun csv-show-fill-buffer-with-current-line ()
+  ""
+  (let ((marker csv-nav-source-marker)
+        cells columns)
+    (save-excursion
+      (set-buffer (marker-buffer csv-nav-source-marker))
+      (goto-char marker)
+      (setq cells (csv-nav-parse-line)
+            columns (csv-nav-get-columns)))
+  (csv-show-fill-buffer columns cells)
+  ))
+
+(defun csv-show-next/prev-without-updating-detail-buffer (&optional dir)
+  "Changes point and updates data structures."
   (let ((old-marker csv-nav-source-marker)
 	new-marker line-no 
-	cells columns)
+	)
     (save-excursion
       (set-buffer (marker-buffer old-marker))
       (goto-char old-marker)
       (forward-line (or dir 1))
       (setq line-no (line-number-at-pos (point))
-	    new-marker (point-marker)
-	    cells (csv-nav-parse-line)
-	    columns (csv-nav-get-columns)))
-
+	    new-marker (point-marker)))
     (setq csv-nav-source-marker new-marker
 	  csv-nav-source-line-no line-no)
-    (csv-show-fill-buffer columns cells)))
+    ))
+
+(defun csv-show-next/prev (&optional dir)
+  "Shows the next or previous record."
+  (interactive "p")
+  (csv-show-next/prev-without-updating-detail-buffer dir)
+  (csv-show-fill-buffer-with-current-line)
+  )
 
 (defun csv-get-current-value-for-field (field)
   "Returns the value of the given field for the current record"
