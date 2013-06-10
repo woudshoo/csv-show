@@ -130,10 +130,8 @@ the `csv-show-select' function."
     (save-excursion
       (beginning-of-line)
       (setq start (point-marker)))
-
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (csv-show-mode)
-    (message "start: %s" start)
     (setq csv-nav-source-marker start)
     (csv-show--mark-forward/backward 0)
     (csv-show-fill-buffer)
@@ -236,6 +234,7 @@ identical."
                (not (equal current-instanceid (csv-get-current-instanceid))))
       (csv-show--mark-forward/backward dir))
     (csv-show-fill-buffer)))
+
 
 (provide 'csv-nav)
 ;;; csv-nav.el ends here
