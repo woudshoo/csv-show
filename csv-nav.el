@@ -34,16 +34,23 @@
 
 ;;; Code:
 
+(setq csv-show-select-map
+      (let ((map (make-sparse-keymap)))
+	(define-key map [?\C-.] 'csv-show-toggle-timer)
+	(define-key map [C-return] 'csv-show-select)
+	map))
+
 ;;;###autoload
 (define-minor-mode csv-select-show-mode 
   "Shows a row in a CSV file in a separate buffer."
-  nil " CSV-SHOW" '(([C-return] . csv-show-select)))
+  nil " CSV-SHOW" csv-show-select-map)
 
 (setq csv-show-map 
       (let ((map (make-sparse-keymap)))
 	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
 	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
 	(define-key map "." (lambda () (interactive) (csv-show-current)))
+	(define-key map [?\C-.] 'csv-show-toggle-timer)
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	map))
@@ -137,6 +144,27 @@ the `csv-show-select' function."
     (csv-show-fill-buffer)
     (pop-to-buffer current-buffer-v)))
 
+
+(defvar csv-show-update-timer nil)
+
+(defun csv-show-toggle-timer ()
+  (interactive)
+  (if csv-show-update-timer 
+      (progn
+	(cancel-timer csv-show-update-timer)
+	(setq csv-show-update-timer nil))
+    (setq csv-show-update-timer 
+	  (run-with-idle-timer 0.2 t 'csv-show-update-detail-buffer))))
+
+(defun csv-show-update-detail-buffer ()
+  (interactive)
+  (let ((detail-buffer (get-buffer "*CSV Detail*")))
+    (when detail-buffer
+      (save-match-data
+	(save-excursion
+	  (with-current-buffer detail-buffer
+	    (csv-show-current)))))))
+
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (setq buffer-read-only nil)
@@ -194,7 +222,6 @@ For updatint the content see the function `csv-show-fill-buffer'."
 	(with-current-buffer (marker-buffer csv-nav-source-marker)
 	  (save-excursion
 	    (beginning-of-line)
-	    (message "Point: %s Marker: %s" (point) (point-marker))
 	    (point-marker))))
   (csv-show--mark-forward/backward 0)
   (csv-show-fill-buffer))
