@@ -133,30 +133,37 @@ the `csv-show-select' function."
   "Show the current row."
   (interactive)
   (let ((current-buffer-v (current-buffer))
-	start)
-    (save-excursion
-      (beginning-of-line)
-      (setq start (point-marker)))
+	(start (point-marker)))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
     (csv-show-mode)
     (setq csv-nav-source-marker start)
-    (csv-show--mark-forward/backward 0)
-    (csv-show-fill-buffer)
+    (csv-show-current)
     (pop-to-buffer current-buffer-v)))
 
 
-(defvar csv-show-update-timer nil)
+(defvar csv-show-update-timer nil
+  "Holds the timer used to keep the *CSV Detail* buffer in sync
+with the underlying CSV buffer.
+
+If nil the timer is not active.")
 
 (defun csv-show-toggle-timer ()
+  "When enabled, the *CSV Detail* buffer tracks the cursor in the
+underlying CSV buffer.  This function turns toggles this
+functionality."
   (interactive)
   (if csv-show-update-timer 
       (progn
 	(cancel-timer csv-show-update-timer)
 	(setq csv-show-update-timer nil))
     (setq csv-show-update-timer 
-	  (run-with-idle-timer 0.2 t 'csv-show-update-detail-buffer))))
+	  (run-with-idle-timer 0.1 t 'csv-show-update-detail-buffer))))
 
 (defun csv-show-update-detail-buffer ()
+  "Updates the *CSV Detail* buffer with the content of the line
+containing point in the underlying CSV buffer.  It is similar to the 
+`csv-show-select', except that it does not create a *CSV Detail* buffer
+if it exists."
   (interactive)
   (let ((detail-buffer (get-buffer "*CSV Detail*")))
     (when detail-buffer
@@ -217,6 +224,9 @@ For updatint the content see the function `csv-show-fill-buffer'."
       (setq csv-nav-columns columns))))
 
 (defun csv-show-current ()
+  "Update the content of the *CSV-Detail* buffer with the content
+of the current line.  
+This function requires that the current buffer is a *CSV-Detail* buffer."
   (interactive)
   (setq csv-nav-source-marker 
 	(with-current-buffer (marker-buffer csv-nav-source-marker)
