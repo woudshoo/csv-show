@@ -34,6 +34,8 @@
 
 ;;; Code:
 
+(require 'cl)
+
 (setq csv-show-select-map
       (let ((map (make-sparse-keymap)))
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
