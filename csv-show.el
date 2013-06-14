@@ -36,18 +36,18 @@
 
 (require 'cl)
 
-(setq csv-show-select-map
+(setq csv-show-map
       (let ((map (make-sparse-keymap)))
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
 	(define-key map [C-return] 'csv-show-select)
 	map))
 
 ;;;###autoload
-(define-minor-mode csv-select-show-mode 
+(define-minor-mode csv-show-mode 
   "Shows a row in a CSV file in a separate buffer."
-  nil " CSV-SHOW" csv-show-select-map)
+  nil " CSV-SHOW" csv-show-map)
 
-(setq csv-show-map 
+(setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
 	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
 	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
@@ -57,19 +57,19 @@
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	map))
 
-(define-generic-mode csv-show-mode
-  nil nil nil nil '(csv-show-setup)
+(define-generic-mode csv-show-detail-mode
+  nil nil nil nil '(csv-show--detail-setup)
   "Major mode for viewing CSV file records.
 
 This mode is enabled for buffers that are created by the
 `csv-show-select' function.  It should not be toggled by the user.")
 
-(defun csv-show-setup ()
+(defun csv-show--detail-setup ()
   "Main code to setup the csv-show major mode.
 This mode should not be selected by the user, but by 
 the `csv-show-select' function."
   (setq font-lock-defaults nil) 
-  (use-local-map csv-show-map)
+  (use-local-map csv-show-detail-map)
   (make-local-variable 'csv-show-source-marker)
   (make-local-variable 'csv-show-source-line-no)
   (make-local-variable 'csv-show-columns)
@@ -137,7 +137,7 @@ the `csv-show-select' function."
   (let ((current-buffer-v (current-buffer))
 	(start (point-marker)))
     (pop-to-buffer (get-buffer-create "*CSV Detail*"))
-    (csv-show-mode)
+    (csv-show-detail-mode)
     (setq csv-show-source-marker start)
     (csv-show-current)
     (pop-to-buffer current-buffer-v)))
