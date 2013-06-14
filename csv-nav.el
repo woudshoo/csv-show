@@ -168,9 +168,8 @@ if it exists."
   (let ((detail-buffer (get-buffer "*CSV Detail*")))
     (when detail-buffer
       (save-match-data
-	(save-excursion
-	  (with-current-buffer detail-buffer
-	    (csv-show-current)))))))
+	(with-current-buffer detail-buffer
+	  (csv-show-current))))))
 
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
