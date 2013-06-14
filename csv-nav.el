@@ -1,4 +1,4 @@
-;;; csv-nav.el --- navigate and edit CSV files
+;;; csv-show.el --- navigate and edit CSV files
 
 ;; Copyright (C) 2006  Alex Schroeder <alex@gnu.org>
 ;; Copyright (C) 2013  Tom Koelman
@@ -277,4 +277,4 @@ identical."
 
 
 (provide 'csv-show)
-;;; csv-nav.el ends here
+;;; csv-show.el ends here
