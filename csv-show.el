@@ -260,6 +260,18 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current))))))
 
+(defvar csv-show-column-format-functions
+  `(("StatisticTime" . csv-show--statistictime-to-string)
+    ("InstanceID" . csv-show--instanceid-to-string)
+    )
+)
+
+(defun csv-show--format-function-for-column (column)
+  "Return the format function for COLUMN."
+  (or
+   (cdr (assoc column csv-show-column-format-functions ))
+   #'identity))
+
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (setq buffer-read-only nil)
@@ -278,7 +290,7 @@ if it exists."
 			      'face 'font-lock-keyword-face
 			      'rear-nonsticky t))
 	  (move-to-column (+ 4 width) t)
-	  (insert (car cells) "\n"))
+          (insert (funcall (csv-show--format-function-for-column (car columns)) (car cells)) "\n"))
 	(pop columns)
 	(pop cells))
       (setq buffer-read-only t))
@@ -359,18 +371,23 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   (or (csv-show--get-current-value-for-index instanceid-index)
       (csv-show--get-current-value-for-field "InstanceID")))
 
-(defun csv-show--readable-statistictime ( statistictime )
-  ""
+(defun csv-show--statistictime-to-string ( statistictime )
+  "Returns a nicely formatted STATISTICTIME."
   (interactive)
-  (let ( (year month day hour minute second offset ) )
+  (let ( year month day hour minute second offset )
     (setq year (substring statistictime 0 4)
           month (substring statistictime 4 6)
           day (substring statistictime 6 8)
           hour (substring statistictime 8 10)
           minute (substring statistictime 10 12)
           second (substring statistictime 12 14)
-          offset (substring statistictime -3)
-          (concat year "-" month "-" day " " hour ":" minute ":" second " " offset ))))
+          offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
+          (concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")" )))
+
+(defun csv-show--instanceid-to-string ( instanceid )
+  "Returns a nicely formatted INSTANCEID."
+  (interactive)
+  (substring instanceid 20))
 
 ; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
 ; csv buffer
