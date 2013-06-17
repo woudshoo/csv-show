@@ -46,7 +46,7 @@
 ;;;###autoload
 (define-minor-mode csv-show-mode 
   "Shows a row in a CSV file in a separate buffer."
-  nil " CSV-SHOW" csv-show-map)
+  nil " csv-show" csv-show-map)
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
