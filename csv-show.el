@@ -65,7 +65,6 @@
     result))
 
 (defmacro in-other-buffer (marker bindings &rest body)
-  (when (> (length bindings) 1) (error "Too complicated"))
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 ;; tmps = (tmp-a tmp-b tmp-c ..)
@@ -85,14 +84,13 @@
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
-	(define-key map [?\C-\;] 'csv-show-toggle-follow)
 	(define-key map [C-return] 'csv-show-select)
 	map))
 
 ;;;###autoload
 (define-minor-mode csv-show-mode 
   "Shows a row in a CSV file in a separate buffer."
-  nil " CSV-SHOW" csv-show-map)
+  nil " csv-show" csv-show-map)
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
@@ -146,6 +144,90 @@ the `csv-show-select' function."
     ;(setq field (replace-regexp-in-string " $" "" field))
     field))
 
+(defun csv-show--iterator-next (iterator)
+  "Return next elm of ITERATOR."
+  (funcall iterator))
+
+(defun csv-show--iterator-from-list (list)
+  "Returns an iterator over LIST."
+  (lambda (&optional n)
+    (if n
+        (nth n list)
+      (pop list))))
+
+(defun csv-show--field-index-for-column (column)
+  "Returns the index of COLUMN."
+  (position column (csv-show--get-columns) :test #'equal))
+    
+(require 'ert)
+(ert-deftest csv-show--iterator-from-list-test ()
+  (let ((iterator (csv-show--iterator-from-list (list 1 2 3))))
+    (if (not (equal (csv-show--iterator-next iterator) 1))
+        (assert nil)
+      (if (not (equal (csv-show--iterator-next iterator) 2))
+          (assert nil)
+        (if (not (equal (csv-show--iterator-next iterator) 3))
+            (assert nil)
+          (if (not (equal (csv-show--iterator-next iterator) nil))
+              (assert nil)
+            (if (not (equal (csv-show--iterator-next iterator) nil))
+                (assert nil))))))
+      (assert 1)))
+
+(ert-deftest csv-show--iterator-from-list-nth-test ()
+  (let ((iterator (csv-show--iterator-from-list (list 1 2 3))))
+    (if (not (equal (funcall iterator 0) 1))
+        (assert nil)
+      (if (not (equal (funcall iterator 1) 2))
+          (assert nil)
+        (if (not (equal (funcall iterator 2) 3))
+            (assert nil)
+          (if (not (equal (funcall iterator 3) nil))
+              (assert nil)))))
+      (assert 1)))
+
+(ert-deftest csv-show--field-index-for-column-test ()
+  (let ((csv-show--get-columns-cache (list "Header1" "Header2" "Header3")))
+    (assert (equal (csv-show--field-index-for-column "Header2") 1))))
+
+(defun csv-show--get-column-iterator ()
+  "Returns an iterator that iterates over the columns."
+  (csv-show--iterator-from-list (csv-show--get-columns)))
+
+(defun csv-show--parse-line-iterator ()
+  "Returns an iterator over the values that are in the current line."
+  (let ((start (point))
+        current-point)
+    (setq current-point (point))
+    (lambda(&optional n)
+      (save-excursion
+        (goto-char current-point)
+        (with-syntax-table csv-show-syntax-table
+          (let (element)
+            (dotimes (i (+ 1 (or n 0)))
+              (skip-syntax-forward "^.\" ")
+              (setq element nil)
+              (while (and (equal element nil)
+                          start)
+                (cond ((eq (char-after) ?,)
+                       (setq element (csv-show-parse-field start)
+                             start (1+ (point)))
+                       (forward-char 1))
+                      ((eq (char-after) ?\n)
+                       (setq element (csv-show-parse-field start)
+                             start nil)
+                       (forward-char 1))
+                      ((eq (char-after) ?\")
+                       (forward-sexp 1))
+                      (t
+                       (forward-char 1)))))
+            (setq current-point (point))
+            element))))))
+
+(defun csv-show--get-cell-iterator-for-current-line ()
+  "Returns an iterator that iterates over the cells of the current line."
+  (csv-show--parse-line-iterator))
+
 (defun csv-show-parse-line ()
   "Parse the current line and return the list of values."
   (let ((start (point))
@@ -167,11 +249,14 @@ the `csv-show-select' function."
 	       (forward-char 1))))	; break
       (nreverse result))))
 
+(defvar csv-show--get-columns-cache nil)
+
 (defun csv-show--get-columns ()
   "Get the field names of the buffer."
-  (save-excursion
-    (goto-char (point-min))
-    (csv-show-parse-line)))
+  (or csv-show--get-columns-cache
+      (save-excursion
+        (goto-char (point-min))
+        (csv-show-parse-line))))
 
 (defun csv-show--get-cells ()
   (save-excursion
@@ -187,7 +272,6 @@ the `csv-show-select' function."
     (setq csv-show-source-marker start)
     (csv-show-current)
     (pop-to-buffer current-buffer-v)))
-
 
 (defvar csv-show-update-timer nil
   "Holds the timer used to keep the *CSV Detail* buffer in sync
@@ -207,24 +291,6 @@ functionality."
     (setq csv-show-update-timer 
 	  (run-with-idle-timer 0.1 t 'csv-show-update-detail-buffer))))
 
-(defvar csv-show--toggle-follow-enabled nil)
-(defvar csv-show--follow-line-no nil)
-
-(defun csv-show-toggle-follow ()
-  (interactive)
-  (if csv-show--toggle-follow-enabled
-      (progn
-	(remove-hook 'post-command-hook 'csv-show--follow-update-hook t))
-    (add-hook 'post-command-hook 'csv-show--follow-update-hook nil t))
-  (setq csv-show--toggle-follow-enabled (not csv-show--toggle-follow-enabled)))
-
-(defun csv-show--follow-update-hook ()
-  (unless (equal csv-show--follow-line-no (line-number-at-pos))
-    (condition-case nil
-	(progn
-	  (setq csv-show--follow-line-no (line-number-at-pos))
-	  (csv-show-update-detail-buffer))
-      (error t))))
 
 (defun csv-show-update-detail-buffer ()
   "Updates the *CSV Detail* buffer with the content of the line
@@ -237,6 +303,18 @@ if it exists."
       (save-match-data
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
+
+(defvar csv-show-column-format-functions
+  `(("StatisticTime" . csv-show--statistictime-to-string)
+    ("InstanceID" . csv-show--instanceid-to-string)
+    )
+)
+
+(defun csv-show--format-function-for-column (column)
+  "Return the format function for COLUMN."
+  (or
+   (cdr (assoc column csv-show-column-format-functions ))
+   #'identity))
 
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
@@ -256,7 +334,7 @@ if it exists."
 			      'face 'font-lock-keyword-face
 			      'rear-nonsticky t))
 	  (move-to-column (+ 4 width) t)
-	  (insert (car cells) "\n"))
+          (insert (funcall (csv-show--format-function-for-column (car columns)) (car cells)) "\n"))
 	(pop columns)
 	(pop cells))
       (setq buffer-read-only t))
@@ -264,14 +342,14 @@ if it exists."
 
 (defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
-Note that this does not updat the content of the buffer,
+Note that this does not update the content of the buffer,
 it will parse the column, cells and put these into the
 corresponding local variables of the CSV-Detail buffer.
 
 Also move the mark down or up and update the line-no
 variable.
 
-For updatint the content see the function `csv-show-fill-buffer'."
+For updating the content see the function `csv-show-fill-buffer'."
   (let (new-show-columns)
     (in-other-buffer csv-show-source-marker 
 		     ((csv-show-source-marker (point-marker))
@@ -304,24 +382,53 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   (csv-show--mark-forward/backward dir t)
   (csv-show-fill-buffer))
 
-(defun csv-get-current-value-for-field (field)
-  "Returns the value of the given field for the current record"
-  (let ((columns csv-show-columns)
-	(cells csv-show-cells))
-    (while (and columns cells
-		(not (equal (car columns) field)))
-      (pop columns)
-      (pop cells))
-    (and columns cells (car cells))))
+(defun csv-show--get-current-value-for-field (field)
+  "Returns the value of FIELD for the current record."
+  (let ((column-iterator (csv-show--get-column-iterator))
+        (cell-iterator (csv-show--get-cell-iterator-for-current-line))
+        current-column)
+    (while (and (setq current-column (csv-show--iterator-next column-iterator))
+                (not (equal current-column field)))
+      (csv-show--iterator-next cell-iterator))
+    (if current-column
+        (csv-show--iterator-next cell-iterator)
+      nil)))
 
-(defun csv-get-current-statistictime ()
-  "Returns the StatisticTime value of the current record"
-  (csv-get-current-value-for-field "StatisticTime"))
+(defun csv-show--get-current-value-for-index (index)
+  "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
+  (when index
+    (funcall (csv-show--get-cell-iterator-for-current-line) index)))
 
-(defun csv-get-current-instanceid ()
-  "Returns the InstanceID value of the current record"
-  (csv-get-current-value-for-field "InstanceID"))
-  
+(defvar statistictime-index nil)
+(defun csv-show--get-current-statistictime ()
+  "Returns the StatisticTime value of the current record."
+  (or (csv-show--get-current-value-for-index statistictime-index)
+      (csv-show--get-current-value-for-field "StatisticTime")))
+
+(defvar instanceid-index nil)
+(defun csv-show--get-current-instanceid ()
+  "Returns the InstanceID value of the current record."
+  (or (csv-show--get-current-value-for-index instanceid-index)
+      (csv-show--get-current-value-for-field "InstanceID")))
+
+(defun csv-show--statistictime-to-string ( statistictime )
+  "Returns a nicely formatted STATISTICTIME."
+  (interactive)
+  (let ( year month day hour minute second offset )
+    (setq year (substring statistictime 0 4)
+          month (substring statistictime 4 6)
+          day (substring statistictime 6 8)
+          hour (substring statistictime 8 10)
+          minute (substring statistictime 10 12)
+          second (substring statistictime 12 14)
+          offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
+          (concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")" )))
+
+(defun csv-show--instanceid-to-string ( instanceid )
+  "Returns a nicely formatted INSTANCEID."
+  (interactive)
+  (substring instanceid 20))
+
 ; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
 ; csv buffer
 (defun csv-show-next/prev-statistictime (&optional dir)
@@ -329,11 +436,29 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 field is different than the current, and InstanceID is
 identical."
   (interactive)
-  (let ((current-statistictime (csv-get-current-statistictime))
-        (current-instanceid (csv-get-current-instanceid)))
-    (while (or (equal current-statistictime (csv-get-current-statistictime))
-               (not (equal current-instanceid (csv-get-current-instanceid))))
-      (csv-show--mark-forward/backward dir t))
+  (let ( (old-marker csv-show-source-marker)
+         new-marker line-no cells 
+         column-index)
+    (with-current-buffer (marker-buffer old-marker)
+      (let* ( (csv-show--get-columns-cache (csv-show--get-columns) ) 
+              (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
+              (instanceid-index (csv-show--field-index-for-column "InstanceID"))
+              current-statistictime current-instanceid)
+        (goto-char old-marker)
+        (setq current-statistictime (csv-show--get-current-statistictime)
+              current-instanceid (csv-show--get-current-instanceid))
+        (while (or 
+                   (not (equal current-instanceid (csv-show--get-current-instanceid)))
+                   (equal current-statistictime (csv-show--get-current-statistictime))
+                   )
+          (forward-line (or dir 1))
+          (beginning-of-line))
+        (setq new-marker (point-marker)
+              line-no (line-number-at-pos (point))
+              cells (csv-show--get-cells))))
+    (setq csv-show-source-marker new-marker
+          csv-show-source-line-no line-no
+          csv-show-cells cells)
     (csv-show-fill-buffer)))
 
 (provide 'csv-show)
