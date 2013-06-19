@@ -384,30 +384,22 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 field is different than the current, and InstanceID is
 identical."
   (interactive)
-  (let ( (old-marker csv-show-source-marker)
-         new-marker line-no cells 
-         column-index)
-    (with-current-buffer (marker-buffer old-marker)
-      (let* ( (csv-show--get-columns-cache (csv-show--get-columns) ) 
-              (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
-              (instanceid-index (csv-show--field-index-for-column "InstanceID"))
-              current-statistictime current-instanceid)
-        (goto-char old-marker)
-        (setq current-statistictime (csv-show--get-current-value-for-index statistictime-index)
-              current-instanceid (csv-show--get-current-value-for-index instanceid-index))
-        (while (or 
-                   (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
-                   (equal current-statistictime (csv-show--get-current-value-for-index statistictime-index))
-                   )
-          (forward-line (or dir 1))
-          (beginning-of-line))
-        (setq new-marker (point-marker)
-              line-no (line-number-at-pos (point))
-              cells (csv-show--get-cells))))
-    (setq csv-show-source-marker new-marker
-          csv-show-source-line-no line-no
-          csv-show-cells cells)
-    (csv-show-fill-buffer)))
+  (in-other-buffer csv-show-source-marker 
+		     ((csv-show-source-marker (point-marker))
+		      (csv-show-source-line-no (line-number-at-pos (point)))
+		      (csv-show-cells (csv-show--get-cells)))
+                     (let* ( (csv-show--get-columns-cache (csv-show--get-columns) ) 
+                             (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
+                             (instanceid-index (csv-show--field-index-for-column "InstanceID"))
+                             current-statistictime (csv-show--get-current-value-for-index statistictime-index)
+                             current-instanceid (csv-show--get-current-value-for-index instanceid-index))
+                       (while (or
+                               (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
+                               (equal current-statistictime (csv-show--get-current-value-for-index statistictime-index))
+                               )
+                         (forward-line (or dir 1))
+                         (beginning-of-line))))
+  (csv-show-fill-buffer))
 
 (provide 'csv-show)
 ;;; csv-show.el ends here
