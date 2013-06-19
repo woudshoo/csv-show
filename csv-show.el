@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; Use the `csv-select-show-mode' minor mode in a CSV file to activate
+;; Use the `csv-show-mode' minor mode in a CSV file to activate
 ;; the csv-show feature.
 ;;
 ;; When this minor mode is enabled C-return will open up a new buffer
@@ -35,6 +35,50 @@
 ;;; Code:
 
 (require 'cl)
+
+;;
+;;  (in-other-buffer marker ((var-a  expr-a) (var-b expr-b)) ...)
+;;
+;;  (let (tmp-a tmp-b tmp-c)
+;;    (with-current-buffer (marker-buffer marker)
+;;       (save-excursion
+;;         ...body...
+;;         (setq tmp-a expr-a
+;;               tmp-b expr-b)))
+;;     (setq var-a tmp-a
+;;           var-b tmp-b))
+;;
+;;
+;;  --
+;;  body = (1 2 3)
+;;
+;;  `(a ,body) ==> (a (1 2 3))
+;;  `(a ,@body) ==> (a 1 2 3)
+;;  `(ksadjflasj ,sdlfkj
+;;
+
+(defun parallel-mapcar (function list-a list-b)
+  (let (result)
+    (while (and list-a list-b)
+      (push (funcall function (pop list-a) (pop list-b)) result))
+    result))
+
+(defmacro in-other-buffer (marker bindings &rest body)
+  (let* ((old-mark (make-symbol "OLD-MARKER"))
+	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
+	 ;; tmps = (tmp-a tmp-b tmp-c ..)
+	 (set-tmps (parallel-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
+	 ;; set-tmps = ((tmp-a expr-a) (tmp-b expr-b) ...)
+	 (set-vars (parallel-mapcar (lambda (v tmp) (list (car v) tmp)) bindings tmps)))
+    `(let ,tmps
+       (let ((,old-mark ,marker))
+	 (with-current-buffer (marker-buffer ,marker)
+	   (save-excursion
+	     (goto-char ,old-mark)
+	     ,@body
+	     ,@(mapcar (lambda (tmp-form) `(setq ,@tmp-form)) set-tmps))))
+       ,@(mapcar (lambda (var-form) `(setq ,@var-form)) set-vars))))
+
 
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
@@ -94,9 +138,9 @@ the `csv-show-select' function."
 	     "\r" "" (replace-regexp-in-string
 		      "\"\"" "\"" (substring field 1 -1)))))
     ;; Remove leading spaces from field
-    (setq field (replace-regexp-in-string "^ " "" field))
+    ;(setq field (replace-regexp-in-string "^ " "" field))
     ;; Remove trailing spaces from field
-    (setq field (replace-regexp-in-string " $" "" field))
+    ;(setq field (replace-regexp-in-string " $" "" field))
     field))
 
 (defun csv-show--field-index-for-column (column)
@@ -124,16 +168,13 @@ the `csv-show-select' function."
 	(skip-syntax-forward "^.\" ")
 	(cond ((eq (char-after) ?,)
                (setq current-value (csv-show-parse-field start)
-                     index (1+ index))
-               (setq ;; result (cons (csv-show-parse-field start) result)
-                start (1+ (point)))
+                     index (1+ index)
+                     start (1+ (point)))
 	       (forward-char 1))
               ((eq (char-after) ?\n)
                (setq current-value (csv-show-parse-field start)
-                     index (1+ index))
-               (setq ;; result (cons (csv-show-parse-field start)
-		     ;;    	  result)
-                start nil)
+                     index (1+ index)
+                     start nil)
 	       (forward-char 1))
 	      ((eq (char-after) ?\")
 	       (forward-sexp 1))
@@ -180,7 +221,7 @@ If nil the timer is not active.")
 
 (defun csv-show-toggle-timer ()
   "When enabled, the *CSV Detail* buffer tracks the cursor in the
-underlying CSV buffer.  This function turns toggles this
+underlying CSV buffer.  This function toggles this
 functionality."
   (interactive)
   (if csv-show-update-timer 
@@ -189,6 +230,7 @@ functionality."
 	(setq csv-show-update-timer nil))
     (setq csv-show-update-timer 
 	  (run-with-idle-timer 0.1 t 'csv-show-update-detail-buffer))))
+
 
 (defun csv-show-update-detail-buffer ()
   "Updates the *CSV Detail* buffer with the content of the line
@@ -200,7 +242,7 @@ if it exists."
     (when detail-buffer
       (save-match-data
 	(with-current-buffer detail-buffer
-	  (csv-show-current))))))
+	  (csv-show-current t))))))
 
 (defun csv-show--statistictime-to-string ( statistictime )
   "Returns a nicely formatted STATISTICTIME."
@@ -297,24 +339,20 @@ Also move the mark down or up and update the line-no
 variable.
 
 For updating the content see the function `csv-show-fill-buffer'."
-  (let ((old-marker csv-show-source-marker)
-	new-marker line-no cells columns)
-    (with-current-buffer (marker-buffer old-marker)
-      (save-excursion
-	(goto-char old-marker)
-	(forward-line (or dir 1))
-	(beginning-of-line)
-	(setq new-marker (point-marker)
-	      line-no (line-number-at-pos (point))
-	      columns (unless do-not-parse-headers (csv-show--get-columns))
-	      cells (csv-show--get-cells))))
-    (setq csv-show-source-marker new-marker
-	  csv-show-source-line-no line-no
-	  csv-show-cells cells)
+  (let (new-show-columns)
+    (in-other-buffer csv-show-source-marker 
+		     ((csv-show-source-marker (point-marker))
+		      (csv-show-source-line-no (line-number-at-pos (point)))
+		      (csv-show-cells (csv-show--get-cells))
+		      (new-show-columns (unless do-not-parse-headers
+					  (csv-show--get-columns))))
+		     
+		     (forward-line (or dir 1))
+		     (beginning-of-line))
     (unless do-not-parse-headers
-      (setq csv-show-columns columns))))
+      (setq csv-show-columns new-show-columns))))
 
-(defun csv-show-current ()
+(defun csv-show-current (&optional do-not-parse-headers)
   "Update the content of the *CSV-Detail* buffer with the content
 of the current line.  
 This function requires that the current buffer is a *CSV-Detail* buffer."
@@ -324,7 +362,7 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 	  (save-excursion
 	    (beginning-of-line)
 	    (point-marker))))
-  (csv-show--mark-forward/backward 0)
+  (csv-show--mark-forward/backward 0 do-not-parse-headers) 
   (csv-show-fill-buffer))
 
 (defun csv-show-next/prev (&optional dir)
