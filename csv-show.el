@@ -260,9 +260,58 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current))))))
 
+(defun csv-show--statistictime-to-string ( statistictime )
+  "Returns a nicely formatted STATISTICTIME."
+  (interactive)
+  (let ( year month day hour minute second offset )
+    (setq year (substring statistictime 0 4)
+          month (substring statistictime 4 6)
+          day (substring statistictime 6 8)
+          hour (substring statistictime 8 10)
+          minute (substring statistictime 10 12)
+          second (substring statistictime 12 14)
+          offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
+          (concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" )))
+
+(defun csv-show--usagerestriction-to-string ( usagerestriction )
+  "Returns a nicely formatted USAGERESTRICTION."
+  (interactive)
+  (cond ((equal usagerestriction "0")
+         "Unknown*")
+        ((equal usagerestriction "2")
+         "Front-end only*")
+        ((equal usagerestriction "3")
+         "Back-end only*")
+        ((equal usagerestriction "4")
+         "Not restricted*")
+        (t usagerestriction)))
+
+(defun csv-show--format-huge-number( hugenumber )
+  "Returns a nicely formatted HUGENUMBER."
+  (interactive)
+  (let (groups)
+    (while (> (length hugenumber) 0)
+      (if (>= (length hugenumber) 3)
+          (progn
+            (push (substring hugenumber -3) groups)
+            (setq hugenumber (substring hugenumber 0 (- (length hugenumber) 3)))
+            )
+        (progn
+         (push hugenumber groups)
+         (setq hugenumber "")
+         )))
+    (concat (mapconcat 'identity groups " ") "*")
+  ))
+
 (defvar csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
-    ("InstanceID" . csv-show--instanceid-to-string)
+    ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
+    ("UsageRestriction" . csv-show--usagerestriction-to-string)
+    ("Consumed" . csv-show--format-huge-number)
+    ("ConsumableBlocks" . csv-show--format-huge-number)
+    ("NumberOfBlocks" . csv-show--format-huge-number)
+    ("MaxSpeed" . csv-show--format-huge-number)
+    ("Speed" . csv-show--format-huge-number)
     )
 )
 
@@ -370,24 +419,6 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   "Returns the InstanceID value of the current record."
   (or (csv-show--get-current-value-for-index instanceid-index)
       (csv-show--get-current-value-for-field "InstanceID")))
-
-(defun csv-show--statistictime-to-string ( statistictime )
-  "Returns a nicely formatted STATISTICTIME."
-  (interactive)
-  (let ( year month day hour minute second offset )
-    (setq year (substring statistictime 0 4)
-          month (substring statistictime 4 6)
-          day (substring statistictime 6 8)
-          hour (substring statistictime 8 10)
-          minute (substring statistictime 10 12)
-          second (substring statistictime 12 14)
-          offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
-          (concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")" )))
-
-(defun csv-show--instanceid-to-string ( instanceid )
-  "Returns a nicely formatted INSTANCEID."
-  (interactive)
-  (substring instanceid 20))
 
 ; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
 ; csv buffer
