@@ -100,6 +100,8 @@
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
+	(define-key map "h" 'csv-show-hide-column)
+	(define-key map "s" 'csv-show-column-state-toggle)
 	map))
 
 (define-generic-mode csv-show-detail-mode
@@ -118,7 +120,11 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-source-marker)
   (make-local-variable 'csv-show-source-line-no)
   (make-local-variable 'csv-show-columns)
-  (make-local-variable 'csv-show-cells))
+  (make-local-variable 'csv-show-cells)
+  (make-local-variable 'csv-show-column-state)
+  (make-local-variable 'csv-show-column-state-toggle)
+  (setq csv-show-column-state (list))
+  (setq csv-show-column-state-toggle nil))
 
 
 (defvar csv-show-syntax-table
@@ -316,29 +322,62 @@ if it exists."
    (cdr (assoc column csv-show-column-format-functions ))
    #'identity))
 
+(defun csv-show-set-column-state (column state)
+  (push (cons column state) csv-show-column-state))
+
+(defun csv-show-column-name (&optional point)
+  (save-excursion
+    (when point (goto-char point))
+    (beginning-of-line)
+    (buffer-substring-no-properties (point)
+				    (1- (search-forward ":")))))
+
+(defun csv-show-hide-column ()
+  (interactive)
+  (let ((column (csv-show-column-name)))
+    (case (csv-show-column-state column)
+      ('hidden (csv-show-set-column-state column 'normal))
+      (t (csv-show-set-column-state column 'hidden))))
+  (csv-show-fill-buffer))
+
+(defun csv-show-column-state-toggle ()
+  (interactive)
+  (setq csv-show-column-state-toggle (not csv-show-column-state-toggle))
+  (csv-show-fill-buffer))
+
+(defun csv-show-column-state (column)
+  (cdr (assoc column csv-show-column-state)))
+
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (setq buffer-read-only nil)
-    (erase-buffer)
+    (let ((line-no (line-number-at-pos))
+	  (column-no (current-column)))
+      (erase-buffer)
 
-    (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
-	    " LINE: " (format "%d" csv-show-source-line-no) "\n\n")
-    
-    (let ((width (reduce 'max csv-show-columns :key 'length))
-	  (columns csv-show-columns)
-	  (cells csv-show-cells))
-      (while (and columns cells)
-	(when (> (length (car cells)) 0)
-	  (insert (propertize (concat  (car columns) ":")
-			      'field 'column
-			      'face 'font-lock-keyword-face
-			      'rear-nonsticky t))
-	  (move-to-column (+ 4 width) t)
-          (insert (funcall (csv-show--format-function-for-column (car columns)) (car cells)) "\n"))
-	(pop columns)
-	(pop cells))
-      (setq buffer-read-only t))
-    (goto-char (point-min)))
+      (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
+	      " LINE: " (format "%d" csv-show-source-line-no) "\n\n")
+      
+      (let ((width (reduce 'max csv-show-columns :key 'length))
+	    (columns csv-show-columns)
+	    (cells csv-show-cells))
+	(while (and columns cells)
+	  (let ((start (point))
+		(column (pop columns))
+		(cell (pop cells)))
+	    (insert (propertize (concat  column ":")
+				'face 'font-lock-keyword-face
+				'rear-nonsticky t))
+	    (move-to-column (+ 4 width) t)
+	    (insert (funcall (csv-show--format-function-for-column column) cell) "\n")
+	    (case (csv-show-column-state column)
+	      ('hidden (put-text-property start (point) 'face 'highlight)
+		       (unless csv-show-column-state-toggle
+			 (put-text-property start (point) 'invisible t))))))
+	(setq buffer-read-only t))
+      (goto-char (point-min))
+      (forward-line (1- line-no))
+      (move-to-column column-no)))
 
 (defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
