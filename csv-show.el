@@ -197,6 +197,7 @@ the `csv-show-select' function."
       (nreverse result)))
 
 (defvar csv-show--get-columns-cache nil)
+
 (defun csv-show--get-columns ()
   "Get the field names of the buffer."
   (or csv-show--get-columns-cache
@@ -250,20 +251,22 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
 
-(defun csv-show--statistictime-to-string ( statistictime )
+(defun csv-show--statistictime-to-string (statistictime)
   "Returns a nicely formatted STATISTICTIME."
   (interactive)
-  (let ( year month day hour minute second offset )
-    (setq year (substring statistictime 0 4)
-          month (substring statistictime 4 6)
-          day (substring statistictime 6 8)
-          hour (substring statistictime 8 10)
-          minute (substring statistictime 10 12)
-          second (substring statistictime 12 14)
-          offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
-          (concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" )))
+  (if (> (length statistictime) 18)
+      (let (year month day hour minute second offset)
+	(setq year (substring statistictime 0 4)
+	      month (substring statistictime 4 6)
+	      day (substring statistictime 6 8)
+	      hour (substring statistictime 8 10)
+	      minute (substring statistictime 10 12)
+	      second (substring statistictime 12 14)
+	      offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
+	(concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" ))
+    statistictime))
 
-(defun csv-show--usagerestriction-to-string ( usagerestriction )
+(defun csv-show--usagerestriction-to-string (usagerestriction)
   "Returns a nicely formatted USAGERESTRICTION."
   (interactive)
   (cond ((equal usagerestriction "0")
@@ -276,7 +279,7 @@ if it exists."
          "Not restricted*")
         (t usagerestriction)))
 
-(defun csv-show--format-huge-number( hugenumber )
+(defun csv-show--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
   (interactive)
   (let (groups)
@@ -301,9 +304,7 @@ if it exists."
     ("ConsumableBlocks" . csv-show--format-huge-number)
     ("NumberOfBlocks" . csv-show--format-huge-number)
     ("MaxSpeed" . csv-show--format-huge-number)
-    ("Speed" . csv-show--format-huge-number)
-    )
-)
+    ("Speed" . csv-show--format-huge-number)))
 
 (defun csv-show--format-function-for-column (column)
   "Return the format function for COLUMN."
@@ -413,6 +414,7 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 (defun csv-show--get-current-value-for-index (index)
   "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
   (when index
+    (beginning-of-line)
     (let* ((values (csv-show-parse-line (list index))))
       (car values))))
 
@@ -424,20 +426,35 @@ field is different than the current, and InstanceID is
 identical."
   (interactive)
   (in-other-buffer csv-show-source-marker 
-		     ((csv-show-source-marker (point-marker))
-		      (csv-show-source-line-no (line-number-at-pos (point)))
-		      (csv-show-cells (csv-show--get-cells)))
-                     (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
-			    (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
-			    (instanceid-index (csv-show--field-index-for-column "InstanceID"))
-			    (current-statistictime (csv-show--get-current-value-for-index statistictime-index))
-			    (current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
-                       (while (or
-                               (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
-                               (equal current-statistictime (csv-show--get-current-value-for-index statistictime-index)))
-                         (forward-line (or dir 1))
-                         (beginning-of-line))))
+		   ((csv-show-source-marker (point-marker))
+		    (csv-show-source-line-no (line-number-at-pos (point)))
+		    (csv-show-cells (csv-show--get-cells)))
+		   
+		   (csv-show--next/prev-statistictime (or dir 1)))
   (csv-show-fill-buffer))
+
+(defun csv-show--next/prev-statistictime (dir)
+  "Moves up or down in the CSV file (current buffer) until a line is encountered 
+with a different statistics time but the same instance id.
+
+Pre conditions are:  
+ - point is at the beginning of a line.
+
+Post conditions:
+ - point is at the beginning of the new line.
+"
+  (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
+	 (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
+	 (instanceid-index (csv-show--field-index-for-column "InstanceID"))
+	 (current-statistictime (csv-show--get-current-value-for-index statistictime-index))
+	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
+    (while (or
+	    (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
+	    (equal current-statistictime (csv-show--get-current-value-for-index statistictime-index)))
+      (beginning-of-line)
+      (unless (equal (forward-line dir) 0)
+	(error "No more records")))
+    (beginning-of-line)))
 
 (provide 'csv-show)
 ;;; csv-show.el ends here
