@@ -372,7 +372,7 @@ if it exists."
       (goto-char (point-min))
       (put-text-property (point) (point-max) 'invisible nil)
       (put-text-property (point) (point-max) 'face nil)
-      (forward-line 3)
+      (forward-line 2)
       (while (not (eobp))
 	(let ((column (csv-show-column-name))
 	      (start (point)))
@@ -381,13 +381,10 @@ if it exists."
 	     (forward-line)
 	     (if csv-show-column-state-toggle
 		 (put-text-property start (point) 'face 'highlight)
-	       (put-text-property start (point) 'invisible t)
-;	       (put-text-property start (point) 'face '(:foreground "red"))
-	       ))
-	    (t (forward-line)
-;	       (put-text-property start (point) 'invisible nil)
-;	       (put-text-property start (point) 'face nil)
-	       )))))))
+	       (put-text-property start (point) 'invisible t)))
+	    (t 
+	     (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face)
+	     (forward-line))))))))
 
 (defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
