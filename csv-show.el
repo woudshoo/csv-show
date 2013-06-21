@@ -94,6 +94,7 @@
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
+	(set-keymap-parent map special-mode-map)
 	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
 	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
 	(define-key map "." (lambda () (interactive) (csv-show-current)))
@@ -338,21 +339,22 @@ if it exists."
     (case (csv-show-column-state column)
       ('hidden (csv-show-set-column-state column 'normal))
       (t (csv-show-set-column-state column 'hidden))))
-  (csv-show-fill-buffer))
+  (forward-line)
+  (csv-show-fontify-detail-buffer))
 
 (defun csv-show-column-state-toggle ()
   (interactive)
   (setq csv-show-column-state-toggle (not csv-show-column-state-toggle))
-  (csv-show-fill-buffer))
+  (csv-show-fontify-detail-buffer))
 
 (defun csv-show-column-state (column)
   (cdr (assoc column csv-show-column-state)))
 
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
-    (setq buffer-read-only nil)
     (let ((line-no (line-number-at-pos))
-	  (column-no (current-column)))
+	  (column-no (current-column))
+	  (buffer-read-only nil))
       (erase-buffer)
 
       (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
@@ -365,19 +367,37 @@ if it exists."
 	  (let ((start (point))
 		(column (pop columns))
 		(cell (pop cells)))
-	    (insert (propertize (concat  column ":")
-				'face 'font-lock-keyword-face
-				'rear-nonsticky t))
+	    (insert (concat  column ":"))
 	    (move-to-column (+ 4 width) t)
-	    (insert (funcall (csv-show--format-function-for-column column) cell) "\n")
-	    (case (csv-show-column-state column)
-	      ('hidden (put-text-property start (point) 'face 'highlight)
-		       (unless csv-show-column-state-toggle
-			 (put-text-property start (point) 'invisible t))))))
-	(setq buffer-read-only t))
+	    (insert (funcall (csv-show--format-function-for-column column) cell) "\n"))))
+      (csv-show-fontify-detail-buffer)
       (goto-char (point-min))
       (forward-line (1- line-no))
       (move-to-column column-no)))
+
+(defun csv-show-fontify-detail-buffer ()
+  "Fontifies the detail buffer, assumes that the detail buffer is current buffer."
+  (save-excursion
+    (let ((buffer-read-only nil))
+      (goto-char (point-min))
+      (put-text-property (point) (point-max) 'invisible nil)
+      (put-text-property (point) (point-max) 'face nil)
+      (forward-line 3)
+      (while (not (eobp))
+	(let ((column (csv-show-column-name))
+	      (start (point)))
+	  (case (csv-show-column-state column)
+	    (hidden
+	     (forward-line)
+	     (if csv-show-column-state-toggle
+		 (put-text-property start (point) 'face 'highlight)
+	       (put-text-property start (point) 'invisible t)
+;	       (put-text-property start (point) 'face '(:foreground "red"))
+	       ))
+	    (t (forward-line)
+;	       (put-text-property start (point) 'invisible nil)
+;	       (put-text-property start (point) 'face nil)
+	       )))))))
 
 (defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
