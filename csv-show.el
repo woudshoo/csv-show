@@ -305,6 +305,7 @@ if it exists."
     ("ConsumableBlocks" . csv-show--format-huge-number)
     ("NumberOfBlocks" . csv-show--format-huge-number)
     ("MaxSpeed" . csv-show--format-huge-number)
+    ("RequestedSpeed" . csv-show--format-huge-number)
     ("Speed" . csv-show--format-huge-number)))
 
 (defun csv-show--format-function-for-column (column)
