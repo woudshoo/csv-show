@@ -101,6 +101,7 @@
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	(define-key map "h" 'csv-show-hide-column)
+	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	map))
 
@@ -270,15 +271,13 @@ if it exists."
 (defun csv-show--usagerestriction-to-string (usagerestriction)
   "Returns a nicely formatted USAGERESTRICTION."
   (interactive)
-  (cond ((equal usagerestriction "0")
-         "Unknown*")
-        ((equal usagerestriction "2")
-         "Front-end only*")
-        ((equal usagerestriction "3")
-         "Back-end only*")
-        ((equal usagerestriction "4")
-         "Not restricted*")
-        (t usagerestriction)))
+  (or
+   (assoc-default usagerestriction
+		  '(("0" .    "Unknown*")
+		    ("2" .    "Front-end only*")
+		    ("3" .    "Back-end only*")
+		    ("4" .    "Not restricted*")))
+   usagerestriction))
 
 (defun csv-show--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
@@ -288,14 +287,11 @@ if it exists."
       (if (>= (length hugenumber) 3)
           (progn
             (push (substring hugenumber -3) groups)
-            (setq hugenumber (substring hugenumber 0 (- (length hugenumber) 3)))
-            )
+            (setq hugenumber (substring hugenumber 0 (- (length hugenumber) 3))))
         (progn
          (push hugenumber groups)
-         (setq hugenumber "")
-         )))
-    (concat (mapconcat 'identity groups " ") "*")
-  ))
+         (setq hugenumber ""))))
+    (concat (mapconcat 'identity groups " ") "*")))
 
 (defvar csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
@@ -311,13 +307,29 @@ if it exists."
 (defun csv-show--format-function-for-column (column)
   "Return the format function for COLUMN."
   (or
-   (cdr (assoc column csv-show-column-format-functions ))
+   (assoc-default column csv-show-column-format-functions )
    #'identity))
 
 (defun csv-show-set-column-state (column state)
+  "Sets the state of `column' to `state'.  
+See also `csv-show-column-state'"
   (push (cons column state) csv-show-column-state))
 
+
+(defun csv-show-column-state (column)
+  "Returns the state of the `column'.
+The valid states are 
+
+  - nil    -- meaning the state is never set.
+  - normal -- should have the same meaning as nil.
+  - hidden -- hides the column in CSV Detail buffer, 
+              but see also `csv-show-column-state-toggle'"
+  (assoc-default column csv-show-column-state))
+
 (defun csv-show-column-name (&optional point)
+  "Returns the column name for the line containing `point'.
+If `point' is nil or not provided, use the current point in the
+buffer."
   (save-excursion
     (when point (goto-char point))
     (beginning-of-line)
@@ -325,6 +337,14 @@ if it exists."
 				    (1- (search-forward ":")))))
 
 (defun csv-show-hide-column ()
+  "Will mark the column on the current row for hiding. 
+Depending on the `column-state-toggle' it will either immediate hide
+the column, or it will mark it visibly as hidden.
+
+If used on an already hidden column (displayed with the highlight),
+unhide the column.
+
+See also `csv-show-column-state-toggle'"
   (interactive)
   (let ((column (csv-show-column-name)))
     (case (csv-show-column-state column)
@@ -333,13 +353,24 @@ if it exists."
   (forward-line)
   (csv-show-fontify-detail-buffer))
 
+(defun csv-show-bold-column ()
+  "Will mark the column on the current row for bolding. 
+
+See also `csv-show-column-state-toggle'"
+  (interactive)
+  (let ((column (csv-show-column-name)))
+    (case (csv-show-column-state column)
+      ('bold (csv-show-set-column-state column 'normal))
+      (t (csv-show-set-column-state column 'bold))))
+  (forward-line)
+  (csv-show-fontify-detail-buffer))
+
 (defun csv-show-column-state-toggle ()
+  "Toggles between showing all columns and hiding the columns that
+are marked for hiding.  See also `csv-show-hide-column'"
   (interactive)
   (setq csv-show-column-state-toggle (not csv-show-column-state-toggle))
   (csv-show-fontify-detail-buffer))
-
-(defun csv-show-column-state (column)
-  (cdr (assoc column csv-show-column-state)))
 
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
@@ -383,6 +414,9 @@ if it exists."
 	     (if csv-show-column-state-toggle
 		 (put-text-property start (point) 'face 'highlight)
 	       (put-text-property start (point) 'invisible t)))
+	    (bold
+	     (forward-line)
+	     (put-text-property start (point) 'face '(:weight bold)))
 	    (t 
 	     (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face)
 	     (forward-line))))))))
@@ -433,8 +467,7 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
   (when index
     (beginning-of-line)
-    (let* ((values (csv-show-parse-line (list index))))
-      (car values))))
+    (car (csv-show-parse-line (list index)))))
 
 ; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
 ; csv buffer
