@@ -105,6 +105,8 @@
 	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
+        (define-key map "j" (lambda () (interactive) (csv-show-next/prev-value -1)))
+        (define-key map "k" (lambda () (interactive) (csv-show-next/prev-value 1)))
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
 	map))
 
@@ -483,8 +485,6 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
     (beginning-of-line)
     (car (csv-show-parse-line (list index)))))
 
-; csv-show-next/prev-statistictime needs a check on the beginning and the end of the
-; csv buffer
 (defun csv-show-next/prev-statistictime (&optional dir)
   "Shows the next or previous record for which the StatisticTime
 field is different than the current, and InstanceID is
@@ -495,12 +495,28 @@ identical."
 		    (csv-show-source-line-no (line-number-at-pos (point)))
 		    (csv-show-cells (csv-show--get-cells)))
 		   
-		   (csv-show--next/prev-statistictime (or dir 1)))
+		   (csv-show--next/prev-value "StatisticTime" (or dir 1)))
   (csv-show-fill-buffer))
 
-(defun csv-show--next/prev-statistictime (dir)
+(defun csv-show-next/prev-value (&optional dir)
+  "Shows the next or previous record for which the value of
+the current column is different than the current value for the current
+column, and InstanceID is
+identical."
+  (interactive)
+  (let ((variable-column (csv-show-column-name)))
+    (in-other-buffer csv-show-source-marker 
+                     ((csv-show-source-marker (point-marker))
+                      (csv-show-source-line-no (line-number-at-pos (point)))
+                      (csv-show-cells (csv-show--get-cells)))
+		   
+                     (csv-show--next/prev-value variable-column (or dir 1)))
+    )
+  (csv-show-fill-buffer))
+
+(defun csv-show--next/prev-value (column dir)
   "Moves up or down in the CSV file (current buffer) until a line is encountered 
-with a different statistics time but the same instance id.
+with a different value for column but the same instance id.
 
 Pre conditions are:  
  - point is at the beginning of a line.
@@ -509,13 +525,13 @@ Post conditions:
  - point is at the beginning of the new line.
 "
   (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
-	 (statistictime-index (csv-show--field-index-for-column "StatisticTime"))
+	 (variable-column-index (csv-show--field-index-for-column column))
 	 (instanceid-index (csv-show--field-index-for-column "InstanceID"))
-	 (current-statistictime (csv-show--get-current-value-for-index statistictime-index))
+	 (current-value (csv-show--get-current-value-for-index variable-column-index))
 	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
     (while (or
 	    (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
-	    (equal current-statistictime (csv-show--get-current-value-for-index statistictime-index)))
+	    (equal current-value (csv-show--get-current-value-for-index variable-column-index)))
       (beginning-of-line)
       (unless (equal (forward-line dir) 0)
 	(error "No more records")))
