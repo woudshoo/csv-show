@@ -221,7 +221,7 @@ the `csv-show-select' function."
   (interactive)
   (let ((current-buffer-v (current-buffer))
 	(start (point-marker)))
-    (pop-to-buffer (get-buffer-create "*CSV Detail*"))
+    (pop-to-buffer (get-buffer-create (concat "*CSV Detail " (buffer-file-name current-buffer-v) "*" )))
     (csv-show-detail-mode)
     (setq csv-show-source-marker start)
     (csv-show-current)
