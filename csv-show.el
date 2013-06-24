@@ -101,6 +101,7 @@
 	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	(define-key map "h" 'csv-show-hide-column)
+        (define-key map "c" 'csv-show-hide-constant-columns)
 	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	map))
@@ -207,9 +208,9 @@ the `csv-show-select' function."
         (goto-char (point-min))
         (csv-show-parse-line))))
 
-(defun csv-show--get-cells ()
+(defun csv-show--get-cells (&optional indices)
   (save-excursion
-    (csv-show-parse-line)))
+    (csv-show-parse-line indices)))
 
 (defun csv-show-select ()
   "Show the current row."
@@ -323,7 +324,8 @@ The valid states are
   - nil    -- meaning the state is never set.
   - normal -- should have the same meaning as nil.
   - hidden -- hides the column in CSV Detail buffer, 
-              but see also `csv-show-column-state-toggle'"
+              but see also `csv-show-column-state-toggle'
+  - constant -- hides the column in CSV Detail buffer"
   (assoc-default column csv-show-column-state))
 
 (defun csv-show-column-name (&optional point)
@@ -335,6 +337,16 @@ buffer."
     (beginning-of-line)
     (buffer-substring-no-properties (point)
 				    (1- (search-forward ":")))))
+
+(defun csv-show-hide-constant-columns ()
+  "Hides all columns that have constant value."
+  (interactive)
+  (let (constant-columns)
+    (in-other-buffer csv-show-source-marker ((constant-columns (tom/ignore-constant-columns-based-on-indices))))
+    (message (concat (int-to-string (length constant-columns)) " constant columns found."))
+    (dolist (column constant-columns)
+      (csv-show-set-column-state column 'constant)))
+  (csv-show-fontify-detail-buffer))
 
 (defun csv-show-hide-column ()
   "Will mark the column on the current row for hiding. 
@@ -409,7 +421,7 @@ are marked for hiding.  See also `csv-show-hide-column'"
 	(let ((column (csv-show-column-name))
 	      (start (point)))
 	  (case (csv-show-column-state column)
-	    (hidden
+	    ((hidden constant)
 	     (forward-line)
 	     (if csv-show-column-state-toggle
 		 (put-text-property start (point) 'face 'highlight)
@@ -506,6 +518,45 @@ Post conditions:
       (unless (equal (forward-line dir) 0)
 	(error "No more records")))
     (beginning-of-line)))
+
+(defun tom/ignore-constant-columns-based-on-indices()
+  "Analyzes a csv buffer and returns a list of the column names that contain constant values."
+  (interactive)
+  (let (columns
+        constant-columns-indices
+        previous-cells
+        current-cells)
+      (beginning-of-buffer)
+      (setq columns (csv-show--get-columns))
+      (let ((i 0))
+        (dolist (c columns)
+          (push i constant-columns-indices)
+          (setq i (+ i 1))
+          ))
+      (setq constant-columns-indices (reverse constant-columns-indices))
+      (message "Finding constant columns...")
+      (while (and (forward-line) (not (eobp)))
+        (let (constant-columns-changed)
+          (setq current-cells (csv-show--get-cells constant-columns-indices))
+          (when previous-cells
+            (let ((c (copy-list constant-columns-indices))
+                  (p previous-cells)
+                  (n current-cells))
+            (while c
+              (let ((column (pop c))
+                    (previous (pop p))
+                    (current (pop n)))
+                (when (not (equal previous current))
+                  (setq constant-columns-indices (delete column constant-columns-indices))
+                  (message (concat "Finding constant columns: " (int-to-string (length constant-columns-indices)) " possible constant columns left." ))
+                  (setq constant-columns-changed t))))))
+          (if constant-columns-changed
+              (setq previous-cells (csv-show--get-cells constant-columns-indices))
+            (setq previous-cells current-cells))
+          ))
+      (beginning-of-buffer)
+      (csv-show--get-cells constant-columns-indices)
+      ))
 
 (provide 'csv-show)
 ;;; csv-show.el ends here
