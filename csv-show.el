@@ -106,7 +106,6 @@
 	(define-key map "s" 'csv-show-column-state-toggle)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
-        (define-key map "q" 'csv-show-kill-current-detail-buffer)
 	map))
 
 (define-generic-mode csv-show-detail-mode
@@ -565,13 +564,6 @@ Post conditions:
   "When in detail buffer switch to its source buffer"
   (interactive)
   (pop-to-buffer (marker-buffer csv-show-source-marker)))
-
-(defun csv-show-kill-current-detail-buffer ()
-  ""
-  (interactive)
-  (let ((source csv-show-source-marker))
-    (kill-this-buffer)
-    (pop-to-buffer (marker-buffer source))))
 
 (provide 'csv-show)
 ;;; csv-show.el ends here
