@@ -331,6 +331,10 @@ if it exists."
     ("KBytesWritten" . csv-show--format-big-number-of-kilobytes)
     ("MaxSpeed" . csv-show--format-big-number-of-bytes)
     ("RequestedSpeed" . csv-show--format-big-number-of-bytes)
+    ("EMCKBytesSPARead" . csv-show--format-big-number-of-kilobytes)
+    ("EMCKBytesSPBRead" . csv-show--format-big-number-of-kilobytes)
+    ("EMCKBytesSPAWritten" . csv-show--format-big-number-of-kilobytes)
+    ("EMCKBytesSPBWritten" . csv-show--format-big-number-of-kilobytes)
     ("Speed" . csv-show--format-big-number-of-bytes)))
 
 (defun csv-show--format-function-for-column (column)
