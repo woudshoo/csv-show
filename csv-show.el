@@ -108,6 +108,7 @@
         (define-key map "j" (lambda () (interactive) (csv-show-next/prev-value -1)))
         (define-key map "k" (lambda () (interactive) (csv-show-next/prev-value 1)))
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
+        (define-key map "f" 'csv-show-format-toggle)
 	map))
 
 (define-generic-mode csv-show-detail-mode
@@ -129,9 +130,10 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-cells)
   (make-local-variable 'csv-show-column-state)
   (make-local-variable 'csv-show-column-state-toggle)
+  (make-local-variable 'csv-show-format-toggle)
   (setq csv-show-column-state (list))
-  (setq csv-show-column-state-toggle nil))
-
+  (setq csv-show-column-state-toggle nil)
+  (setq csv-show-format-toggle t))
 
 (defvar csv-show-syntax-table
   (let ((table (make-syntax-table)))
@@ -410,6 +412,12 @@ are marked for hiding.  See also `csv-show-hide-column'"
   (setq csv-show-column-state-toggle (not csv-show-column-state-toggle))
   (csv-show-fontify-detail-buffer))
 
+(defun csv-show-format-toggle ()
+  "Toggles between showing raw values and their formatted counterparts."
+  (interactive)
+  (setq csv-show-format-toggle (not csv-show-format-toggle))
+  (csv-show-fill-buffer))
+
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((line-no (line-number-at-pos))
@@ -429,7 +437,9 @@ are marked for hiding.  See also `csv-show-hide-column'"
 		(cell (pop cells)))
 	    (insert (concat  column ":"))
 	    (move-to-column (+ 4 width) t)
-	    (insert (funcall (csv-show--format-function-for-column column) cell) "\n"))))
+            (if csv-show-format-toggle
+                (insert (funcall (csv-show--format-function-for-column column) cell) "\n")
+              (insert cell "\n" )))))
       (csv-show-fontify-detail-buffer)
       (goto-char (point-min))
       (forward-line (1- line-no))
