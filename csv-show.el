@@ -311,13 +311,19 @@ if it exists."
   (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
   "*"))
 
+(defun csv-show--format-big-number-of-blocks (big-number-of-blocks)
+ ""
+ (concat
+  (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
+  "*"))
+
 (defvar csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
     ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
     ("UsageRestriction" . csv-show--usagerestriction-to-string)
     ("Consumed" . csv-show--format-huge-number)
-    ("ConsumableBlocks" . csv-show--format-huge-number)
-    ("NumberOfBlocks" . csv-show--format-huge-number)
+    ("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
+    ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
     ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
     ("KBytesTransferred" . csv-show--format-big-number-of-kilobytes)
     ("KBytesWritten" . csv-show--format-big-number-of-kilobytes)
