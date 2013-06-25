@@ -298,6 +298,19 @@ if it exists."
          (setq hugenumber ""))))
     (concat (mapconcat 'identity groups " ") "*")))
 
+(require 'format-human-readable-big-number)
+
+(defun csv-show--format-big-number-of-bytes (big-number-of-bytes)
+ ""
+ (interactive)
+ (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
+
+(defun csv-show--format-big-number-of-kilobytes (big-number-of-kilobytes)
+ ""
+ (concat
+  (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
+  "*"))
+
 (defvar csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
     ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
@@ -305,9 +318,12 @@ if it exists."
     ("Consumed" . csv-show--format-huge-number)
     ("ConsumableBlocks" . csv-show--format-huge-number)
     ("NumberOfBlocks" . csv-show--format-huge-number)
-    ("MaxSpeed" . csv-show--format-huge-number)
-    ("RequestedSpeed" . csv-show--format-huge-number)
-    ("Speed" . csv-show--format-huge-number)))
+    ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
+    ("KBytesTransferred" . csv-show--format-big-number-of-kilobytes)
+    ("KBytesWritten" . csv-show--format-big-number-of-kilobytes)
+    ("MaxSpeed" . csv-show--format-big-number-of-bytes)
+    ("RequestedSpeed" . csv-show--format-big-number-of-bytes)
+    ("Speed" . csv-show--format-big-number-of-bytes)))
 
 (defun csv-show--format-function-for-column (column)
   "Return the format function for COLUMN."
