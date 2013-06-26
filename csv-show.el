@@ -374,7 +374,7 @@ buffer."
   "Hides all columns that have constant value."
   (interactive)
   (let (constant-columns)
-    (in-other-buffer csv-show-source-marker ((constant-columns (tom/ignore-constant-columns-based-on-indices))))
+    (in-other-buffer csv-show-source-marker ((constant-columns (csv-show-ignore-constant-columns))))
     (message (concat (int-to-string (length constant-columns)) " constant columns found."))
     (dolist (column constant-columns)
       (csv-show-set-column-state column 'constant)))
@@ -573,21 +573,23 @@ Post conditions:
 	(error "No more records")))
     (beginning-of-line)))
 
-(defun tom/ignore-constant-columns-based-on-indices()
+(defun csv-show--indices-of-columns()
+  "Returns a list of indices of all the columns."
+  (let ((i 0) 
+        column-indices)
+      (dolist (c (csv-show--get-columns))
+        (push i column-indices)
+        (setq i (+ i 1)))
+      (reverse column-indices)))
+  
+(defun csv-show-ignore-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
-  (let (columns
-        constant-columns-indices
+  (let ((constant-columns-indices (csv-show--indices-of-columns))
+        (columns (csv-show--get-columns))
         previous-cells
         current-cells)
     (goto-char (point-min))
-    (setq columns (csv-show--get-columns))
-    (let ((i 0))
-      (dolist (c columns)
-        (push i constant-columns-indices)
-        (setq i (+ i 1))
-        ))
-    (setq constant-columns-indices (reverse constant-columns-indices))
     (message "Finding constant columns...")
     (while (and (forward-line) (not (eobp)))
       (let (constant-columns-changed)
