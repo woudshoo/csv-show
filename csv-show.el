@@ -286,6 +286,14 @@ if it exists."
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
+(require 'vendor-for-wwn)
+(defun csv-show--format-wwn (wwn)
+  "Returns a nicely formatted WWN."
+  (interactive)
+  (if (valid-wwn wwn)
+      (concat wwn " ("  (vendor-for-wwn wwn) ")*" )
+    wwn))
+
 (defun csv-show--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
   (interactive)
@@ -319,7 +327,9 @@ if it exists."
   (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
   "*"))
 
-(defvar csv-show-column-format-functions
+(defvar csv-show-column-format-functions nil)
+
+(setq csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
     ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
     ("UsageRestriction" . csv-show--usagerestriction-to-string)
@@ -335,6 +345,12 @@ if it exists."
     ("EMCKBytesSPBRead" . csv-show--format-big-number-of-kilobytes)
     ("EMCKBytesSPAWritten" . csv-show--format-big-number-of-kilobytes)
     ("EMCKBytesSPBWritten" . csv-show--format-big-number-of-kilobytes)
+    ("PermanentAddress" . csv-show--format-wwn)
+    ("SwitchWWPN" . csv-show--format-wwn)
+    ("DeviceID" . csv-show--format-wwn)
+    ("ElementName" . csv-show--format-wwn)
+    ("EMCWWN" . csv-show--format-wwn)
+    ("OtherIdentifyingInfo" . csv-show--format-wwn)
     ("Speed" . csv-show--format-big-number-of-bytes)))
 
 (defun csv-show--format-function-for-column (column)
