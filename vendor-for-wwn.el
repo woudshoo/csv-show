@@ -7,11 +7,11 @@
 ; TODO: regexp matchin in buffer, not in string
 
 (defun vendor-for-wwn/oui-filename()
-  ""
+  "Returns the filename that's used as datasource."
   (concat (file-name-directory (symbol-file 'vendor-for-wwn/oui-list-from-file)) "oui.txt"))
 
 (defun vendor-for-wwn/oui-list-from-file ()
-  ""
+  "Parses the oui.txt file and retusn an assoc list from vendor id to vendor string."
   (interactive)
   (let (id-to-vendor)
     (with-temp-buffer
@@ -29,7 +29,7 @@
       id-to-vendor)))
 
 (defun vendor-for-wwn/oui-list ()
-  ""
+  "Returns an assoc list of vendor id to vendor string. Does caching on first call."
   (interactive)
   (if vendor-for-wwn/oui-list vendor-for-wwn/oui-list
     (progn
@@ -37,12 +37,12 @@
       vendor-for-wwn/oui-list)))
 
 (defun vendor-for-wwn/normalize-wwn (wwn)
-  ""
+  "Returns the normalized form of WWN."
   (interactive)
   (mapconcat 'identity (split-string (downcase wwn) ":") ""))
 
 (defun vendor-for-wwn/nice-wwn (wwn)
-  ""
+  "Return a nicely formatted version of WWN."
   (interactive)
   (let ((reststring (vendor-for-wwn/normalize-wwn wwn))
         resultstring)
@@ -54,7 +54,7 @@
     resultstring))
 
 (defun vendor-for-wwn/valid-wwn (wwn)
-  "Checks the validity of a WWN."
+  "Checks the validity of a WWN. Retuns nil when invalid."
   (interactive)
   (let ((wwn (vendor-for-wwn/normalize-wwn wwn)))
     (and (or (= (length wwn) 16)
@@ -65,7 +65,7 @@
 ; 600601605A3528009EB43EF277A7E211
 ; 500601623CE40703
 (defun vendor-for-wwn (wwn)
-  ""
+  "Returns the vendor for WWN."
   (interactive)
   (let ((oui (vendor-for-wwn/oui-list))
         (normalized-wwn (vendor-for-wwn/normalize-wwn wwn)))
