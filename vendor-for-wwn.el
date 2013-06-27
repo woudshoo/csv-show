@@ -1,17 +1,21 @@
 ;;; vendor-for-wwn.el --- 
 
-(defvar oui-list nil)
+(defvar vendor-for-wwn/oui-list nil)
 
 ; TODO: Comment strings
 ; TODO: Dynamically determine oui.txt
-; TODO: nice-wwn implementeren
+; TODO: vendor-for-wwn/nice-wwn implementeren
 
-(defun oui-live ()
+(defun vendor-for-wwn/oui-filename()
+  ""
+  (concat (file-name-directory (symbol-file 'vendor-for-wwn/oui-list-from-file)) "oui.txt"))
+
+(defun vendor-for-wwn/oui-list-from-file ()
   ""
   (interactive)
   (let (id-to-vendor)
     (with-temp-buffer
-      (insert-file-contents (concat emacs-package-directory "/csv-show/oui.txt"))
+      (insert-file-contents (vendor-for-wwn/oui-filename))
       (goto-char (point-min))
       (while (not (eobp))
         (let ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
@@ -24,28 +28,28 @@
         (forward-line))
       id-to-vendor)))
 
-(defun oui ()
+(defun vendor-for-wwn/oui-list ()
   ""
   (interactive)
-  (if oui-list oui-list
+  (if vendor-for-wwn/oui-list vendor-for-wwn/oui-list
     (progn
-      (setq oui-list (oui-live))
-      oui-list)))
+      (setq vendor-for-wwn/oui-list (vendor-for-wwn/oui-list-from-file))
+      vendor-for-wwn/oui-list)))
 
-(defun normalize-wwn (wwn)
+(defun vendor-for-wwn/normalize-wwn (wwn)
   ""
   (interactive)
   (mapconcat 'identity (split-string (downcase wwn) ":") ""))
 
-(defun nice-wwn (wwn)
+(defun vendor-for-wwn/nice-wwn (wwn)
   ""
   (interactive)
   wwn)
 
-(defun valid-wwn (wwn)
+(defun vendor-for-wwn/valid-wwn (wwn)
   "Checks the validity of a WWN."
   (interactive)
-  (let ((wwn (normalize-wwn wwn)))
+  (let ((wwn (vendor-for-wwn/normalize-wwn wwn)))
     (and (or (= (length wwn) 16)
              (= (length wwn) 32))
          (not (equal "0000000000000000" wwn))
@@ -56,8 +60,8 @@
 (defun vendor-for-wwn (wwn)
   ""
   (interactive)
-  (let ((oui (oui))
-        (normalized-wwn (normalize-wwn wwn)))
+  (let ((oui (vendor-for-wwn/oui-list))
+        (normalized-wwn (vendor-for-wwn/normalize-wwn wwn)))
 
     (cond ((not (equal (substring normalized-wwn 0 1) "5" ))
            (assoc-default (substring normalized-wwn 4 10) oui))

@@ -290,7 +290,8 @@ if it exists."
 (defun csv-show--format-wwn (wwn)
   "Returns a nicely formatted WWN."
   (interactive)
-  (if (valid-wwn wwn)
+  (if (and (vendor-for-wwn/valid-wwn wwn)
+           (vendor-for-wwn wwn))
       (concat wwn " ("  (vendor-for-wwn wwn) ")*" )
     wwn))
 
