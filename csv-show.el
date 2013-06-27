@@ -598,22 +598,33 @@ Post conditions:
         (push i column-indices)
         (setq i (+ i 1)))
       (reverse column-indices)))
-  
+
+(defvar csv-show-key-column-name "InstanceID"
+  "Holds the name of the column that is used as key column.")
+
+(defvar csv-show-key-column-field-index nil
+  "Holds the field index of the column that is used as key column.")
+
+; Need to prepend index field to current-cells
+; Need to check whether previous-cells gets updated properly
+; Need to fix the fact that p can hold more values than constant-columns-indices warrants  
 (defun csv-show-ignore-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
         (columns (csv-show--get-columns))
-        previous-cells
-        current-cells)
+        previous-cells)
+    (when (not csv-show-key-column-field-index)
+      (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
     (goto-char (point-min))
     (message "Finding constant columns...")
     (while (and (forward-line) (not (eobp)))
-      (let (constant-columns-changed)
-        (setq current-cells (csv-show--get-cells constant-columns-indices))
-        (when previous-cells
+      (let* ((current-cells (csv-show--get-cells constant-columns-indices))
+             (key (nth 0 current-cells))
+             (p (assoc key previous-cells))
+             constant-columns-changed)
+        (if p
           (let ((c (copy-list constant-columns-indices))
-                (p previous-cells)
                 (n current-cells))
             (while c
               (let ((column (pop c))
@@ -622,10 +633,14 @@ Post conditions:
                 (when (not (equal previous current))
                   (setq constant-columns-indices (delete column constant-columns-indices))
                   (message (concat "Finding constant columns: " (int-to-string (length constant-columns-indices)) " possible constant columns left." ))
-                  (setq constant-columns-changed t))))))
-        (if constant-columns-changed
-            (setq previous-cells (csv-show--get-cells constant-columns-indices))
-          (setq previous-cells current-cells))
+                  (setq constant-columns-changed t))))
+            (let (new-previous)
+              (if constant-columns-changed
+                  (setq new-previous (csv-show--get-cells constant-columns-indices))
+                (setq new-previous current-cells))
+              (setf (cdr (assoc key previous-cells)) new-previous)
+              ))
+          (push (cons key current-cells ) previous-cells ))
         ))
     (goto-char (point-min))
     (csv-show--get-cells constant-columns-indices)
