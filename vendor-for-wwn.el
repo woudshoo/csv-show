@@ -4,7 +4,7 @@
 
 ; TODO: Comment strings
 ; TODO: Dynamically determine oui.txt
-; TODO: vendor-for-wwn/nice-wwn implementeren
+; TODO: regexp matchin in buffer, not in string
 
 (defun vendor-for-wwn/oui-filename()
   ""
@@ -44,7 +44,14 @@
 (defun vendor-for-wwn/nice-wwn (wwn)
   ""
   (interactive)
-  wwn)
+  (let ((reststring (vendor-for-wwn/normalize-wwn wwn))
+        resultstring)
+    (while (>= (length reststring) 2)
+      (setq resultstring (concat resultstring (substring reststring 0 2) ":")
+            reststring (substring reststring 2)))
+    (if (length resultstring)
+        (setq resultstring (substring resultstring 0 (- (length resultstring) 1))))
+    resultstring))
 
 (defun vendor-for-wwn/valid-wwn (wwn)
   "Checks the validity of a WWN."

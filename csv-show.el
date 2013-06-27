@@ -292,7 +292,7 @@ if it exists."
   (interactive)
   (if (and (vendor-for-wwn/valid-wwn wwn)
            (vendor-for-wwn wwn))
-      (concat wwn " ("  (vendor-for-wwn wwn) ")*" )
+      (concat (vendor-for-wwn/nice-wwn wwn) " ("  (vendor-for-wwn wwn) ")*" )
     wwn))
 
 (defun csv-show--format-huge-number (hugenumber)
