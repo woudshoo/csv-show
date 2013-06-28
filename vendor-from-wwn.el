@@ -54,7 +54,6 @@
   (let ((wwn (vendor-from-wwn/normalize-wwn wwn)))
     (and (or (= (length wwn) 16)
              (= (length wwn) 32))
-         (not (equal "0000000000000000" wwn))
          (string-match "^[[:xdigit:]]+$" wwn))))
 
 (defun vendor-sequence-from-wwn (wwn)
