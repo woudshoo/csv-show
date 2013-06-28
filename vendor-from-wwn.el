@@ -134,6 +134,14 @@
 )))
 
 (require 'ert)
+(ert-deftest vendor-from-wwn/nice-wwn--test()
+  (assert (equal (vendor-from-wwn/nice-wwn "10:00:00:00:C9:3d:a5:46") "[1][00:00:c9][3d:a5:46]"))
+  (assert (equal (vendor-from-wwn/nice-wwn "22:00:00:20:37:13:12:1a") "[2][00:20:37][13:12:1a]"))
+  (assert (equal (vendor-from-wwn/nice-wwn "50:06:04:85:c5:ed:aa:4c") "[5][00:60:48][5c:5e:da:a4:c]"))
+  (assert (equal (vendor-sequence-from-wwn "60020F200000CA933D3D19CA000886A5")
+                 "[6][00:20:f2][00:00:0c:a9:3][3d:3d:19:ca:00:08:86:a5]"))
+  )
+
 (ert-deftest oui-from-wwn--test()
   (assert (equal (oui-from-wwn "10:00:00:00:C9:3d:a5:46") "0000c9"))
   (assert (equal (oui-from-wwn "10:00:00:60:69:90:72:bc") "006069"))
