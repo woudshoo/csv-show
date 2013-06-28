@@ -15,7 +15,7 @@
     (with-temp-buffer
       (insert-file-contents (vendor-from-wwn/oui-filename))
       (goto-char (point-min))
-      (while (re-search-forward "^\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" nil t)
+      (while (re-search-forward "\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" nil t)
         (let ((id (downcase (concat (match-string 1)
                                     (match-string 2)
                                     (match-string 3))))
