@@ -634,7 +634,10 @@ Post conditions:
 (defun csv-show-switch-to-source-buffer ()
   "When in detail buffer switch to its source buffer"
   (interactive)
-  (pop-to-buffer (marker-buffer csv-show-source-marker)))
+  (let ((line-no csv-show-source-line-no))
+    (pop-to-buffer (marker-buffer csv-show-source-marker))
+    (goto-line line-no)))
+  
 
 (provide 'csv-show)
 ;;; csv-show.el ends here
