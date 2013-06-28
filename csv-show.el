@@ -286,13 +286,13 @@ if it exists."
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
-(require 'vendor-for-wwn)
+(require 'vendor-from-wwn)
 (defun csv-show--format-wwn (wwn)
   "Returns a nicely formatted WWN."
   (interactive)
-  (if (and (vendor-for-wwn/valid-wwn wwn)
-           (vendor-for-wwn wwn))
-      (concat (vendor-for-wwn/nice-wwn wwn) " ("  (vendor-for-wwn wwn) ")*" )
+  (if (and (vendor-from-wwn/valid-wwn wwn)
+           (vendor-from-wwn wwn))
+      (concat (vendor-from-wwn/nice-wwn wwn) " ("  (vendor-from-wwn wwn) ")*" )
     wwn))
 
 (defun csv-show--format-huge-number (hugenumber)
