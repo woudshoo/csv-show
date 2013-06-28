@@ -2,52 +2,96 @@
 
 (defvar vendor-from-wwn/oui-list nil)
 
-; TODO: Dynamically determine oui.txt
-
 (defun vendor-from-wwn/oui-filename()
   "Returns the filename that's used as datasource."
   (concat (file-name-directory (symbol-file 'vendor-from-wwn/oui-list-from-file)) "oui.txt"))
 
-(defun vendor-from-wwn/oui-list-from-file ()
-  "Parses the oui.txt file and retusn an assoc list from vendor id to vendor string."
+(defun vendor-from-wwn/oui-url()
+  "Returns the url that's used as a datasource."
+  "http://standards.ieee.org/develop/regauth/oui/oui.txt")
+
+(defun vendor-from-wwn/oui-buffer()
+  "Returns a buffer containing oui, gotten from internet. Returns nil if that fails."
+  (url-retrieve-synchronously (vendor-from-wwn/oui-url)))
+
+(defun vendor-from-wwn/oui-list-from-buffer ()
+  "Parses the current buffer and returns an assoc list from vendor id to vendor string."
   (interactive)
   (let (id-to-vendor)
+    (goto-char (point-min))
+    (while (re-search-forward "\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" nil t)
+      (let ((id (downcase (concat (match-string 1)
+                                  (match-string 2)
+                                  (match-string 3))))
+            (vendor (substring (match-string 4) 2)))
+        (push (cons id vendor) id-to-vendor)))
+    id-to-vendor))
+
+(defun vendor-from-wwn/oui-list-from-file ()
+  "Parses the oui.txt file and returns an assoc list from vendor id to vendor string. Returns nil on some fail."
+  (interactive)
+  (when (file-exists-p (vendor-from-wwn/oui-filename))
     (with-temp-buffer
       (insert-file-contents (vendor-from-wwn/oui-filename))
-      (goto-char (point-min))
-      (while (re-search-forward "\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" nil t)
-        (let ((id (downcase (concat (match-string 1)
-                                    (match-string 2)
-                                    (match-string 3))))
-              (vendor (substring (match-string 4) 2)))
-            (push (cons id vendor) id-to-vendor)))
-      id-to-vendor)))
+      (vendor-from-wwn/oui-list-from-buffer)
+      )))
+
+(defun vendor-from-wwn/oui-list-from-url ()
+  "Retrieves the oui.txt file and returns an assoc list from vendor id to vendor string."
+  (interactive)
+  (let ((buffer (vendor-from-wwn/oui-buffer))
+        oui-list)
+    (when buffer
+      (save-excursion
+        (pop-to-buffer buffer)
+        (write-region (point-min) (point-max) (vendor-from-wwn/oui-filename))
+        (setq oui-list (vendor-from-wwn/oui-list-from-buffer)))
+      (kill-buffer buffer)
+      )
+    oui-list)
+  )
 
 (defun vendor-from-wwn/oui-list ()
   "Returns an assoc list of vendor id to vendor string. Does caching on first call."
   (interactive)
-  (if vendor-from-wwn/oui-list vendor-from-wwn/oui-list
-    (progn
-      (setq vendor-from-wwn/oui-list (vendor-from-wwn/oui-list-from-file))
-      vendor-from-wwn/oui-list)))
+  (setq vendor-from-wwn/oui-list (or vendor-from-wwn/oui-list
+                                     (vendor-from-wwn/oui-list-from-file)
+                                     (vendor-from-wwn/oui-list-from-url)
+                                     ))
+  vendor-from-wwn/oui-list)
 
 (defun vendor-from-wwn/normalize-wwn (wwn)
   "Returns the normalized form of WWN."
   (interactive)
   (mapconcat 'identity (split-string (downcase wwn) ":") ""))
 
+(defun vendor-from-wwn/pairs (str)
+  "Returns a list with pairs. This description should be better."
+  (interactive)
+  (let ((reststring str)
+        result)
+    (while (>= (length reststring) 2)
+      (push (substring reststring 0 2) result)
+      (setq reststring (substring reststring 2)))
+    (when (> (length reststring) 0)
+      (push reststring result))
+    (reverse result)))
+
+(defun vendor-from-wwn/colon-separated-pairs (str)
+  ""
+  (interactive)
+  (mapconcat 'identity (vendor-from-wwn/pairs (vendor-from-wwn/normalize-wwn str)) ":"))
+  
 (defun vendor-from-wwn/nice-wwn (wwn)
   "Return a nicely formatted version of WWN."
   (interactive)
-  (let ((reststring (vendor-from-wwn/normalize-wwn wwn))
-        resultstring)
-    (while (>= (length reststring) 2)
-      (setq resultstring (concat resultstring (substring reststring 0 2) ":")
-            reststring (substring reststring 2)))
-    (if (length resultstring)
-        (setq resultstring (substring resultstring 0 (- (length resultstring) 1))))
-    resultstring))
-
+  (let ((vendor-specific-extension (vendor-specific-extension-from-wwn wwn)))
+    (concat "[" (network-address-authority-from-wwn wwn) "]" 
+            "[" (vendor-from-wwn/colon-separated-pairs (oui-from-wwn wwn)) "]"
+            "[" (vendor-from-wwn/colon-separated-pairs (vendor-sequence-from-wwn wwn)) "]"
+            (when vendor-specific-extension
+              (concat "[" (vendor-from-wwn/colon-separated-pairs vendor-specific-extension) "]")))))
+  
 (defun vendor-from-wwn/valid-wwn (wwn)
   "Checks the validity of a WWN. Retuns nil when invalid."
   (interactive)
@@ -69,7 +113,13 @@
           ((equal naa "6")
            (substring wwn 7 16))
 )))
-    
+
+(defun vendor-specific-extension-from-wwn (wwn)
+  "Returns the vendor specific extension from WWN. Not every WWN has one, returns nil when noit."
+  (interactive)
+  (when (equal (network-address-authority-from-wwn wwn) "6")
+    (substring (vendor-from-wwn/normalize-wwn wwn) 16)))
+
 (defun oui-from-wwn (wwn)
   "Returns the Organizationally Unique Identifier or OUI from WWN."
   (interactive)
