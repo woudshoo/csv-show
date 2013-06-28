@@ -3,7 +3,6 @@
 (defvar vendor-from-wwn/oui-list nil)
 
 ; TODO: Dynamically determine oui.txt
-; TODO: regexp matchin in buffer, not in string
 
 (defun vendor-from-wwn/oui-filename()
   "Returns the filename that's used as datasource."
@@ -16,15 +15,12 @@
     (with-temp-buffer
       (insert-file-contents (vendor-from-wwn/oui-filename))
       (goto-char (point-min))
-      (while (not (eobp))
-        (let ((line (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
-          (when (string-match "^\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" line)
-            (let ((id (downcase (concat (match-string 1 line)
-                                        (match-string 2 line)
-                                        (match-string 3 line))))
-                  (vendor (substring (match-string 4 line) 2)))
-              (push (cons id vendor) id-to-vendor))))
-        (forward-line))
+      (while (re-search-forward "^\\(..\\)-\\(..\\)-\\(..\\) +([^)]*)\\(.*\\)" nil t)
+        (let ((id (downcase (concat (match-string 1)
+                                    (match-string 2)
+                                    (match-string 3))))
+              (vendor (substring (match-string 4) 2)))
+            (push (cons id vendor) id-to-vendor)))
       id-to-vendor)))
 
 (defun vendor-from-wwn/oui-list ()
