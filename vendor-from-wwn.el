@@ -81,6 +81,14 @@
   ""
   (interactive)
   (mapconcat 'identity (vendor-from-wwn/pairs (vendor-from-wwn/normalize-wwn str)) ":"))
+
+(defun vendor-from-wwn/vendor-specific-nice-wwn (wwn)
+  ""
+  (interactive)
+  (let ((vendor-specific-extension (vendor-specific-extension-from-wwn wwn)))
+    (concat "[" (vendor-from-wwn/colon-separated-pairs (vendor-sequence-from-wwn wwn)) "]"
+            (when vendor-specific-extension
+              (concat "[" (vendor-from-wwn/colon-separated-pairs vendor-specific-extension) "]")))))
   
 (defun vendor-from-wwn/nice-wwn (wwn)
   "Return a nicely formatted version of WWN."
@@ -88,9 +96,7 @@
   (let ((vendor-specific-extension (vendor-specific-extension-from-wwn wwn)))
     (concat "[" (network-address-authority-from-wwn wwn) "]" 
             "[" (vendor-from-wwn/colon-separated-pairs (oui-from-wwn wwn)) "]"
-            "[" (vendor-from-wwn/colon-separated-pairs (vendor-sequence-from-wwn wwn)) "]"
-            (when vendor-specific-extension
-              (concat "[" (vendor-from-wwn/colon-separated-pairs vendor-specific-extension) "]")))))
+            (vendor-from-wwn/vendor-specific-nice-wwn wwn))))
   
 (defun vendor-from-wwn/valid-wwn (wwn)
   "Checks the validity of a WWN. Retuns nil when invalid."
