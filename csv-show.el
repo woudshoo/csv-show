@@ -89,7 +89,14 @@
 ;;;###autoload
 (define-minor-mode csv-show-mode 
   "Shows a row in a CSV file in a separate buffer."
-  nil " csv-show" csv-show-map)
+  nil " csv-show" csv-show-map
+  (lambda()
+    (make-local-variable 'csv-show-key-column-name)
+    (make-local-variable 'csv-show-key-column-field-index)
+    (setq csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
+    (setq csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
+   ))
+
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
@@ -128,12 +135,9 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-source-line-no)
   (make-local-variable 'csv-show-columns)
   (make-local-variable 'csv-show-cells)
-  (make-local-variable 'csv-show-column-state)
-  (make-local-variable 'csv-show-column-state-toggle)
-  (make-local-variable 'csv-show-format-toggle)
-  (setq csv-show-column-state (list))
-  (setq csv-show-column-state-toggle nil)
-  (setq csv-show-format-toggle t))
+  (setq-local csv-show-column-state (list))
+  (setq-local csv-show-column-state-toggle nil)
+  (setq-local csv-show-format-toggle t))
 
 (defvar csv-show-syntax-table
   (let ((table (make-syntax-table)))
@@ -599,50 +603,78 @@ Post conditions:
         (setq i (+ i 1)))
       (reverse column-indices)))
 
-(defvar csv-show-key-column-name "InstanceID"
-  "Holds the name of the column that is used as key column.")
+(defun csv-show--key-value-from-column-indices-and-values (column-indices values)
+  "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
+   corresponding to csv-show-key-column-field-index."
+  (let (key-value)
+    (while (and (not key-value)
+                column-indices)
+      (let ((column-index (pop column-indices))
+            (value (pop values)))
+        (when (equal column-index csv-show-key-column-field-index)
+          (setq key-value value))))
+    key-value))
 
-(defvar csv-show-key-column-field-index nil
-  "Holds the field index of the column that is used as key column.")
+(defun setup-key-column-vars ()
+  ""
+  (setq-local csv-show-key-column-name "InstanceID")
+  (setq-local csv-show-key-column-field-index nil)
+  )
+
+(defun set-key-column-field-index ()
+  ""
+  (when (not csv-show-key-column-field-index)
+    (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name))))
 
 ; Need to prepend index field to current-cells
 ; Need to check whether previous-cells gets updated properly
-; Need to fix the fact that p can hold more values than constant-columns-indices warrants  
+; Need to fix the fact that p can hold more values than constant-columns-indices warrants
 (defun csv-show-ignore-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
+  (setup-key-column-vars)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
         (columns (csv-show--get-columns))
         previous-cells)
-    (when (not csv-show-key-column-field-index)
-      (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
+    (set-key-column-field-index)
     (goto-char (point-min))
     (message "Finding constant columns...")
     (while (and (forward-line) (not (eobp)))
       (let* ((current-cells (csv-show--get-cells constant-columns-indices))
-             (key (nth 0 current-cells))
-             (p (assoc key previous-cells))
+             (key (csv-show--key-value-from-column-indices-and-values constant-columns-indices current-cells))
+             (previous-assoc (assoc key previous-cells))
              constant-columns-changed)
-        (if p
+        (if (not previous-assoc)
+            (push (cons key (list (copy-list constant-columns-indices) current-cells)) previous-cells )
           (let ((c (copy-list constant-columns-indices))
-                (n current-cells))
-            (while c
-              (let ((column (pop c))
+                (n current-cells)
+                (p (car(cdr(cdr previous-assoc))))
+                (pc (copy-list (car(cdr previous-assoc)))))
+            (while pc
+              (let ((column-index (pop pc))
                     (previous (pop p))
-                    (current (pop n)))
-                (when (not (equal previous current))
-                  (setq constant-columns-indices (delete column constant-columns-indices))
+                    current)
+                (while (not (equal column-index (car c)))
+                  (pop n)
+                  (pop c))
+                (pop c)
+                (setq current (pop current-cells))
+                (when (and (not (equal column-index csv-show-key-column-field-index)) ; The key column might be constant, but we don't want to lose it
+                           (not (equal previous current))) ; We don't want to lose a column that didn't change on this line
+                  (message "Removing column %s from constant column list because %s is not equal to %s for key value %s." (nth column-index columns) previous current key )
+                  (setq constant-columns-indices (delete column-index constant-columns-indices))
                   (message (concat "Finding constant columns: " (int-to-string (length constant-columns-indices)) " possible constant columns left." ))
                   (setq constant-columns-changed t))))
-            (let (new-previous)
-              (if constant-columns-changed
-                  (setq new-previous (csv-show--get-cells constant-columns-indices))
-                (setq new-previous current-cells))
-              (setf (cdr (assoc key previous-cells)) new-previous)
-              ))
-          (push (cons key current-cells ) previous-cells ))
+            (let (new-previous) ; Set the current constant column indices and values as new previous value for this key
+              (setq new-previous (list (copy-list constant-columns-indices)
+                                       (if constant-columns-changed
+                                           (csv-show--get-cells constant-columns-indices)
+                                         current-cells)))
+              (setf (cdr (assoc key previous-cells)) new-previous))))
         ))
     (goto-char (point-min))
+    ; Now the key column is marked as constant, so remove it from constant-columns-indices
+    (setq constant-columns-indices (delete csv-show-key-column-field-index constant-columns-indices))
     (csv-show--get-cells constant-columns-indices)
     ))
 
@@ -653,6 +685,5 @@ Post conditions:
     (pop-to-buffer (marker-buffer csv-show-source-marker))
     (goto-line line-no)))
   
-
 (provide 'csv-show)
 ;;; csv-show.el ends here
