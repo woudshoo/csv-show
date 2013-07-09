@@ -626,9 +626,6 @@ Post conditions:
   (when (not csv-show-key-column-field-index)
     (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name))))
 
-; Need to prepend index field to current-cells
-; Need to check whether previous-cells gets updated properly
-; Need to fix the fact that p can hold more values than constant-columns-indices warrants
 (defun csv-show-ignore-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
@@ -640,36 +637,36 @@ Post conditions:
     (goto-char (point-min))
     (message "Finding constant columns...")
     (while (and (forward-line) (not (eobp)))
-      (let* ((current-cells (csv-show--get-cells constant-columns-indices))
-             (key (csv-show--key-value-from-column-indices-and-values constant-columns-indices current-cells))
+      (message "Analyzing line number %s" (line-number-at-pos))
+      (let* ((current-values (csv-show--get-cells constant-columns-indices))
+             (key (csv-show--key-value-from-column-indices-and-values constant-columns-indices current-values))
              (previous-assoc (assoc key previous-cells))
              constant-columns-changed)
         (if (not previous-assoc)
-            (push (cons key (list (copy-list constant-columns-indices) current-cells)) previous-cells )
-          (let ((c (copy-list constant-columns-indices))
-                (n current-cells)
-                (p (car(cdr(cdr previous-assoc))))
-                (pc (copy-list (car(cdr previous-assoc)))))
-            (while pc
-              (let ((column-index (pop pc))
-                    (previous (pop p))
-                    current)
-                (while (not (equal column-index (car c)))
-                  (pop n)
-                  (pop c))
-                (pop c)
-                (setq current (pop current-cells))
-                (when (and (not (equal column-index csv-show-key-column-field-index)) ; The key column might be constant, but we don't want to lose it
-                           (not (equal previous current))) ; We don't want to lose a column that didn't change on this line
-                  (message "Removing column %s from constant column list because %s is not equal to %s for key value %s." (nth column-index columns) previous current key )
-                  (setq constant-columns-indices (delete column-index constant-columns-indices))
-                  (message (concat "Finding constant columns: " (int-to-string (length constant-columns-indices)) " possible constant columns left." ))
+            (push (cons key (list (copy-list constant-columns-indices) current-values)) previous-cells )
+          (let ((current-constant-column-indices (copy-list constant-columns-indices))
+                (previous-poppable-values (car(cdr(cdr previous-assoc))))
+                (previous-poppable-column-indices (copy-list (car(cdr previous-assoc)))))
+            (while current-constant-column-indices
+              (let ((current-column-index (pop current-constant-column-indices))
+                    (current-value (pop current-values))
+                    previous-value)
+                (while (not (equal current-column-index (car previous-poppable-column-indices)))
+                  (pop previous-poppable-column-indices)
+                  (pop previous-poppable-values))
+                (pop previous-poppable-column-indices)
+                (setq previous-value (pop previous-poppable-values))
+                (when (and (not (equal current-column-index csv-show-key-column-field-index)) ; The key column might be constant, but we don't want to lose it
+                           (not (equal previous-value current-value))) ; We don't want to lose a column that didn't change on this line
+                  (message "Removing column %s from constant column list because %s is not equal to %s for key value %s." (nth current-column-index columns) previous-value current-value key )
+                  (setq constant-columns-indices (delete current-column-index constant-columns-indices))
+                  (message "Finding constant columns: %s possible constant columns left." (int-to-string (length constant-columns-indices)))
                   (setq constant-columns-changed t))))
             (let (new-previous) ; Set the current constant column indices and values as new previous value for this key
               (setq new-previous (list (copy-list constant-columns-indices)
                                        (if constant-columns-changed
                                            (csv-show--get-cells constant-columns-indices)
-                                         current-cells)))
+                                         current-values)))
               (setf (cdr (assoc key previous-cells)) new-previous))))
         ))
     (goto-char (point-min))
