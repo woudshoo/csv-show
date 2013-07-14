@@ -88,25 +88,30 @@
 
 ;;;###autoload
 (define-minor-mode csv-show-mode 
-  "Shows a row in a CSV file in a separate buffer."
+  "Shows a row in a CSV file in a separate buffer.
+
+This is a minor mode to show in a separate buffer the content
+of the current line as a table.
+
+\\{csv-show-map}"
   nil " csv-show" csv-show-map)
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
 	(set-keymap-parent map special-mode-map)
-	(define-key map "n" (lambda () (interactive) (csv-show-next/prev 1)))
+	(define-key map "n" 'csv-show-next)
 	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
-	(define-key map "." (lambda () (interactive) (csv-show-current)))
+	(define-key map "." 'csv-show-current)
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
-	(define-key map "p" (lambda () (interactive) (csv-show-next/prev -1)))
+	(define-key map "p" 'csv-show-prev)
 	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
 	(define-key map "h" 'csv-show-hide-column)
         (define-key map "c" 'csv-show-hide-constant-columns)
 	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
-        (define-key map "j" (lambda () (interactive) (csv-show-next/prev-value -1)))
-        (define-key map "k" (lambda () (interactive) (csv-show-next/prev-value 1)))
+        (define-key map "j" 'csv-show-next-value)
+        (define-key map "k" 'csv-show-prev-value)
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
         (define-key map "f" 'csv-show-format-toggle)
 	map))
@@ -116,7 +121,9 @@
   "Major mode for viewing CSV file records.
 
 This mode is enabled for buffers that are created by the
-`csv-show-select' function.  It should not be toggled by the user.")
+`csv-show-select' function.  It should not be toggled by the user.
+
+\\{csv-show-detail-map}")
 
 (defun csv-show--detail-setup ()
   "Main code to setup the csv-show major mode.
@@ -133,7 +140,8 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-format-toggle)
   (setq csv-show-column-state (list))
   (setq csv-show-column-state-toggle nil)
-  (setq csv-show-format-toggle t))
+  (setq csv-show-format-toggle t)
+  (setq buffer-read-only t))
 
 (defvar csv-show-syntax-table
   (let ((table (make-syntax-table)))
@@ -226,8 +234,7 @@ the `csv-show-select' function."
     (pop-to-buffer (get-buffer-create (concat "*CSV Detail " (buffer-file-name current-buffer-v) "*" )))
     (csv-show-detail-mode)
     (setq csv-show-source-marker start)
-    (csv-show-current)
-    ))
+    (csv-show-current)))
 
 (defvar csv-show-update-timer nil
   "Holds the timer used to keep the *CSV Detail* buffer in sync
@@ -532,6 +539,16 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   (csv-show--mark-forward/backward dir t)
   (csv-show-fill-buffer))
 
+(defun csv-show-next ()
+  "Shows the next record of the underlying CSV file."
+  (interactive)
+  (csv-show-next/prev 1))
+
+(defun csv-show-prev ()
+  "Shows the previous record of the underlying CSV file."
+  (interactive)
+  (csv-show-next/prev -1))
+
 (defun csv-show--get-current-value-for-index (index)
   "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
   (when index
@@ -563,9 +580,18 @@ identical."
                       (csv-show-source-line-no (line-number-at-pos (point)))
                       (csv-show-cells (csv-show--get-cells)))
 		   
-                     (csv-show--next/prev-value variable-column (or dir 1)))
-    )
+                     (csv-show--next/prev-value variable-column (or dir 1))))
   (csv-show-fill-buffer))
+
+(defun csv-show-next-value ()
+  "Show next record for which the current field is different, see `csv-show-next/prev-value'"
+  (interactive)
+  (csv-show-next/prev-value 1))
+
+(defun csv-show-prev-value ()
+  "Show previous record for which the current field is different, see `csv-show-next/prev-value'"
+  (interactive)
+  (csv-show-next/prev-value -1))
 
 (defun csv-show--next/prev-value (column dir)
   "Moves up or down in the CSV file (current buffer) until a line is encountered 
@@ -625,14 +651,12 @@ Post conditions:
                   (setq constant-columns-changed t))))))
         (if constant-columns-changed
             (setq previous-cells (csv-show--get-cells constant-columns-indices))
-          (setq previous-cells current-cells))
-        ))
+          (setq previous-cells current-cells))))
     (goto-char (point-min))
-    (csv-show--get-cells constant-columns-indices)
-    ))
+    (csv-show--get-cells constant-columns-indices)))
 
 (defun csv-show-switch-to-source-buffer ()
-  "When in detail buffer switch to its source buffer"
+  "Switch to the source line in the underlying CSV file."
   (interactive)
   (let ((line-no csv-show-source-line-no))
     (pop-to-buffer (marker-buffer csv-show-source-marker))
