@@ -36,6 +36,7 @@
 
 (require 'cl)
 (require 's)
+(require 'dash)
 
 ;;
 ;;  (in-other-buffer marker ((var-a  expr-a) (var-b expr-b)) ...)
@@ -216,6 +217,16 @@ the `csv-show-select' function."
         indexed-cells)
       cells)))
 
+(defun csv-show-parse-line-vec (&optional indices)
+  "Dumb csv-show-parse-line that is fast but not always correct."
+  (let ((cells (vconcat (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ","))))
+    (if indices
+      (let ((indexed-cells))
+        (dolist (index (reverse indices))
+          (push (nth index cells) indexed-cells))
+        (vconcat indexed-cells))
+      cells)))
+
 (defun csv-show-test-parse-speed-for-function (parse-function &optional indices)
   ""
   (interactive)
@@ -228,7 +239,7 @@ the `csv-show-select' function."
   ""
   (interactive)
   (let (result)
-    (dolist (parse-function (list 'csv-show-parse-line 'csv-show-parse-line-dumb-and-fast))
+    (dolist (parse-function (list 'csv-show-parse-line 'csv-show-parse-line-dumb-and-fast 'csv-show-parse-line-vec))
       (push (cons parse-function (benchmark-run-compiled 1 (csv-show-test-parse-speed-for-function parse-function indices))) result))
     result))
 
@@ -245,12 +256,15 @@ the `csv-show-select' function."
   (save-excursion
     (csv-show-parse-line indices)))
 
-(require 'dash)
-
 (defun csv-show--get-cells-alt ()
   "Returns an assoc list of index -> cell"
   (save-excursion
-    (csv-show-parse-line-dumb-and-fast)))
+    (csv-show-parse-line-vec)))
+
+(defun csv-show--get-cells-vec ()
+  "Returns an assoc list of index -> cell"
+  (save-excursion
+    (csv-show-parse-line-vec)))
 
 (defun csv-show-select ()
   "Show the current row."
@@ -661,7 +675,6 @@ Post conditions:
   (interactive)
   (setup-key-column-vars)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
-        (columns (csv-show--get-columns))
         previous-cells)
     (set-key-column-field-index)
     (goto-char (point-min))
@@ -670,17 +683,16 @@ Post conditions:
       (while (and (forward-line) (not (eobp)) (setq line-number (+ line-number 1)))
         (when (= (% line-number 1000) 0)
           (message "%d%%: %d possible constant columns left." (/ (* line-number 100) number-of-lines) (- (length constant-columns-indices) 1)))
-        (let* ((current-values (csv-show--get-cells-alt))
-               (key (nth csv-show-key-column-field-index current-values))
-               (previous-assoc (assoc key previous-cells))
-               (previous-values (assoc key previous-cells)))
+        (let* ((current-values (csv-show--get-cells-vec))
+               (key (aref current-values csv-show-key-column-field-index))
+               (previous-assoc (assoc key previous-cells)))
           (if (not previous-assoc)
               (push (cons key current-values) previous-cells)
             (let ((previous-values (cdr previous-assoc)))
               (dolist (current-column-index constant-columns-indices)
                 (when (not (equal current-column-index csv-show-key-column-field-index)) ; The key column might be variable, but we don't want to lose it
-                  (let ((current-value (nth current-column-index current-values))
-                        (previous-value (nth current-column-index previous-values)))
+                  (let ((current-value (aref current-values current-column-index))
+                        (previous-value (aref previous-values current-column-index)))
                     (when (not (equal previous-value current-value)) ; We don't want to lose a column that didn't change on this line
                       ;; (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key line-number)
                       (setq constant-columns-indices (delete current-column-index constant-columns-indices))
