@@ -222,16 +222,12 @@ the `csv-show-select' function."
   (save-excursion
     (csv-show-parse-line indices)))
 
+(require 'dash)
+
 (defun csv-show--get-cells-assoc (indices)
   "Returns an assoc list of index -> cell"
   (save-excursion
-    (let ((cells (csv-show-parse-line indices))
-          cells-assoc)
-      (while cells
-        (let ((cell (pop cells))
-              (index (pop indices)))
-          (push (cons index cell) cells-assoc)))
-      cells-assoc)))
+    (-zip indices (csv-show-parse-line indices))))
 
 (defun csv-show-select ()
   "Show the current row."
@@ -636,8 +632,6 @@ Post conditions:
   ""
   (when (not csv-show-key-column-field-index)
     (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name))))
-
-(require 'dash)
 
 (defun csv-show-ignore-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
