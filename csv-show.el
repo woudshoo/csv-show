@@ -671,7 +671,7 @@ Post conditions:
                         (when (not (equal previous-value current-value)) ; We don't want to lose a column that didn't change on this line
                           (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key (line-number-at-pos))
                           (setq constant-columns-indices (delete current-column-index constant-columns-indices))
-                          (message "Finding constant columns: %s possible constant columns left." (- (int-to-string (length constant-columns-indices)) 1))
+                          (message "Finding constant columns: %s possible constant columns left." (int-to-string (- (length constant-columns-indices) 1))
                           (setq constant-columns-changed t)))))))))
           (setf (cdr previous-assoc)
                 (if constant-columns-changed
