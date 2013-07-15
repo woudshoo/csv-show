@@ -35,6 +35,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 's)
 
 ;;
 ;;  (in-other-buffer marker ((var-a  expr-a) (var-b expr-b)) ...)
@@ -156,11 +157,7 @@ the `csv-show-select' function."
 	    (replace-regexp-in-string
 	     "\r" "" (replace-regexp-in-string
 		      "\"\"" "\"" (substring field 1 -1)))))
-    ;; Remove leading spaces from field
-    ;(setq field (replace-regexp-in-string "^ " "" field))
-    ;; Remove trailing spaces from field
-    ;(setq field (replace-regexp-in-string " $" "" field))
-    field))
+    (s-trim field)))
 
 (defun csv-show--field-index-for-column (column)
   "Returns the index of COLUMN."
