@@ -209,6 +209,16 @@ the `csv-show-select' function."
         )) ;break
       (nreverse result)))
 
+(defun csv-show-parse-line-dumb-and-fast (&optional indices)
+  "Dumb csv-show-parse-line that is fast but not always correct."
+  (let ((cells (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ",")))
+    (if indices
+      (let ((indexed-cells))
+        (dolist (index (reverse indices))
+          (push (nth index cells) indexed-cells))
+        indexed-cells)
+      cells)))
+
 (defvar csv-show--get-columns-cache nil)
 
 (defun csv-show--get-columns ()
@@ -227,7 +237,7 @@ the `csv-show-select' function."
 (defun csv-show--get-cells-assoc (indices)
   "Returns an assoc list of index -> cell"
   (save-excursion
-    (-zip indices (csv-show-parse-line indices))))
+    (-zip indices (csv-show-parse-line-dumb-and-fast indices))))
 
 (defun csv-show-select ()
   "Show the current row."
@@ -642,11 +652,11 @@ Post conditions:
         previous-cells)
     (set-key-column-field-index)
     (goto-char (point-min))
-    (message "Finding constant columns...")
-    (let ((line-number 0))
-      (while (and (forward-line) (not (eobp)) (setq line-number (+ line-number 1)) (< line-number 100000))
+    (let ((line-number 0)
+          (number-of-lines (count-lines (point-min) (point-max))))
+      (while (and (forward-line) (not (eobp)) (setq line-number (+ line-number 1)))
         (when (= (% line-number 1000) 0)
-          (message "Analyzing line number %s: %d possible constant columns left." line-number (- (length constant-columns-indices) 1)))
+          (message "%d%%: %d possible constant columns left." (/ (* line-number 100) number-of-lines) (- (length constant-columns-indices) 1)))
         (let* ((current-index-value-pairs (csv-show--get-cells-assoc constant-columns-indices))
                (key (cdr (assoc csv-show-key-column-field-index current-index-value-pairs)))
                (previous-assoc (assoc key previous-cells))
@@ -662,9 +672,9 @@ Post conditions:
                         (let ((previous-value (cdr previous-index-value-pair))
                               (current-value (cdr current-index-value-pair)))
                           (when (not (equal previous-value current-value)) ; We don't want to lose a column that didn't change on this line
-                            (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key line-number)
+                            ;; (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key line-number)
                             (setq constant-columns-indices (delete current-column-index constant-columns-indices))
-                            (message "Finding constant columns: %d possible constant columns left." (- (length constant-columns-indices) 1))
+                            ;; (message "Finding constant columns: %d possible constant columns left." (- (length constant-columns-indices) 1))
                             (setq constant-columns-changed t)))))))))
             (setf (cdr previous-assoc)
                   (if constant-columns-changed
