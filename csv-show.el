@@ -647,16 +647,14 @@ Post conditions:
       (when (= (% (line-number-at-pos) 1000) 0)
         (message "Analyzing line number %s: %d possible constant columns left." (line-number-at-pos) (length constant-columns-indices)))
       (let* ((current-index-value-pairs (csv-show--get-cells-assoc constant-columns-indices))
-             (current-poppable-index-value-pairs (copy-list current-index-value-pairs))
              (key (cdr (assoc csv-show-key-column-field-index current-index-value-pairs)))
              (previous-assoc (assoc key previous-cells))
              constant-columns-changed)
         (if (not previous-assoc)
             (push (cons key current-index-value-pairs) previous-cells)
           (let ((previous-index-value-pairs (cdr previous-assoc)))
-            (while current-poppable-index-value-pairs
-              (let* ((current-index-value-pair (pop current-poppable-index-value-pairs))
-                     (current-column-index (car current-index-value-pair)))
+            (dolist (current-index-value-pair current-index-value-pairs)
+              (let ((current-column-index (car current-index-value-pair)))
                 (when (not (equal current-column-index csv-show-key-column-field-index)) ; The key column might be variable, but we don't want to lose it
                   (let ((previous-index-value-pair (assoc current-column-index previous-index-value-pairs)))
                     (when previous-index-value-pair
@@ -665,7 +663,7 @@ Post conditions:
                         (when (not (equal previous-value current-value)) ; We don't want to lose a column that didn't change on this line
                           (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key (line-number-at-pos))
                           (setq constant-columns-indices (delete current-column-index constant-columns-indices))
-                          (message "Finding constant columns: %s possible constant columns left." (int-to-string (- (length constant-columns-indices) 1))
+                          (message "Finding constant columns: %s possible constant columns left." (int-to-string (- (length constant-columns-indices) 1)))
                           (setq constant-columns-changed t)))))))))
           (setf (cdr previous-assoc)
                 (if constant-columns-changed
