@@ -433,8 +433,8 @@ buffer."
   "Hides all columns that have constant value."
   (interactive)
   (let (constant-columns)
-    (message (concat (int-to-string (length constant-columns)) " constant columns found."))
     (in-other-buffer csv-show-source-marker ((constant-columns (csv-show-constant-columns))))
+    (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
