@@ -433,8 +433,8 @@ buffer."
   "Hides all columns that have constant value."
   (interactive)
   (let (constant-columns)
-    (in-other-buffer csv-show-source-marker ((constant-columns (csv-show-ignore-constant-columns))))
     (message (concat (int-to-string (length constant-columns)) " constant columns found."))
+    (in-other-buffer csv-show-source-marker ((constant-columns (csv-show-constant-columns))))
     (dolist (column constant-columns)
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
@@ -664,7 +664,7 @@ Post conditions:
   (when (not csv-show-key-column-field-index)
     (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name))))
 
-(defun csv-show-ignore-constant-columns()
+(defun csv-show-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
   (setup-key-column-vars)
