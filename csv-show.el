@@ -217,15 +217,9 @@ the `csv-show-select' function."
         indexed-cells)
       cells)))
 
-(defun csv-show-parse-line-vec (&optional indices)
+(defun csv-show-parse-line-vec ()
   "Dumb csv-show-parse-line that is fast but not always correct."
-  (let ((cells (vconcat (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ","))))
-    (if indices
-      (let ((indexed-cells))
-        (dolist (index (reverse indices))
-          (push (nth index cells) indexed-cells))
-        (vconcat indexed-cells))
-      cells)))
+  (vconcat (mapcar 's-trim (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ","))))
 
 (defun csv-show-test-parse-speed-for-function (parse-function &optional indices)
   ""
