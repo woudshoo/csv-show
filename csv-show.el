@@ -81,6 +81,14 @@
 	     ,@(mapcar (lambda (tmp-form) `(setq ,@tmp-form)) set-tmps))))
        ,@(mapcar (lambda (var-form) `(setq ,@var-form)) set-vars))))
 
+(defun csv-show--marker-for-source-buffer ()
+  ""
+  (if (boundp 'csv-show-source-marker)
+      csv-show-source-marker
+    (point-marker)))
+
+(defmacro csv-show--in-source-buffer (bindings &rest body)
+  `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,body))
 
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
@@ -433,7 +441,7 @@ buffer."
   "Hides all columns that have constant value."
   (interactive)
   (let (constant-columns)
-    (in-other-buffer csv-show-source-marker ((constant-columns (csv-show-constant-columns))))
+    (csv-show--in-source-buffer ((constant-columns (csv-show-constant-columns))))
     (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
       (csv-show-set-column-state column 'constant)))
@@ -543,7 +551,7 @@ variable.
 
 For updating the content see the function `csv-show-fill-buffer'."
   (let (new-show-columns)
-    (in-other-buffer csv-show-source-marker 
+    (csv-show--in-source-buffer
 		     ((csv-show-source-marker (point-marker))
 		      (csv-show-source-line-no (line-number-at-pos (point)))
 		      (csv-show-cells (csv-show--get-cells))
@@ -585,7 +593,7 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 field is different than the current, and InstanceID is
 identical."
   (interactive)
-  (in-other-buffer csv-show-source-marker 
+  (csv-show--in-source-buffer
 		   ((csv-show-source-marker (point-marker))
 		    (csv-show-source-line-no (line-number-at-pos (point)))
 		    (csv-show-cells (csv-show--get-cells)))
@@ -600,7 +608,7 @@ column, and InstanceID is
 identical."
   (interactive)
   (let ((variable-column (csv-show-column-name)))
-    (in-other-buffer csv-show-source-marker 
+    (csv-show--in-source-buffer
                      ((csv-show-source-marker (point-marker))
                       (csv-show-source-line-no (line-number-at-pos (point)))
                       (csv-show-cells (csv-show--get-cells)))
