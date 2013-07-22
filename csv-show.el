@@ -88,7 +88,7 @@
     (point-marker)))
 
 (defmacro csv-show--in-source-buffer (bindings &rest body)
-  `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,body))
+  `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,@body))
 
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
