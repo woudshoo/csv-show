@@ -96,16 +96,21 @@
 	(define-key map [C-return] 'csv-show-select)
 	map))
 
+(defun set-key-column-field-index ()
+  ""
+  (setq-local csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
+
 ;;;###autoload
 (define-minor-mode csv-show-mode 
   "Shows a row in a CSV file in a separate buffer."
   nil " csv-show" csv-show-map
-  (lambda()
-    (make-local-variable 'csv-show-key-column-name)
-    (make-local-variable 'csv-show-key-column-field-index)
-    (setq csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
-    (setq csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
-   ))
+  (make-local-variable 'csv-show-key-column-name)
+  (make-local-variable 'csv-show-key-column-field-index)
+  (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
+  (setq-local csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
+  (set-key-column-field-index)
+  (message "csv-show-mode minor mode engaged.")
+   )
 
 
 (setq csv-show-detail-map 
@@ -661,24 +666,11 @@ Post conditions:
           (setq key-value value))))
     key-value))
 
-(defun setup-key-column-vars ()
-  ""
-  (setq-local csv-show-key-column-name "InstanceID")
-  (setq-local csv-show-key-column-field-index nil)
-  )
-
-(defun set-key-column-field-index ()
-  ""
-  (when (not csv-show-key-column-field-index)
-    (setq csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name))))
-
 (defun csv-show-constant-columns()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
-  (setup-key-column-vars)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
         previous-cells)
-    (set-key-column-field-index)
     (goto-char (point-min))
     (let ((line-number 0)
           (number-of-lines (count-lines (point-min) (point-max))))
