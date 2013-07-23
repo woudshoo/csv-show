@@ -109,8 +109,7 @@
   (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
   (setq-local csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
   (set-key-column-field-index)
-  (message "csv-show-mode minor mode engaged.")
-   )
+  )
 
 
 (setq csv-show-detail-map 
