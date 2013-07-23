@@ -149,6 +149,7 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-source-line-no)
   (make-local-variable 'csv-show-columns)
   (make-local-variable 'csv-show-cells)
+  (make-local-variable 'csv-show-previous-cells)
   (setq-local csv-show-column-state (list))
   (setq-local csv-show-column-state-toggle nil)
   (setq-local csv-show-format-toggle t))
@@ -493,6 +494,100 @@ are marked for hiding.  See also `csv-show-hide-column'"
   (setq csv-show-format-toggle (not csv-show-format-toggle))
   (csv-show-fill-buffer))
 
+(defun csv-show--insert-cell ( column cell )
+  ""
+  (if csv-show-format-toggle
+      (insert (funcall (csv-show--format-function-for-column column) cell))
+    (insert cell)))
+
+(defun csv-show--diff-statistictime ( time1 tim2 )
+  ""
+  "15:00")
+
+; TODO: use bignumber to do the subtraction
+(defun csv-show--diff-cells ( column cell1 cell2 )
+  ""
+  (cond ((member column (list "TotalIOs"
+                             "KBytesWritten"
+                             "KBytesRead"
+                             "KBytesTransferred"
+                             "IOTimeCounter"
+                             "ReadIOs"
+                             "WriteIOs"
+                             "ReadHitIOs"
+                             "WriteHitIOs"
+                             "IdleTimeCounter"
+                             "EMCKBPrefetchedNotUsed"
+                             "EMCWriteCacheRehits"
+                             "EMCRaid3Writes"
+                             "EMCSampledReadsTime"
+                             "EMCSampledWritesTime"
+                             "EMCSnapCacheReads"
+                             "EMCSnapCacheWrites"
+                             "EMCSnapLogicalUnitReads"
+                             "EMCSnapTLUReads"
+                             "EMCSnapTLUWrites"
+                             "EMCSnapLargeWrites"
+                             "EMCSPAIOTimeCounter"
+                             "EMCSPBIOTimeCounter"
+                             "EMCSPAIdleTimeCounter"
+                             "EMCSPBIdleTimeCounter"
+                             "EMCSPAReadIOs"
+                             "EMCSPBReadIOs"
+                             "EMCSPAWriteIOs"
+                             "EMCSPBWriteIOs"
+                             "EMCKBytesSPARead"
+                             "EMCKBytesSPBRead"
+                             "EMCKBytesSPAWritten"
+                             "EMCKBytesSPBWritten"
+                             "EMCNonZeroQueueArrivals"
+                             "EMCQueueLengthsOnArrival"
+                             "EMCNonZeroRequestArrivals"
+                             "EMCSPANonZeroRequestArrivals"
+                             "EMCSPBNonZeroRequestArrivals"
+                             "EMCOutstandingRequests"
+                             "EMCSPAOutstandingRequests"
+                             "EMCSPBOutstandingRequests"
+                             "EMCImplicitTresspasses"
+                             "EMCSPAImplicitTresspasses"
+                             "EMCSPBImplicitTresspasses"
+                             "EMCExplicitTresspasses"
+                             "EMCSPAExplicitTresspasses"
+                             "EMCSPBExplicitTresspasses"
+                             "EMCLoggingTime"
+                             "EMCReadHistogram"
+                             "EMCReadHistogramOverflows"
+                             "EMCWriteHistogram"
+                             "EMCWriteHistogramOverflows"
+                             "EMCEFDReadHits"
+                             "EMCEFDReadMisses"
+                             "EMCEFDWriteHits"
+                             "EMCEFDWriteMisses"
+                             "EMCForcedFlushes"
+                             "EMCDiskCrossings"
+                             "EMCKBPrefetched"
+                             "EMCQueueLength"
+                             "EMCQueueArrivals"
+                             "EMCKBSeeked"
+                             "EMCCurrentPWRSavingLogTimeStamp"
+                             "EMCSpinningCounter"
+                             "EMCStandbyCounter"
+                             "EMCEFDDataFlushedSPA"
+                             "EMCEFDDataFlushedSPB"
+                             "EMCEFDPercentDirtyCacheSPA"
+                             "EMCEFDPercentDirtyCacheSPB"
+                             "EMCHighWaterFlushes"
+                             "EMCLowWaterFlushes"
+                             "EMCIdleWaterFlushes"
+                             "EMCDirtyPages"
+                             "EMCWriteFlushes"
+                             "EMCWriteKBytesFlushed"
+                             "EMCPctDirtyPages"
+                             "EMCSpinUPS"))
+         (int-to-string (- (string-to-int cell1) (string-to-int cell2))))
+        ((equal column "StatisticTime")
+         (csv-show--diff-statistictime cell1 cell2))))
+
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((line-no (line-number-at-pos))
@@ -504,17 +599,26 @@ are marked for hiding.  See also `csv-show-hide-column'"
 	      " LINE: " (format "%d" csv-show-source-line-no) "\n\n")
       
       (let ((width (reduce 'max csv-show-columns :key 'length))
+            (cell-width (reduce 'max csv-show-cells :key 'length))
 	    (columns csv-show-columns)
-	    (cells csv-show-cells))
+	    (cells csv-show-cells)
+            (previous-cells csv-show-previous-cells))
 	(while (and columns cells)
 	  (let ((start (point))
 		(column (pop columns))
-		(cell (pop cells)))
+		(cell (pop cells))
+                (previous-cell (pop previous-cells)))
 	    (insert (concat  column ":"))
 	    (move-to-column (+ 4 width) t)
-            (if csv-show-format-toggle
-                (insert (funcall (csv-show--format-function-for-column column) cell) "\n")
-              (insert cell "\n" )))))
+            (csv-show--insert-cell column cell)
+            (when previous-cell
+              (move-to-column (+ 4 width cell-width 1) t)
+              (csv-show--insert-cell column previous-cell)
+              (let ((diff (csv-show--diff-cells column cell previous-cell)))
+                (when diff
+                  (move-to-column (+ 4 width cell-width 1 cell-width 1) t)
+                  (insert diff))))
+            (insert "\n"))))
       (csv-show-fontify-detail-buffer)
       (goto-char (point-min))
       (forward-line (1- line-no))
@@ -555,6 +659,7 @@ variable.
 
 For updating the content see the function `csv-show-fill-buffer'."
   (let (new-show-columns)
+    (setq csv-show-previous-cells nil)
     (csv-show--in-source-buffer
 		     ((csv-show-source-marker (point-marker))
 		      (csv-show-source-line-no (line-number-at-pos (point)))
@@ -597,6 +702,7 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
 field is different than the current, and InstanceID is
 identical."
   (interactive)
+  (setq csv-show-previous-cells csv-show-cells)
   (csv-show--in-source-buffer
 		   ((csv-show-source-marker (point-marker))
 		    (csv-show-source-line-no (line-number-at-pos (point)))
@@ -605,12 +711,14 @@ identical."
 		   (csv-show--next/prev-value "StatisticTime" (or dir 1)))
   (csv-show-fill-buffer))
 
+
 (defun csv-show-next/prev-value (&optional dir)
   "Shows the next or previous record for which the value of
 the current column is different than the current value for the current
 column, and InstanceID is
 identical."
   (interactive)
+  (setq csv-show-previous-cells csv-show-cells)
   (let ((variable-column (csv-show-column-name)))
     (csv-show--in-source-buffer
                      ((csv-show-source-marker (point-marker))
