@@ -37,6 +37,7 @@
 (require 'cl)
 (require 's)
 (require 'dash)
+(require 'calc)
 
 ;;
 ;;  (in-other-buffer marker ((var-a  expr-a) (var-b expr-b)) ...)
@@ -108,7 +109,7 @@ This is a minor mode to show in a separate buffer the content
 of the current line as a table.
 
 \\{csv-show-map}"
-  nil " csv-show" csv-show-map)
+  nil " csv-show" csv-show-map
   (make-local-variable 'csv-show-key-column-name)
   (make-local-variable 'csv-show-key-column-field-index)
   (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
@@ -158,7 +159,7 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-previous-cells)
   (setq-local csv-show-column-state (list))
   (setq-local csv-show-column-state-toggle nil)
-  (setq-local csv-show-format-toggle t))
+  (setq-local csv-show-format-toggle t)
   (setq buffer-read-only t))
 
 (defvar csv-show-syntax-table
@@ -240,22 +241,6 @@ the `csv-show-select' function."
 (defun csv-show-parse-line-vec ()
   "Dumb csv-show-parse-line that is fast but not always correct."
   (vconcat (mapcar 's-trim (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ","))))
-
-(defun csv-show-test-parse-speed-for-function (parse-function &optional indices)
-  ""
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (while (and (forward-line) (not (eobp)))
-      (funcall parse-function indices))))
-
-(defun csv-show-test-parse-speeds (&optional indices)
-  ""
-  (interactive)
-  (let (result)
-    (dolist (parse-function (list 'csv-show-parse-line 'csv-show-parse-line-dumb-and-fast 'csv-show-parse-line-vec))
-      (push (cons parse-function (benchmark-run-compiled 1 (csv-show-test-parse-speed-for-function parse-function indices))) result))
-    result))
 
 (defvar csv-show--get-columns-cache nil)
 
