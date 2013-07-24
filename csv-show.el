@@ -500,94 +500,60 @@ are marked for hiding.  See also `csv-show-hide-column'"
       (insert (funcall (csv-show--format-function-for-column column) cell))
     (insert cell)))
 
-(defun csv-show--diff-statistictime ( time1 tim2 )
+; TODO: Actually implement
+(defun csv-show--diff-statistictime ( time1 time2 )
   ""
   "15:00")
 
-; TODO: use bignumber to do the subtraction
-(defun csv-show--diff-cells ( column cell1 cell2 )
+(defun csv-show--make-sure-string-doesnt-start-with ( prefix s )
   ""
-  (cond ((member column (list "TotalIOs"
-                             "KBytesWritten"
-                             "KBytesRead"
-                             "KBytesTransferred"
-                             "IOTimeCounter"
-                             "ReadIOs"
-                             "WriteIOs"
-                             "ReadHitIOs"
-                             "WriteHitIOs"
-                             "IdleTimeCounter"
-                             "EMCKBPrefetchedNotUsed"
-                             "EMCWriteCacheRehits"
-                             "EMCRaid3Writes"
-                             "EMCSampledReadsTime"
-                             "EMCSampledWritesTime"
-                             "EMCSnapCacheReads"
-                             "EMCSnapCacheWrites"
-                             "EMCSnapLogicalUnitReads"
-                             "EMCSnapTLUReads"
-                             "EMCSnapTLUWrites"
-                             "EMCSnapLargeWrites"
-                             "EMCSPAIOTimeCounter"
-                             "EMCSPBIOTimeCounter"
-                             "EMCSPAIdleTimeCounter"
-                             "EMCSPBIdleTimeCounter"
-                             "EMCSPAReadIOs"
-                             "EMCSPBReadIOs"
-                             "EMCSPAWriteIOs"
-                             "EMCSPBWriteIOs"
-                             "EMCKBytesSPARead"
-                             "EMCKBytesSPBRead"
-                             "EMCKBytesSPAWritten"
-                             "EMCKBytesSPBWritten"
-                             "EMCNonZeroQueueArrivals"
-                             "EMCQueueLengthsOnArrival"
-                             "EMCNonZeroRequestArrivals"
-                             "EMCSPANonZeroRequestArrivals"
-                             "EMCSPBNonZeroRequestArrivals"
-                             "EMCOutstandingRequests"
-                             "EMCSPAOutstandingRequests"
-                             "EMCSPBOutstandingRequests"
-                             "EMCImplicitTresspasses"
-                             "EMCSPAImplicitTresspasses"
-                             "EMCSPBImplicitTresspasses"
-                             "EMCExplicitTresspasses"
-                             "EMCSPAExplicitTresspasses"
-                             "EMCSPBExplicitTresspasses"
-                             "EMCLoggingTime"
-                             "EMCReadHistogram"
-                             "EMCReadHistogramOverflows"
-                             "EMCWriteHistogram"
-                             "EMCWriteHistogramOverflows"
-                             "EMCEFDReadHits"
-                             "EMCEFDReadMisses"
-                             "EMCEFDWriteHits"
-                             "EMCEFDWriteMisses"
-                             "EMCForcedFlushes"
-                             "EMCDiskCrossings"
-                             "EMCKBPrefetched"
-                             "EMCQueueLength"
-                             "EMCQueueArrivals"
-                             "EMCKBSeeked"
-                             "EMCCurrentPWRSavingLogTimeStamp"
-                             "EMCSpinningCounter"
-                             "EMCStandbyCounter"
-                             "EMCEFDDataFlushedSPA"
-                             "EMCEFDDataFlushedSPB"
-                             "EMCEFDPercentDirtyCacheSPA"
-                             "EMCEFDPercentDirtyCacheSPB"
-                             "EMCHighWaterFlushes"
-                             "EMCLowWaterFlushes"
-                             "EMCIdleWaterFlushes"
-                             "EMCDirtyPages"
-                             "EMCWriteFlushes"
-                             "EMCWriteKBytesFlushed"
-                             "EMCPctDirtyPages"
-                             "EMCSpinUPS"))
-         (int-to-string (- (string-to-int cell1) (string-to-int cell2))))
-        ((equal column "StatisticTime")
-         (csv-show--diff-statistictime cell1 cell2))))
+  (if (= (length prefix) 0)
+      s
+    (progn
+      (while (and (s-starts-with? prefix s)
+                  (> (length s) (length prefix)))
+        (setq s (substring s (length prefix))))
+      s)))
 
+
+(ert-deftest csv-show--make-sure-string-doesnt-start-with-test ()
+  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000123") "123"))
+  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "") ""))
+  (assert (equal (csv-show--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
+  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000000") "0"))
+  (assert (equal (csv-show--make-sure-string-doesnt-start-with " " "       ") " ")))
+
+(defun csv-show--diff-integer ( int1 int2 )
+  "Given two strings INT1 and INT2 which contain arbitrarily
+large integers, returns a string representing the difference.
+Think of it as INT1 - INT2."
+  (let ((diff (math-sub-bignum (math-read-bignum int1) (math-read-bignum int2)))
+        (result-is-positive t))
+    (when (equal diff 'neg)
+      (setq diff (math-sub-bignum (math-read-bignum int2) (math-read-bignum int1))
+            result-is-positive nil))
+    (let ((diff-string (csv-show--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
+      (when (not result-is-positive)
+        (setq diff-string (concat "-" diff-string)))
+      diff-string)))
+
+(ert-deftest csv-show--diff-integer-test ()
+  (assert (equal (csv-show--diff-integer "5" "3") "2"))
+  (assert (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+  (assert (equal (csv-show--diff-integer "3" "5") "-2"))
+)
+
+(defun csv-show--diff-cells ( column cell1 cell2 )
+  "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
+  (cond ((member column (list "InstanceID"
+                              "ElementType"
+                              ))
+                 nil)
+         ((equal column "StatisticTime")
+          (csv-show--diff-statistictime cell1 cell2))
+         (t (csv-show--diff-integer cell1 cell2))))
+
+; TODO: Make LINE: a field
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((line-no (line-number-at-pos))
