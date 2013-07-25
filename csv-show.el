@@ -39,34 +39,6 @@
 (require 'dash)
 (require 'calc)
 
-;;
-;;  (in-other-buffer marker ((var-a  expr-a) (var-b expr-b)) ...)
-;;
-;;  (let (tmp-a tmp-b tmp-c)
-;;    (with-current-buffer (marker-buffer marker)
-;;       (save-excursion
-;;         ...body...
-;;         (setq tmp-a expr-a
-;;               tmp-b expr-b)))
-;;     (setq var-a tmp-a
-;;           var-b tmp-b))
-;;
-;;
-;;  --
-;;  body = (1 2 3)
-;;
-;;  `(a ,body) ==> (a (1 2 3))
-;;  `(a ,@body) ==> (a 1 2 3)
-;;  `(ksadjflasj ,sdlfkj
-;;
-
-(defun parallel-mapcar (function list-a list-b)
-  "Like mapcar, but the function takes two arguments.
-Should be replaced by cl-mapcar."
-  (let (result)
-    (while (and list-a list-b)
-      (push (funcall function (pop list-a) (pop list-b)) result))
-    result))
 
 (defmacro in-other-buffer (marker bindings &rest body)
   "Executes `body' in the buffer indicated by `marker'.  
@@ -87,9 +59,9 @@ buffer-local-var in the current buffer. "
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 ;; tmps = (tmp-a tmp-b tmp-c ..)
-	 (set-tmps (parallel-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
+	 (set-tmps (cl-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
 	 ;; set-tmps = ((tmp-a expr-a) (tmp-b expr-b) ...)
-	 (set-vars (parallel-mapcar (lambda (v tmp) (list (car v) tmp)) bindings tmps)))
+	 (set-vars (cl-mapcar (lambda (v tmp) (list (car v) tmp)) bindings tmps)))
     `(let ,tmps
        (let ((,old-mark ,marker))
 	 (with-current-buffer (marker-buffer ,marker)
@@ -204,7 +176,7 @@ the `csv-show-select' function."
     
 (require 'ert)
 (ert-deftest csv-show--field-index-for-column-test ()
-  (let ((csv-show--get-columns-cache (list "Header1" "Header2" "Header3")))
+  (let ((csv-show--get-columns-cache '("Header1" "Header2" "Header3")))
     (assert (equal (csv-show--field-index-for-column "Header2") 1))))
 
 (defun csv-show-parse-line (&optional indices)
@@ -525,13 +497,13 @@ are marked for hiding.  See also `csv-show-hide-column'"
 
 
 (ert-deftest csv-show--make-sure-string-doesnt-start-with-test ()
-  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000123") "123"))
-  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "") ""))
-  (assert (equal (csv-show--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
-  (assert (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000000") "0"))
-  (assert (equal (csv-show--make-sure-string-doesnt-start-with " " "       ") " ")))
+  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000123") "123"))
+  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "") ""))
+  (should (equal (csv-show--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
+  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000000") "0"))
+  (should (equal (csv-show--make-sure-string-doesnt-start-with " " "       ") " ")))
 
-(defun csv-show--diff-integer ( int1 int2 )
+(defun csv-show--diff-integer (int1 int2)
   "Given two strings INT1 and INT2 which contain arbitrarily
 large integers, returns a string representing the difference.
 Think of it as INT1 - INT2."
@@ -546,26 +518,45 @@ Think of it as INT1 - INT2."
       diff-string)))
 
 (ert-deftest csv-show--diff-integer-test ()
-  (assert (equal (csv-show--diff-integer "5" "3") "2"))
-  (assert (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-  (assert (equal (csv-show--diff-integer "3" "5") "-2"))
-)
+  (should (equal (csv-show--diff-integer "5" "3") "2"))
+  (should (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+  (should (equal (csv-show--diff-integer "3" "5") "-2")))
 
 (defun csv-show--diff-cells ( column cell1 cell2 )
   "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
-  (cond ((member column (list "InstanceID"
-                              "ElementType"
-                              ))
+  (cond ((member column '("InstanceID" "ElementType"))
                  nil)
          ((equal column "StatisticTime")
           (csv-show--diff-statistictime cell1 cell2))
          (t (csv-show--diff-integer cell1 cell2))))
 
+(defun csv-show--line-col-position ()
+  "Returns the position of point as a line number, column number combination"
+  (cons (line-number-at-pos) (current-column)))
+
+(defun csv-show--restore-line-col-position (line-col)
+  "Move point to the `line-col' position, see `csv-show--line-col-position'"
+  (goto-char (point-min))
+  (forward-line (1- (car line-col)))
+  (move-to-column (cdr line-col)))
+
+(defun csv-show--fill-line (column width cell cell-width previous-cell)
+  (insert column ":")
+  (move-to-column (+ 4 width) t)
+  (csv-show--insert-cell column cell)
+  (when previous-cell
+    (move-to-column (+ 4 width cell-width 1) t)
+    (csv-show--insert-cell column previous-cell)
+    (let ((diff (csv-show--diff-cells column cell previous-cell)))
+      (when diff
+	(move-to-column (+ 4 width cell-width 1 cell-width 1) t)
+	(insert diff))))
+  (insert "\n"))
+
 ; TODO: Make LINE: a field
 (defun csv-show-fill-buffer ()
   "Fills the buffer with the content of the cells."
-    (let ((line-no (line-number-at-pos))
-	  (column-no (current-column))
+    (let ((current-position (csv-show--line-col-position))
 	  (buffer-read-only nil))
       (erase-buffer)
 
@@ -573,30 +564,16 @@ Think of it as INT1 - INT2."
 	      " LINE: " (format "%d" csv-show-source-line-no) "\n\n")
       
       (let ((width (reduce 'max csv-show-columns :key 'length))
-            (cell-width (reduce 'max csv-show-cells :key 'length))
-	    (columns csv-show-columns)
-	    (cells csv-show-cells)
-            (previous-cells csv-show-previous-cells))
-	(while (and columns cells)
-	  (let ((start (point))
-		(column (pop columns))
-		(cell (pop cells))
-                (previous-cell (pop previous-cells)))
-	    (insert (concat  column ":"))
-	    (move-to-column (+ 4 width) t)
-            (csv-show--insert-cell column cell)
-            (when previous-cell
-              (move-to-column (+ 4 width cell-width 1) t)
-              (csv-show--insert-cell column previous-cell)
-              (let ((diff (csv-show--diff-cells column cell previous-cell)))
-                (when diff
-                  (move-to-column (+ 4 width cell-width 1 cell-width 1) t)
-                  (insert diff))))
-            (insert "\n"))))
+            (cell-width (reduce 'max csv-show-cells :key 'length)))
+	(if csv-show-previous-cells
+	    (cl-mapcar (lambda (colum cell previous-cell)
+			 (csv-show--fill-line colum width cell cell-width previous-cell))
+		       csv-show-columns csv-show-cells csv-show-previous-cells)
+	  (cl-mapcar (lambda (colum cell)
+		       (csv-show--fill-line colum width cell cell-width nil))
+		     csv-show-columns csv-show-cells)))
       (csv-show-fontify-detail-buffer)
-      (goto-char (point-min))
-      (forward-line (1- line-no))
-      (move-to-column column-no)))
+      (csv-show--restore-line-col-position current-position)))
 
 (defun csv-show-fontify-detail-buffer ()
   "Fontifies the detail buffer, assumes that the detail buffer is current buffer."
@@ -766,7 +743,7 @@ Post conditions:
           (setq key-value value))))
     key-value))
 
-(defun csv-show-constant-columns()
+(defun csv-show-constant-columns ()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
