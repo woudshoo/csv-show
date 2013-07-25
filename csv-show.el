@@ -58,12 +58,29 @@
 ;;
 
 (defun parallel-mapcar (function list-a list-b)
+  "Like mapcar, but the function takes two arguments.
+Should be replaced by cl-mapcar."
   (let (result)
     (while (and list-a list-b)
       (push (funcall function (pop list-a) (pop list-b)) result))
     result))
 
 (defmacro in-other-buffer (marker bindings &rest body)
+  "Executes `body' in the buffer indicated by `marker'.  
+The point in the buffer is set to the point of the `marker'.
+
+The `bindings' are a list of bindings of the form (var expr).
+Each expr is evaluated after the body but in the buffer indicated by the `marker'.
+The value of the expresion is assigned to var but the var is in context
+of the current buffer.  
+
+This is useful for updating buffer local variables with values
+from another buffer.  e.g. 
+
+`(in-other-buffer marker-of-other-buffer ((buffer-local-var buffer-local-var)))`
+
+will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) to 
+buffer-local-var in the current buffer. "
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 ;; tmps = (tmp-a tmp-b tmp-c ..)
