@@ -35,6 +35,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 'cl-lib)
 (require 's)
 (require 'dash)
 (require 'calc)
