@@ -217,19 +217,24 @@ the `csv-show-select' function."
         )) ;break
       (nreverse result)))
 
-(defun csv-show-parse-line-dumb-and-fast (&optional indices)
-  "Dumb csv-show-parse-line that is fast but not always correct."
-  (let ((cells (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ",")))
-    (if indices
-      (let ((indexed-cells))
-        (dolist (index (reverse indices))
-          (push (nth index cells) indexed-cells))
-        indexed-cells)
-      cells)))
+;; (defun csv-show-parse-line-dumb-and-fast (&optional indices)
+;;   "Dumb csv-show-parse-line that is fast but not always correct."
+;;   (let ((cells (split-string (buffer-substring-no-properties
+;; 			      (progn (beginning-of-line) (point))
+;; 			      (progn (end-of-line) (point)))
+;; 			     ",")))
+
+;;     (if indices
+;; 	(mapcar (lambda (n) (nth n cells)) indices)
+;;       cells)))
 
 (defun csv-show-parse-line-vec ()
   "Dumb csv-show-parse-line that is fast but not always correct."
-  (vconcat (mapcar 's-trim (split-string (buffer-substring-no-properties (progn (end-of-line 1) (point)) (progn (beginning-of-line 1) (point))) ","))))
+  (vconcat (mapcar 's-trim 
+		   (split-string (buffer-substring-no-properties 
+				  (progn (beginning-of-line) (point)) 
+				  (progn (end-of-line) (point))) 
+				 ","))))
 
 (defvar csv-show--get-columns-cache nil)
 
@@ -520,7 +525,9 @@ Think of it as INT1 - INT2."
 (ert-deftest csv-show--diff-integer-test ()
   (should (equal (csv-show--diff-integer "5" "3") "2"))
   (should (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-  (should (equal (csv-show--diff-integer "3" "5") "-2")))
+  (should (equal (csv-show--diff-integer "3" "5") "-2"))
+;  (should (equal (csv-show--diff-integer "0.936340455076744" "0.920434747227233") "??"))
+  )
 
 (defun csv-show--diff-cells ( column cell1 cell2 )
   "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
@@ -729,7 +736,7 @@ Post conditions:
       (dolist (c (csv-show--get-columns))
         (push i column-indices)
         (setq i (+ i 1)))
-      (reverse column-indices)))
+      (nreverse column-indices)))
 
 (defun csv-show--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
@@ -743,41 +750,67 @@ Post conditions:
           (setq key-value value))))
     key-value))
 
+
+(defun csv-show--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
+  "Return a list of indices for which `current-values' and `previous-values' are equal 
+and which occur in `candidate-constant-columns'.  Also note that
+the values at `key-column-index' are always considered equal, even if
+they are not (they are not compared).  So `key-column-index' is
+never removed from the result.
+
+The order of the indices in the result is the same as the order in
+input `candidate-constant-columns'."
+  (let ((constant-columns))
+    (dolist (current-column-index candidate-constant-columns)
+      
+      (when (or (equal current-column-index key-column-index)
+		(equal (aref previous-values current-column-index)
+		       (aref current-values current-column-index)))
+	(push current-column-index constant-columns)))
+
+    (nreverse constant-columns)))
+
+
 (defun csv-show-constant-columns ()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
   (let ((constant-columns-indices (csv-show--indices-of-columns))
+	(line-number 0)
+	(number-of-lines (count-lines (point-min) (point-max)))
         previous-cells)
+
     (goto-char (point-min))
-    (let ((line-number 0)
-          (number-of-lines (count-lines (point-min) (point-max))))
-      (while (and (forward-line) (not (eobp)) (setq line-number (+ line-number 1)))
-        (when (= (% line-number 1000) 0)
-          (message "%d%%: %d possible constant columns left." (/ (* line-number 100) number-of-lines) (- (length constant-columns-indices) 1)))
-        (let* ((current-values (csv-show--get-cells-vec))
-               (key (aref current-values csv-show-key-column-field-index))
-               (previous-assoc (assoc key previous-cells)))
-          (if (not previous-assoc)
-              (push (cons key current-values) previous-cells)
-            (let ((previous-values (cdr previous-assoc)))
-              (dolist (current-column-index constant-columns-indices)
-                (when (not (equal current-column-index csv-show-key-column-field-index)) ; The key column might be variable, but we don't want to lose it
-                  (let ((current-value (aref current-values current-column-index))
-                        (previous-value (aref previous-values current-column-index)))
-                    (when (not (equal previous-value current-value)) ; We don't want to lose a column that didn't change on this line
-                      ;; (message "Removed column %s from constant column list because %s is not equal to %s for key value %s at line %d." (nth current-column-index columns) previous-value current-value key line-number)
-                      (setq constant-columns-indices (delete current-column-index constant-columns-indices))
-                      ;; (message "Finding constant columns: %d possible constant columns left." (- (length constant-columns-indices) 1))
-                      )))))
-            (setf (cdr previous-assoc) current-values))))) ; Set the current constant column indices and values as new previous value for this key
-                                        ; The key column might be constant, but we don't want to ignore it ever
-    (setq constant-columns-indices (delete csv-show-key-column-field-index constant-columns-indices))
+
+    (while (and (cdr constant-columns-indices)
+		(forward-line) 
+		(not (eobp)))
+      ;; Progress Reporting
+      (incf line-number)
+      (when (= (% line-number 1000) 0)
+	(message "%d%%: %d possible constant columns left." 
+		 (/ (* line-number 100) number-of-lines) 
+		 (- (length constant-columns-indices) 1)))
+
+      ;; Processing new line
+      (let* ((current-values (csv-show--get-cells-vec))
+	     (key (aref current-values csv-show-key-column-field-index))
+	     (previous-assoc (assoc key previous-cells)))
+	(if (not previous-assoc)
+	    (push (cons key current-values) previous-cells)
+	  (setq constant-columns-indices 
+		(csv-show--constant-columns constant-columns-indices 
+					    csv-show-key-column-field-index
+					    current-values 
+					    (cdr previous-assoc)))
+	  (setcdr previous-assoc current-values)))) 
+
+    ;; Remove key column from constant list
+    (setq constant-columns-indices (delete csv-show-key-column-field-index 
+					   constant-columns-indices))
+    
     (goto-char (point-min))
-                                        ; csv-show--get-cells returns all cells when given an empty parameter, we don't want that
-    (if constant-columns-indices
-        (csv-show--get-cells constant-columns-indices)
-      (list))
-    ))
+    (when constant-columns-indices
+        (csv-show--get-cells constant-columns-indices))))
 
 (defun csv-show-switch-to-source-buffer ()
   "Switch to the source line in the underlying CSV file."
