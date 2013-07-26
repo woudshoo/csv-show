@@ -35,6 +35,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 'cl-lib)
 (require 's)
 (require 'dash)
 (require 'calc)
@@ -597,11 +598,11 @@ Think of it as num1 - num2."
       (let ((width (reduce 'max csv-show-columns :key 'length))
             (cell-width (reduce 'max csv-show-cells :key 'length)))
 	(if csv-show-previous-cells
-	    (cl-mapcar (lambda (colum cell previous-cell)
-			 (csv-show--fill-line colum width cell cell-width previous-cell))
+	    (cl-mapcar (lambda (column cell previous-cell)
+			 (csv-show--fill-line column width cell cell-width previous-cell))
 		       csv-show-columns csv-show-cells csv-show-previous-cells)
-	  (cl-mapcar (lambda (colum cell)
-		       (csv-show--fill-line colum width cell cell-width nil))
+	  (cl-mapcar (lambda (column cell)
+		       (csv-show--fill-line column width cell cell-width nil))
 		     csv-show-columns csv-show-cells)))
       (csv-show-fontify-detail-buffer)
       (csv-show--restore-line-col-position current-position)))
