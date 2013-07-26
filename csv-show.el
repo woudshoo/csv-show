@@ -103,8 +103,7 @@ of the current line as a table.
   (make-local-variable 'csv-show-key-column-field-index)
   (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
   (setq-local csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
-  (set-key-column-field-index)
-  )
+  (set-key-column-field-index))
 
 (setq csv-show-detail-map 
       (let ((map (make-sparse-keymap)))
@@ -122,6 +121,7 @@ of the current line as a table.
         (define-key map "o" 'csv-show-switch-to-source-buffer)
         (define-key map "j" 'csv-show-next-value)
         (define-key map "k" 'csv-show-prev-value)
+	(define-key map "K" 'csv-show-set-key-column)
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
         (define-key map "f" 'csv-show-format-toggle)
 	map))
@@ -437,6 +437,15 @@ buffer."
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
 
+(defun csv-show-set-key-column ()
+  "Will mark the column as Key column"
+  (interactive)
+  (let ((column (csv-show-column-name)))
+    (csv-show--in-source-buffer 
+     nil 
+     (setq csv-show-key-column-name column)
+     (set-key-column-field-index))))
+
 (defun csv-show-hide-column ()
   "Will mark the column on the current row for hiding. 
 Depending on the `column-state-toggle' it will either immediate hide
@@ -508,26 +517,41 @@ are marked for hiding.  See also `csv-show-hide-column'"
   (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000000") "0"))
   (should (equal (csv-show--make-sure-string-doesnt-start-with " " "       ") " ")))
 
-(defun csv-show--diff-integer (int1 int2)
-  "Given two strings INT1 and INT2 which contain arbitrarily
-large integers, returns a string representing the difference.
-Think of it as INT1 - INT2."
-  (let ((diff (math-sub-bignum (math-read-bignum int1) (math-read-bignum int2)))
-        (result-is-positive t))
-    (when (equal diff 'neg)
-      (setq diff (math-sub-bignum (math-read-bignum int2) (math-read-bignum int1))
-            result-is-positive nil))
-    (let ((diff-string (csv-show--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
-      (when (not result-is-positive)
-        (setq diff-string (concat "-" diff-string)))
-      diff-string)))
+(defun csv-show--diff-number (num1 num2)
+  "Given two strings num1 and num2 containing arbitrary numbers,
+returns a string representing the difference.
+Think of it as num1 - num2."
+  (let ((num1 (math-read-number num1))
+	(num2 (math-read-number num2)))
+    (if (and num1 num2)
+	(math-format-number (math-sub num1 num2))
+      "")))
 
-(ert-deftest csv-show--diff-integer-test ()
-  (should (equal (csv-show--diff-integer "5" "3") "2"))
-  (should (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-  (should (equal (csv-show--diff-integer "3" "5") "-2"))
-;  (should (equal (csv-show--diff-integer "0.936340455076744" "0.920434747227233") "??"))
-  )
+;; (defun csv-show--diff-integer (int1 int2)
+;;   "Given two strings INT1 and INT2 which contain arbitrarily
+;; large integers, returns a string representing the difference.
+;; Think of it as INT1 - INT2."
+;;   (let ((diff (math-sub-bignum (math-read-bignum int1) (math-read-bignum int2)))
+;;         (result-is-positive t))
+;;     (when (equal diff 'neg)
+;;       (setq diff (math-sub-bignum (math-read-bignum int2) (math-read-bignum int1))
+;;             result-is-positive nil))
+;;     (let ((diff-string (csv-show--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
+;;       (when (not result-is-positive)
+;;         (setq diff-string (concat "-" diff-string)))
+;;       diff-string)))
+
+;; (ert-deftest csv-show--diff-integer-test ()
+;;   (should (equal (csv-show--diff-integer "5" "3") "2"))
+;;   (should (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+;;   (should (equal (csv-show--diff-integer "3" "5") "-2")))
+
+(ert-deftest csv-show--diff-number-test ()
+  (should (equal (csv-show--diff-number "5" "3") "2"))
+  (should (equal (csv-show--diff-number "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+  (should (equal (csv-show--diff-number "3" "5") "-2"))
+  (should (equal (csv-show--diff-number "0.936340455076744" "0.920434747227233") "0.01590570785"))
+  (should (equal (csv-show--diff-number "0sdfsaf44" "0.920434747227233") "")))
 
 (defun csv-show--diff-cells ( column cell1 cell2 )
   "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
@@ -535,7 +559,7 @@ Think of it as INT1 - INT2."
                  nil)
          ((equal column "StatisticTime")
           (csv-show--diff-statistictime cell1 cell2))
-         (t (csv-show--diff-integer cell1 cell2))))
+         (t (csv-show--diff-number cell1 cell2))))
 
 (defun csv-show--line-col-position ()
   "Returns the position of point as a line number, column number combination"
