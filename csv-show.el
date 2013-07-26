@@ -40,6 +40,7 @@
 (require 'dash)
 (require 'calc)
 
+(require 'spark-lines)
 
 (defmacro in-other-buffer (marker bindings &rest body)
   "Executes `body' in the buffer indicated by `marker'.  
@@ -119,6 +120,7 @@ of the current line as a table.
         (define-key map "c" 'csv-show-hide-constant-columns)
 	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
+	(define-key map "S" 'csv-show-spark-line)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
         (define-key map "j" 'csv-show-next-value)
         (define-key map "k" 'csv-show-prev-value)
@@ -289,6 +291,7 @@ functionality."
 	  (run-with-idle-timer 0.1 t 'csv-show-update-detail-buffer))))
 
 
+
 (defun csv-show-update-detail-buffer ()
   "Updates the *CSV Detail* buffer with the content of the line
 containing point in the underlying CSV buffer.  It is similar to the 
@@ -404,7 +407,11 @@ if it exists."
 (defun csv-show-set-column-state (column state)
   "Sets the state of `column' to `state'.  
 See also `csv-show-column-state'"
-  (push (cons column state) csv-show-column-state))
+  (let ((assoc-pair (assoc column csv-show-column-state)))
+    (if assoc-pair
+	(setcdr assoc-pair csv-show-column-state))
+    (push (cons column state) csv-show-column-state)))
+
 
 
 (defun csv-show-column-state (column)
@@ -437,6 +444,23 @@ buffer."
     (dolist (column constant-columns)
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
+
+(defun csv-show-spark-line ()
+  (interactive)
+  (let ((column (csv-show-column-name))
+	(result (list)))
+    (csv-show--in-source-buffer
+     nil
+     (let ((index (csv-show--field-index-for-column column)))
+       (goto-char (point-min))
+       (while (and (forward-line)
+		   (not (eobp)))
+	 (let* ((line (csv-show--get-cells-vec))
+		(value (string-to-number (aref line index))))
+	   (when value
+	     (push value result))))))
+    (csv-show-set-column-state column (wo-make-spark-line 80 11 (reverse result)))
+    (csv-show-fontify-detail-buffer)))
 
 (defun csv-show-set-key-column ()
   "Will mark the column as Key column"
@@ -576,14 +600,15 @@ Think of it as num1 - num2."
   (insert column ":")
   (move-to-column (+ 4 width) t)
   (csv-show--insert-cell column cell)
+  (move-to-column (+ 4 width cell-width 1) t)
   (when previous-cell
-    (move-to-column (+ 4 width cell-width 1) t)
     (csv-show--insert-cell column previous-cell)
     (let ((diff (csv-show--diff-cells column cell previous-cell)))
+      (move-to-column (+ 4 width cell-width 1 cell-width 1) t)
       (when diff
-	(move-to-column (+ 4 width cell-width 1 cell-width 1) t)
-	(insert diff))))
-  (insert "\n"))
+	(insert diff)
+	(move-to-column (+ 4 width cell-width 1 cell-width 1 cell-width 1) t))))
+  (insert " \n"))
 
 ; TODO: Make LINE: a field
 (defun csv-show-fill-buffer ()
@@ -612,8 +637,7 @@ Think of it as num1 - num2."
   (save-excursion
     (let ((buffer-read-only nil))
       (goto-char (point-min))
-      (put-text-property (point) (point-max) 'invisible nil)
-      (put-text-property (point) (point-max) 'face nil)
+      (set-text-properties (point) (point-max) nil)
       (forward-line 2)
       (while (not (eobp))
 	(let ((column (csv-show-column-name))
@@ -627,8 +651,11 @@ Think of it as num1 - num2."
 	    (bold
 	     (forward-line)
 	     (put-text-property start (point) 'face '(:weight bold)))
-	    (t 
+	    (t
 	     (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face)
+	     (when (and (consp (csv-show-column-state column)))
+	       (end-of-line)
+	       (put-text-property (- (point) 1) (point) 'display (csv-show-column-state column)))
 	     (forward-line))))))))
 
 (defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
