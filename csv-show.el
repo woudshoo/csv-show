@@ -123,6 +123,7 @@ of the current line as a table.
 	(define-key map "U" 'csv-show-normal-all)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	(define-key map "S" 'csv-show-spark-line)
+	(define-key map "I" 'csv-show-spark-line-toggle-incremental)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
         (define-key map "j" 'csv-show-next-value)
         (define-key map "k" 'csv-show-prev-value)
@@ -151,6 +152,7 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-columns)
   (make-local-variable 'csv-show-cells)
   (make-local-variable 'csv-show-previous-cells)
+  (setq-local csv-show-spark-line-incremental nil)
   (setq-local csv-show-column-state (list))
   (setq-local csv-show-column-state-toggle nil)
   (setq-local csv-show-format-toggle t)
@@ -460,6 +462,23 @@ buffer."
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
 
+(defun csv-show-diff-values (list)
+  (let ((first-value (first list))
+	result)
+    (dolist (element (rest list))
+      (push (- element first-value) result)
+      (setq first-value element))
+    (nreverse result)))
+
+(ert-deftest csv-show-diff-values-test ()
+  (should (equal '(1 1 1) (csv-show-diff-values '(10 11 12 13)))))
+
+(defun csv-show-spark-line-toggle-incremental ()
+  "Toggle between using diff's of values for the sparkle lines"
+  (interactive)
+  (setq csv-show-spark-line-incremental (not csv-show-spark-line-incremental))
+  (csv-show-fill-buffer))
+
 (defun csv-show-spark-line ()
   (interactive)
   (let ((column (csv-show-column-name))
@@ -477,7 +496,10 @@ buffer."
 	     (let ((value (string-to-number (second values))))
 	       (when value
 		 (push value result))))))))
-    (csv-show-set-column-state column (wo-make-spark-line 80 11 (reverse result)))
+    (setq result (nreverse result))
+    (when csv-show-spark-line-incremental
+      (setq result (csv-show-diff-values result)))
+    (csv-show-set-column-state column (wo-make-spark-line 80 11 result))
     (csv-show-fontify-detail-buffer)
     (next-line)))
 
@@ -680,7 +702,11 @@ Think of it as num1 - num2."
       (erase-buffer)
 
       (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
-	      " LINE: " (format "%d" csv-show-source-line-no) "\n\n")
+	      " LINE: " (format "%d" csv-show-source-line-no) 
+	      " Spark Lines use " (if csv-show-spark-line-incremental
+				      "DIFFs" "Values") 
+	      " for plotting"
+	      "\n\n")
       
       (let ((width (reduce 'max csv-show-columns :key 'length))
             (cell-width (reduce 'max csv-show-cells :key 'length)))
