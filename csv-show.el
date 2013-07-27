@@ -433,6 +433,8 @@ buffer."
   (save-excursion
     (when point (goto-char point))
     (beginning-of-line)
+    (when (get-text-property (point) 'invisible)
+      (goto-char (next-single-property-change (point) 'invisible)))
     (buffer-substring-no-properties (point)
 				    (1- (search-forward ":")))))
 
