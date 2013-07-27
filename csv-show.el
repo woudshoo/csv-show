@@ -119,6 +119,7 @@ of the current line as a table.
 	(define-key map "h" 'csv-show-hide-column)
         (define-key map "c" 'csv-show-hide-constant-columns)
 	(define-key map "b" 'csv-show-bold-column)
+	(define-key map "u" 'csv-show-normal-column)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	(define-key map "S" 'csv-show-spark-line)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
@@ -485,6 +486,13 @@ See also `csv-show-column-state-toggle'"
     (case (csv-show-column-state column)
       ('hidden (csv-show-set-column-state column 'normal))
       (t (csv-show-set-column-state column 'hidden))))
+  (forward-line)
+  (csv-show-fontify-detail-buffer))
+
+(defun csv-show-normal-column ()
+  "Remove all state: bold, hidden, sparkline etc. from the current column"
+  (interactive)
+  (csv-show-set-column-state (csv-show-column-name) 'normal)
   (forward-line)
   (csv-show-fontify-detail-buffer))
 
