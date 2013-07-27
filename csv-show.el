@@ -60,9 +60,7 @@ will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) to
 buffer-local-var in the current buffer. "
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
-	 ;; tmps = (tmp-a tmp-b tmp-c ..)
 	 (set-tmps (cl-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
-	 ;; set-tmps = ((tmp-a expr-a) (tmp-b expr-b) ...)
 	 (set-vars (cl-mapcar (lambda (v tmp) (list (car v) tmp)) bindings tmps)))
     `(let ,tmps
        (let ((,old-mark ,marker))
@@ -74,7 +72,9 @@ buffer-local-var in the current buffer. "
        ,@(mapcar (lambda (var-form) `(setq ,@var-form)) set-vars))))
 
 (defun csv-show--marker-for-source-buffer ()
-  ""
+  "Returns a marker for the source buffer location which is used 
+in the Detail buffer.  If the current buffer is not a detail buffer
+it should be a CSV file and it will return the point-marker."
   (if (boundp 'csv-show-source-marker)
       csv-show-source-marker
     (point-marker)))
@@ -120,6 +120,7 @@ of the current line as a table.
         (define-key map "c" 'csv-show-hide-constant-columns)
 	(define-key map "b" 'csv-show-bold-column)
 	(define-key map "u" 'csv-show-normal-column)
+	(define-key map "U" 'csv-show-normal-all)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	(define-key map "S" 'csv-show-spark-line)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
@@ -262,6 +263,18 @@ the `csv-show-select' function."
   "Returns an assoc list of index -> cell"
   (save-excursion
     (csv-show-parse-line-vec)))
+
+(defun csv-show--get-cell-fast (indices)
+  "Returns a list of values at the current
+line indicated by the indices. 
+The resulting list is of the same length as `indices'.
+If an index, the corresponding value will be nil."
+  (let* ((line (csv-show--get-cells-vec))
+	 (length (length line)))
+    (mapcar (lambda (index) 
+	      (when (< index length)
+		(aref line index)))
+	    indices)))
 
 (defun csv-show-select ()
   "Show the current row."
@@ -414,7 +427,6 @@ See also `csv-show-column-state'"
     (push (cons column state) csv-show-column-state)))
 
 
-
 (defun csv-show-column-state (column)
   "Returns the state of the `column'.
 The valid states are 
@@ -454,16 +466,20 @@ buffer."
 	(result (list)))
     (csv-show--in-source-buffer
      nil
-     (let ((index (csv-show--field-index-for-column column)))
+     (let* ((indices (list csv-show-key-column-field-index 
+			   (csv-show--field-index-for-column column)))
+	    (key-value (car (csv-show--get-cell-fast indices))))
        (goto-char (point-min))
        (while (and (forward-line)
 		   (not (eobp)))
-	 (let* ((line (csv-show--get-cells-vec))
-		(value (and (< index (length line)) (string-to-number (aref line index)))))
-	   (when value
-	     (push value result))))))
+	 (let* ((values (csv-show--get-cell-fast indices)))
+	   (when (and (second values) (equal (first values) key-value))
+	     (let ((value (string-to-number (second values))))
+	       (when value
+		 (push value result))))))))
     (csv-show-set-column-state column (wo-make-spark-line 80 11 (reverse result)))
-    (csv-show-fontify-detail-buffer)))
+    (csv-show-fontify-detail-buffer)
+    (next-line)))
 
 (defun csv-show-set-key-column ()
   "Will mark the column as Key column"
@@ -488,14 +504,21 @@ See also `csv-show-column-state-toggle'"
     (case (csv-show-column-state column)
       ('hidden (csv-show-set-column-state column 'normal))
       (t (csv-show-set-column-state column 'hidden))))
-  (forward-line)
-  (csv-show-fontify-detail-buffer))
+  (csv-show-fontify-detail-buffer)
+  (when csv-show-column-state-toggle
+    (next-line)))
 
 (defun csv-show-normal-column ()
   "Remove all state: bold, hidden, sparkline etc. from the current column"
   (interactive)
   (csv-show-set-column-state (csv-show-column-name) 'normal)
-  (forward-line)
+  (csv-show-fontify-detail-buffer)
+  (next-line))
+
+(defun csv-show-normal-all ()
+  "Remove all states from all columns"
+  (interactive)
+  (setq csv-show-column-state nil)
   (csv-show-fontify-detail-buffer))
 
 (defun csv-show-bold-column ()
@@ -507,8 +530,8 @@ See also `csv-show-column-state-toggle'"
     (case (csv-show-column-state column)
       ('bold (csv-show-set-column-state column 'normal))
       (t (csv-show-set-column-state column 'bold))))
-  (forward-line)
-  (csv-show-fontify-detail-buffer))
+  (csv-show-fontify-detail-buffer)
+  (next-line))
 
 (defun csv-show-column-state-toggle ()
   "Toggles between showing all columns and hiding the columns that
