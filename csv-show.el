@@ -552,13 +552,43 @@ are marked for hiding.  See also `csv-show-hide-column'"
       (insert (funcall (csv-show--format-function-for-column column) cell))
     (insert cell)))
 
-; TODO: Actually implement
+(defun smis-time-to-time-string ( smis-time )
+  (format "%s-%s-%s %s:%s:%s"
+          (substring smis-time 0 4)
+          (substring smis-time 4 6)
+          (substring smis-time 6 8)
+          (substring smis-time 8 10)
+          (substring smis-time 10 12) 
+          (substring smis-time 12 14)))
+
+(defun parse-smis-time-string ( smis-time )
+  "Converts SMIS-TIME to a time."
+  (date-to-time (smis-time-to-time-string smis-time)))
+
+(defun float-smis-time ( smis-time )
+  "Returns a float representing the epoch for SMIS-TIME."
+  (float-time (parse-smis-time-string smis-time)))
+
+(defun diff-smis-times ( smis-time1 smis-time2 )
+  "Returns the difference in seconds of SMIS-TIME1 - SMIS-TIME2."
+  (- (float-smis-time smis-time1) (float-smis-time smis-time2)))
+
+(defun seconds-to-string (seconds)
+  "Converts SECONDS to a nicely formatted string with hours, minutes and seconds."
+  (let (result)
+    (dolist (divider (list (cons 3600 nil) (cons 60 ":") (cons 1 "'")))
+      (let ((amount (truncate (/ seconds (car divider)))))
+          (setq result (concat result (cdr divider) (format "%02d" amount))
+                seconds (- seconds (* amount (car divider))))))
+    result))
+
 (defun csv-show--diff-statistictime ( time1 time2 )
-  ""
-  "15:00")
+  "Returns a nice string representation of TIME1 - TIME2."
+  (seconds-to-string (diff-smis-times time1 time2)))
 
 (defun csv-show--make-sure-string-doesnt-start-with ( prefix s )
-  ""
+  "Remove as much instances of PREFIX from the start of S so that it doesn't start with PREFIX anymore.
+However, if S has a length greater than 0 to begin with, it never leaves S at length 0."
   (if (= (length prefix) 0)
       s
     (progn
@@ -566,7 +596,6 @@ are marked for hiding.  See also `csv-show-hide-column'"
                   (> (length s) (length prefix)))
         (setq s (substring s (length prefix))))
       s)))
-
 
 (ert-deftest csv-show--make-sure-string-doesnt-start-with-test ()
   (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000123") "123"))
