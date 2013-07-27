@@ -456,7 +456,7 @@ buffer."
        (while (and (forward-line)
 		   (not (eobp)))
 	 (let* ((line (csv-show--get-cells-vec))
-		(value (string-to-number (aref line index))))
+		(value (and (< index (length line)) (string-to-number (aref line index)))))
 	   (when value
 	     (push value result))))))
     (csv-show-set-column-state column (wo-make-spark-line 80 11 (reverse result)))
@@ -812,12 +812,14 @@ never removed from the result.
 
 The order of the indices in the result is the same as the order in
 input `candidate-constant-columns'."
-  (let ((constant-columns))
+  (let ((constant-columns)
+	(safe-length (min (length previous-values) (length current-values))))
     (dolist (current-column-index candidate-constant-columns)
       
       (when (or (equal current-column-index key-column-index)
-		(equal (aref previous-values current-column-index)
-		       (aref current-values current-column-index)))
+		(and (< current-column-index safe-length)
+		     (equal (aref previous-values current-column-index)
+			    (aref current-values current-column-index))))
 	(push current-column-index constant-columns)))
 
     (nreverse constant-columns)))
