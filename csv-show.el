@@ -243,6 +243,7 @@ the `csv-show-select' function."
 				  (progn (end-of-line) (point))) 
 				 ","))))
 
+
 (defvar csv-show--get-columns-cache nil)
 
 (defun csv-show--get-columns ()
@@ -270,13 +271,27 @@ the `csv-show-select' function."
   "Returns a list of values at the current
 line indicated by the indices. 
 The resulting list is of the same length as `indices'.
-If an index, the corresponding value will be nil."
-  (let* ((line (csv-show--get-cells-vec))
-	 (length (length line)))
-    (mapcar (lambda (index) 
-	      (when (< index length)
-		(aref line index)))
-	    indices)))
+If an index, the corresponding value will be nil.
+
+The assumption is that indices is sorted from low to high!"
+  (let* ((end (progn (end-of-line) (+ (point) 1)))
+	 (column-pos 0)
+	 old-pos
+	 new-pos
+	 result)
+    (beginning-of-line)
+    (setq new-pos (point))
+    (while (and new-pos
+	    (setq index (pop indices)))
+      (setq index (- index column-pos))
+      (when (> index 0)
+	(setq new-pos (search-forward "," end t index)))
+      (setq old-pos (point))
+      (setq column-pos (+ column-pos index 1))
+      (when new-pos
+	(setq new-pos (- (or (search-forward "," end t) end) 1))
+	(push (buffer-substring-no-properties old-pos new-pos) result)))
+    (nreverse result)))
 
 (defun csv-show-select ()
   "Show the current row."
