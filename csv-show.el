@@ -123,6 +123,7 @@ of the current line as a table.
 	(define-key map "U" 'csv-show-normal-all)
 	(define-key map "s" 'csv-show-column-state-toggle)
 	(define-key map "S" 'csv-show-spark-line)
+        (define-key map "Z" 'csv-show-spark-line-for-all-visible-columns)
 	(define-key map "I" 'csv-show-spark-line-toggle-incremental)
         (define-key map "o" 'csv-show-switch-to-source-buffer)
         (define-key map "j" 'csv-show-next-value)
@@ -494,10 +495,20 @@ buffer."
   (setq csv-show-spark-line-incremental (not csv-show-spark-line-incremental))
   (csv-show-fill-buffer))
 
+(defun csv-show-spark-line-for-all-visible-columns ()
+  (interactive)
+  (save-excursion
+    (beginning-of-buffer)
+    (forward-line)
+    (forward-line)
+    (while (thing-at-point 'symbol)
+      (csv-show-spark-line))))
+
 (defun csv-show-spark-line ()
   (interactive)
   (let ((column (csv-show-column-name))
 	(result (list)))
+    (message (concat "Spark line for " column ))
     (csv-show--in-source-buffer
      nil
      (let ((key-index csv-show-key-column-field-index)
