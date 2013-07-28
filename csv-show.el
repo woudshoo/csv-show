@@ -500,17 +500,45 @@ buffer."
 	(result (list)))
     (csv-show--in-source-buffer
      nil
-     (let* ((indices (list csv-show-key-column-field-index 
-			   (csv-show--field-index-for-column column)))
-	    (key-value (car (csv-show--get-cell-fast indices))))
-       (goto-char (point-min))
-       (while (and (forward-line)
-		   (not (eobp)))
-	 (let* ((values (csv-show--get-cell-fast indices)))
-	   (when (and (second values) (equal (first values) key-value))
-	     (let ((value (string-to-number (second values))))
-	       (when value
-		 (push value result))))))))
+     (let ((key-index csv-show-key-column-field-index)
+	   (value-index (csv-show--field-index-for-column column))
+	   indices key--index value--index key-value)
+
+       (if key-index
+	   (if (> value-index key-index)
+	       (progn 
+		 (setq key--index 0)
+		 (setq value--index 1)
+		 (setq indices (list key-index value-index)))
+	     (progn 
+	       (setq key--index 1)
+	       (setq value--index 0)
+	       (setq indices (list value-index key-index))))
+	 (progn
+	   (setq key--index nil)
+	   (setq value--index 0)
+	   (setq indices (list value-index))))
+       
+       (flet ((value-to-plot (line-values)
+			     (nth value--index line-values))
+	      (key-value (line-values)
+			 (when key-index (nth key--index line-values))))
+
+	 (setq key-value (key-value (csv-show--get-cell-fast indices)))
+
+	 (goto-char (point-min))
+	 (while (and (forward-line)
+		     (not (eobp)))
+	   
+	   (let* ((line-values (csv-show--get-cell-fast indices))
+		  (value (value-to-plot line-values))
+		  (key (key-value line-values)))
+	     
+	     (when (and value (equal key key-value))
+	       (let ((value (string-to-number value)))
+		 (when value
+		   (push value result)))))))))
+    
     (setq result (nreverse result))
     (when csv-show-spark-line-incremental
       (setq result (csv-show-diff-values result)))
