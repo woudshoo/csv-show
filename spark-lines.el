@@ -18,13 +18,15 @@
       (aset (wo-image-data image) index value))))
 
 
-(defun wo-make-image (width height)
+(defun wo-make-image (width height &optional foreground background)
   (let ((data (make-bool-vector (* width height) nil)))
     `(image :type xbm
 	    :data
 	    ,data
 	    :height ,height
 	    :width ,width
+	    :foreground ,foreground
+	    :background ,background
 	    :ascent 100)))
 
 
@@ -180,14 +182,14 @@
 	(max (reduce 'max data))
 	(length (length data))
 	(index 0)
-	(image (wo-make-image width height))
+	(image (wo-make-image width height (when (= min max) "gray")))
 	prev-x prev-y)
     (when (= min max) 
       (decf min)
       (incf max))
     (dolist (value data)
       (let ((x (/ (* width index) length))
-	    (y (floor (/ (* height (- max value)) (- max min)))))
+	    (y (floor (/ (* (- height 1) (- max value)) (- max min)))))
 	(when (and prev-x prev-y)
 	  (wo-draw-line image prev-x prev-y x y t))
 	(setq prev-x x)
