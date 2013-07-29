@@ -225,17 +225,6 @@ the `csv-show-select' function."
         )) ;break
       (nreverse result)))
 
-;; (defun csv-show-parse-line-dumb-and-fast (&optional indices)
-;;   "Dumb csv-show-parse-line that is fast but not always correct."
-;;   (let ((cells (split-string (buffer-substring-no-properties
-;; 			      (progn (beginning-of-line) (point))
-;; 			      (progn (end-of-line) (point)))
-;; 			     ",")))
-
-;;     (if indices
-;; 	(mapcar (lambda (n) (nth n cells)) indices)
-;;       cells)))
-
 (defun csv-show-parse-line-vec ()
   "Dumb csv-show-parse-line that is fast but not always correct."
   (vconcat (mapcar 's-trim 
