@@ -247,10 +247,9 @@ the `csv-show-select' function."
   (save-excursion
     (csv-show-parse-line indices)))
 
-(defun csv-show--get-cells-vec ()
-  "Returns an assoc list of index -> cell"
-  (save-excursion
-    (csv-show-parse-line-vec)))
+(defun csv-show--get-cells-vec (indices)
+  ""
+  (vconcat (csv-show--get-cells-fast indices)))
 
 (defun csv-show--get-cells-fast (indices)
   "Returns a list of values at the current
@@ -963,10 +962,11 @@ input `candidate-constant-columns'."
 (defun csv-show-constant-columns ()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
-  (let ((constant-columns-indices (csv-show--indices-of-columns))
-	(line-number 0)
-	(number-of-lines (count-lines (point-min) (point-max)))
-        previous-cells)
+  (let* ((constant-columns-indices (csv-show--indices-of-columns))
+         (all-columns-indices constant-columns-indices)
+         (line-number 0)
+         (number-of-lines (count-lines (point-min) (point-max)))
+         previous-cells)
 
     (goto-char (point-min))
 
@@ -981,7 +981,7 @@ input `candidate-constant-columns'."
 		 (- (length constant-columns-indices) 1)))
 
       ;; Processing new line
-      (let* ((current-values (csv-show--get-cells-vec))
+      (let* ((current-values (csv-show--get-cells-vec all-columns-indices))
 	     (key (aref current-values csv-show-key-column-field-index))
 	     (previous-assoc (assoc key previous-cells)))
 	(if (not previous-assoc)
