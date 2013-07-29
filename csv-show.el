@@ -247,11 +247,6 @@ the `csv-show-select' function."
   (save-excursion
     (csv-show-parse-line indices)))
 
-(defun csv-show--get-cells-alt ()
-  "Returns an assoc list of index -> cell"
-  (save-excursion
-    (csv-show-parse-line-vec)))
-
 (defun csv-show--get-cells-vec ()
   "Returns an assoc list of index -> cell"
   (save-excursion
