@@ -478,6 +478,15 @@ buffer."
       (csv-show-set-column-state column 'constant)))
   (csv-show-fontify-detail-buffer))
 
+(defadvice csv-show-hide-constant-columns (around time-csv-show-hide-constant-columns)
+  ""
+  (interactive)
+  (let ((c-s-s (current-time)))
+    ad-do-it
+    (let ((elapsed (float-time (time-subtract (current-time) c-s-s))))
+      (message "Hiding constant columns took %.3fs" elapsed))))
+(ad-activate 'csv-show-hide-constant-columns)
+
 (defun csv-show-diff-values (list)
   (let ((first-value (first list))
 	result)
