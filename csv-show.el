@@ -252,7 +252,7 @@ the `csv-show-select' function."
   (save-excursion
     (csv-show-parse-line-vec)))
 
-(defun csv-show--get-cell-fast (indices)
+(defun csv-show--get-cells-fast (indices)
   "Returns a list of values at the current
 line indicated by the indices. 
 The resulting list is of the same length as `indices'.
@@ -528,13 +528,13 @@ buffer."
 	      (key-value (line-values)
 			 (when key-index (nth key--index line-values))))
 
-	 (setq key-value (key-value (csv-show--get-cell-fast indices)))
+	 (setq key-value (key-value (csv-show--get-cells-fast indices)))
 
 	 (goto-char (point-min))
 	 (while (and (forward-line)
 		     (not (eobp)))
 	   
-	   (let* ((line-values (csv-show--get-cell-fast indices))
+	   (let* ((line-values (csv-show--get-cells-fast indices))
 		  (value (value-to-plot line-values))
 		  (key (key-value line-values)))
 	     
