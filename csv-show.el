@@ -58,6 +58,7 @@ from another buffer.  e.g.
 
 will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) to 
 buffer-local-var in the current buffer. "
+  (declare (indent 1))
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 (set-tmps (cl-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
