@@ -157,6 +157,7 @@ the `csv-show-select' function."
   (make-local-variable 'csv-show-columns)
   (make-local-variable 'csv-show-cells)
   (make-local-variable 'csv-show-previous-cells)
+  (make-local-variable 'csv-show-previous-line)
   (setq-local csv-show-spark-line-incremental nil)
   (setq-local csv-show-column-state (list))
   (setq-local csv-show-column-state-toggle nil)
@@ -752,21 +753,23 @@ Think of it as num1 - num2."
       (erase-buffer)
 
       (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
-	      " LINE: " (format "%d" csv-show-source-line-no) 
 	      " Spark Lines use " (if csv-show-spark-line-incremental
 				      "DIFFs" "Values") 
 	      " for plotting"
 	      "\n\n")
       
       (let ((width (reduce 'max csv-show-columns :key 'length))
-            (cell-width (reduce 'max csv-show-cells :key 'length)))
+            (cell-width (reduce 'max csv-show-cells :key 'length))
+            (display-columns (-flatten (list "Line" csv-show-columns)))
+            (display-cells (-flatten (list (format "%d" csv-show-source-line-no) csv-show-cells))))
 	(if csv-show-previous-cells
-	    (cl-mapcar (lambda (column cell previous-cell)
-			 (csv-show--fill-line column width cell cell-width previous-cell))
-		       csv-show-columns csv-show-cells csv-show-previous-cells)
+            (let ((display-previous-cells (-flatten (list (format "%d" csv-show-previous-line) csv-show-previous-cells))))
+              (cl-mapcar (lambda (column cell previous-cell)
+                           (csv-show--fill-line column width cell cell-width previous-cell))
+                         display-columns display-cells display-previous-cells))
 	  (cl-mapcar (lambda (column cell)
 		       (csv-show--fill-line column width cell cell-width nil))
-		     csv-show-columns csv-show-cells)))
+		     display-columns display-cells)))
       (csv-show-fontify-detail-buffer)
       (csv-show--restore-line-col-position current-position)))
 
@@ -808,6 +811,7 @@ variable.
 For updating the content see the function `csv-show-fill-buffer'."
   (let (new-show-columns)
     (setq csv-show-previous-cells nil)
+    (setq csv-show-previous-line nil)
     (csv-show--in-source-buffer
 		     ((csv-show-source-marker (point-marker))
 		      (csv-show-source-line-no (line-number-at-pos (point)))
@@ -861,6 +865,7 @@ field is different than the current, and InstanceID is
 identical."
   (interactive)
   (setq csv-show-previous-cells csv-show-cells)
+  (setq csv-show-previous-line csv-show-source-line-no)
   (csv-show--in-source-buffer
 		   ((csv-show-source-marker (point-marker))
 		    (csv-show-source-line-no (line-number-at-pos (point)))
@@ -876,6 +881,7 @@ current column is different than the current value for the
 current column, and InstanceID is identical."
   (interactive)
   (setq csv-show-previous-cells csv-show-cells)
+  (setq csv-show-previous-line csv-show-source-line-no)
   (let ((variable-column (csv-show-column-name)))
     (csv-show--in-source-buffer
      ((csv-show-source-marker (point-marker))
@@ -900,6 +906,7 @@ KEY-VALUE."
 source file that has the same value for `csv-show-key-column' as the current line."
   (interactive)
   (setq csv-show-previous-cells nil)
+  (setq csv-show-previous-line nil)
   (let (key-index indices)
     (csv-show--in-source-buffer ((key-index csv-show-key-column-field-index)
                                  (indices (csv-show--indices-of-columns))))

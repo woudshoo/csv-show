@@ -6,7 +6,6 @@
 ** indentatie van macro's fixen
 ** Kolom formattering in aparte source file
 
-* LINE een column maken in detail buffer
 * sparke lines weg kunnen halen
 * Kolom annotatie (key, time, cumulative, ...?)
 ** Annotaties kunnen onthouden
