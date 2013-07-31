@@ -925,7 +925,8 @@ identical."
 
 (defun csv-show--next/prev-value (column dir)
   "Moves up or down in the CSV file (current buffer) until a line is encountered 
-with a different value for column but the same instance id.
+with a different value for column but the same instance id. Returns t if such a
+line was found, nil otherwise.
 
 Pre conditions are:  
  - point is at the beginning of a line.
@@ -937,14 +938,17 @@ Post conditions:
 	 (variable-column-index (csv-show--field-index-for-column column))
 	 (instanceid-index (csv-show--field-index-for-column "InstanceID"))
 	 (current-value (csv-show--get-current-value-for-index variable-column-index))
-	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
+	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index))
+         (found t))
     (while (or
 	    (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
 	    (equal current-value (csv-show--get-current-value-for-index variable-column-index)))
       (beginning-of-line)
       (unless (equal (forward-line dir) 0)
-	(error "No more records")))
-    (beginning-of-line)))
+	(error "No more records")
+        (setq found nil)))
+    (beginning-of-line)
+    found))
 
 (defun csv-show--indices-of-columns()
   "Returns a list of indices of all the columns."
