@@ -16,3 +16,5 @@
 *** kolom namen die default time/key kolom zijn
 *** Hard-coded InstanceID en StatisticTime uit source weghalen
 * Een detail-detail buffer met verticaal de waardes voor de time column en horizontaal gekozen kolommen
+* Het commentaar aan het begin van de file uitbreiden
+* Iets doen aan al die spaties in het detail buffer, dat maakt navigeren in dat buffer vervelend (end springt te ver)
