@@ -130,6 +130,8 @@ of the current line as a table.
         (define-key map "j" 'csv-show-next-value)
         (define-key map "k" 'csv-show-prev-value)
 	(define-key map "K" 'csv-show-set-key-column)
+        (define-key map "q" 'csv-show-kill-detail-buffer)
+        (define-key map "Q" 'csv-show-kill-both-buffers)
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
         (define-key map "f" 'csv-show-format-toggle)
         (define-key map "1" 'csv-show-jump-first-line-for-key-value)
@@ -1060,6 +1062,17 @@ input `candidate-constant-columns'."
   (let ((line-no csv-show-source-line-no))
     (pop-to-buffer (marker-buffer csv-show-source-marker))
     (goto-line line-no)))
-  
+
+(defun csv-show-kill-detail-buffer ()
+  "Expected to be performed from the detail buffer."
+  (interactive)
+  (kill-buffer))
+
+(defun csv-show-kill-both-buffers ()
+  "Expected to be performed from the detail buffer."
+  (interactive)
+  (kill-buffer (marker-buffer csv-show-source-marker))
+  (csv-show-kill-detail-buffer))
+
 (provide 'csv-show)
 ;;; csv-show.el ends here
