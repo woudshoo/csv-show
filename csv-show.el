@@ -876,11 +876,10 @@ identical."
   (setq csv-show-previous-cells csv-show-cells)
   (let ((variable-column (csv-show-column-name)))
     (csv-show--in-source-buffer
-                     ((csv-show-source-marker (point-marker))
-                      (csv-show-source-line-no (line-number-at-pos (point)))
-                      (csv-show-cells (csv-show--get-cells)))
-		   
-                     (csv-show--next/prev-value variable-column (or dir 1))))
+     ((csv-show-source-marker (point-marker))
+      (csv-show-source-line-no (line-number-at-pos (point)))
+      (csv-show-cells (csv-show--get-cells)))
+     (csv-show--next/prev-value variable-column (or dir 1))))
   (csv-show-fill-buffer))
 
 (defun csv-show-next-value ()
