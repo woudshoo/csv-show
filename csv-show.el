@@ -893,7 +893,8 @@ identical."
                     (car (csv-show-parse-line (list csv-show-key-column-field-index))))))))
   
 (defun csv-show-jump-first-line-for-key-value ()
-  ""
+  "Expected to be performed in the detail buffer. Jumps to the first line in the
+source file that has the same value for csv-show-key-column as the current line."
   (interactive)
   (setq csv-show-previous-cells nil)
   (let (key-index indices)
