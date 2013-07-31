@@ -902,6 +902,17 @@ identical."
                                                     (car (csv-show-parse-line (list csv-show-key-column-field-index))))))))))
   (csv-show-fill-buffer))
 
+(defun csv-show--all-key-values ()
+  "Return a list of all values for the csv-show-key-column"
+  (let ((key-values (list)))
+    (csv-show--in-source-buffer nil
+     (goto-char (point-min))
+     (while (and (forward-line)
+                 (not (eobp)))
+       (let ((current-key-value (car (csv-show-parse-line (list csv-show-key-column-field-index)))))
+         (add-to-list 'key-values current-key-value t))))
+    key-values))
+
 (defun csv-show-next-value ()
   "Show next record for which the current field is different, see `csv-show-next/prev-value'"
   (interactive)
