@@ -132,6 +132,7 @@ of the current line as a table.
 	(define-key map "K" 'csv-show-set-key-column)
         (define-key map [C-return] 'csv-show-switch-to-source-buffer)
         (define-key map "f" 'csv-show-format-toggle)
+        (define-key map "1" 'csv-show-first-line-for-key-value)
 	map))
 
 (define-generic-mode csv-show-detail-mode
@@ -880,6 +881,25 @@ identical."
       (csv-show-source-line-no (line-number-at-pos (point)))
       (csv-show-cells (csv-show--get-cells)))
      (csv-show--next/prev-value variable-column (or dir 1))))
+  (csv-show-fill-buffer))
+
+(defun csv-show-first-line-for-key-value ()
+  "Expected to be performed in the source buffer."
+  (interactive)
+  (setq csv-show-previous-cells nil)
+  (let (key-index indices)
+    (csv-show--in-source-buffer ((key-index csv-show-key-column-field-index)
+                                 (indices (csv-show--indices-of-columns))))
+    (let ((key-value (nth key-index csv-show-cells)))
+      (csv-show--in-source-buffer ((csv-show-source-marker (point-marker))
+                                   (csv-show-source-line-no (line-number-at-pos (point)))
+                                   (csv-show-cells (csv-show--get-cells-fast indices)))
+                                  (goto-char (point-min))
+                                  (while (and (forward-line)
+                                              (not (eobp))
+                                              (not (equal 
+                                                    key-value
+                                                    (car (csv-show-parse-line (list csv-show-key-column-field-index))))))))))
   (csv-show-fill-buffer))
 
 (defun csv-show-next-value ()
