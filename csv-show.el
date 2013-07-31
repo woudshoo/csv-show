@@ -498,6 +498,7 @@ buffer."
     (beginning-of-buffer)
     (forward-line)
     (forward-line)
+    (forward-line)
     (while (thing-at-point 'symbol)
       (csv-show-spark-line))))
 
