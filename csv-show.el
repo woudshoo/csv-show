@@ -496,11 +496,13 @@ buffer."
   (save-excursion
     (beginning-of-buffer)
     (forward-line 3)
-    (let ((list-of-non-sparkling-column-names (list "InstanceID" "StatisticTime")))
-      (while (thing-at-point 'symbol)
-        (let ((column-name (thing-at-point 'symbol)))
-          (when (not (-contains? list-of-non-sparkling-column-names column-name))
-            (csv-show-spark-line)))))))
+    (let ((list-of-non-sparkling-column-names (list "InstanceID" "StatisticTime" "ElementType")))
+      (while (thing-at-point 'symbol t)
+        (let ((column-name (thing-at-point 'symbol t)))
+          (if (and (not (equal (csv-show-column-state column-name) 'hidden))
+                   (not (-contains? list-of-non-sparkling-column-names column-name)))
+            (csv-show-spark-line)
+            (forward-line)))))))
 
 (defun csv-show-spark-line ()
   (interactive)
