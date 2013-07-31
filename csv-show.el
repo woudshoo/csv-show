@@ -883,8 +883,17 @@ identical."
      (csv-show--next/prev-value variable-column (or dir 1))))
   (csv-show-fill-buffer))
 
-(defun csv-show-jump-first-line-for-key-value ()
+(defun csv-show--jump-first-line-for-key-value ( key-value )
   "Expected to be performed in the source buffer."
+  (goto-char (point-min))
+  (while (and (forward-line)
+              (not (eobp))
+              (not (equal 
+                    key-value
+                    (car (csv-show-parse-line (list csv-show-key-column-field-index))))))))
+  
+(defun csv-show-jump-first-line-for-key-value ()
+  ""
   (interactive)
   (setq csv-show-previous-cells nil)
   (let (key-index indices)
@@ -894,12 +903,7 @@ identical."
       (csv-show--in-source-buffer ((csv-show-source-marker (point-marker))
                                    (csv-show-source-line-no (line-number-at-pos (point)))
                                    (csv-show-cells (csv-show--get-cells-fast indices)))
-                                  (goto-char (point-min))
-                                  (while (and (forward-line)
-                                              (not (eobp))
-                                              (not (equal 
-                                                    key-value
-                                                    (car (csv-show-parse-line (list csv-show-key-column-field-index))))))))))
+                                  (csv-show--jump-first-line-for-key-value key-value))))
   (csv-show-fill-buffer))
 
 (defun csv-show--all-key-values ()
