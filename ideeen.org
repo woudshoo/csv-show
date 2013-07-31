@@ -1,0 +1,19 @@
+* Code structuur
+** defun namen zo structureren dat we makkelijk aan de naam kunnen zien
+*** Of de verwachting is om ze in detail of source uit te voeren
+*** Of ze outward-facing bedoeld zijn
+*** Of ze LINE veranderen (jump?)
+** indentatie van macro's fixen
+** Kolom formattering in aparte source file
+
+* LINE een column maken in detail buffer
+* sparke lines weg kunnen halen
+* Kolom annotatie (key, time, cumulative, ...?)
+** Annotaties kunnen onthouden
+** Annotaties visualiseren (symbool voor de kolom naam?)
+** Annotaties kunnen wijzigen
+** Annotaties permanent opslaan als default 
+*** lijst met per-default cumulatieve kolom namen
+*** kolom namen die default time/key kolom zijn
+*** Hard-coded InstanceID en StatisticTime uit source weghalen
+* Een detail-detail buffer met verticaal de waardes voor de time column en horizontaal gekozen kolommen
