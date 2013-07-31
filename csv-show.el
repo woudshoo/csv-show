@@ -935,13 +935,10 @@ source file that has the same value for `csv-show-key-column' as the current lin
   "Expected to be performed in the source buffer. Iterates over
 all values for the key column and jumps to the first line where
 the value of COLUMN changes for a value of the key column."
-  (let ((key-values (csv-show--all-key-values))
-        (found))
-    (while (and (not found)
-                key-values)
-      (csv-show--jump-first-line-for-key-value (pop key-values))
-      (setq found 
-            (csv-show--jump-to-first-value-change-of-column column)))))
+  (--each-while 
+      (csv-show--all-key-values) 
+      (not (csv-show--jump-to-first-value-change-of-column column))
+    (csv-show--jump-first-line-for-key-value it)))
 
 (defun csv-show-next-value ()
   "Show next record for which the current field is different, see `csv-show-next/prev-value'"
