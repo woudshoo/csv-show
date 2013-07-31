@@ -869,10 +869,9 @@ identical."
 
 
 (defun csv-show-next/prev-value (&optional dir)
-  "Shows the next or previous record for which the value of
-the current column is different than the current value for the current
-column, and InstanceID is
-identical."
+  "Shows the next or previous record for which the value of the
+current column is different than the current value for the
+current column, and InstanceID is identical."
   (interactive)
   (setq csv-show-previous-cells csv-show-cells)
   (let ((variable-column (csv-show-column-name)))
@@ -884,7 +883,9 @@ identical."
   (csv-show-fill-buffer))
 
 (defun csv-show--jump-first-line-for-key-value ( key-value )
-  "Expected to be performed in the source buffer."
+  "Expected to be performed in the source buffer. Jumps to the
+first line where the value of the `csv-show-key-column' is
+KEY-VALUE."
   (goto-char (point-min))
   (while (and (forward-line)
               (not (eobp))
@@ -894,7 +895,7 @@ identical."
   
 (defun csv-show-jump-first-line-for-key-value ()
   "Expected to be performed in the detail buffer. Jumps to the first line in the
-source file that has the same value for csv-show-key-column as the current line."
+source file that has the same value for `csv-show-key-column' as the current line."
   (interactive)
   (setq csv-show-previous-cells nil)
   (let (key-index indices)
@@ -908,7 +909,7 @@ source file that has the same value for csv-show-key-column as the current line.
   (csv-show-fill-buffer))
 
 (defun csv-show--all-key-values ()
-  "Return a list of all values for the csv-show-key-column"
+  "Returns a list of all values for the `csv-show-key-column'."
   (let ((key-values (list)))
     (csv-show--in-source-buffer nil
      (goto-char (point-min))
