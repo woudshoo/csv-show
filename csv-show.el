@@ -1073,7 +1073,10 @@ input `candidate-constant-columns'."
 (defun csv-show-kill-detail-buffer ()
   "Expected to be performed from the detail buffer."
   (interactive)
-  (kill-buffer))
+  (let ((source (marker-buffer csv-show-source-marker)))
+    (kill-buffer)
+    (pop-to-buffer source))
+)
 
 (defun csv-show-kill-both-buffers ()
   "Expected to be performed from the detail buffer."
