@@ -43,21 +43,22 @@
 (require 'spark-lines)
 
 (defmacro in-other-buffer (marker bindings &rest body)
-  "Executes `body' in the buffer indicated by `marker'.  
-The point in the buffer is set to the point of the `marker'.
+  "Executes BODY in the buffer indicated by MARKER.  
+The point in the buffer is set to the point of the MARKER.
 
-The `bindings' are a list of bindings of the form (var expr).
-Each expr is evaluated after the body but in the buffer indicated by the `marker'.
-The value of the expresion is assigned to var but the var is in context
-of the current buffer.  
+The BINDINGS are a list of bindings of the form (var expr).
+Each expr is evaluated after the body but in the buffer indicated
+by the MARKER.  The value of the expresion is assigned to var
+but the var is in context of the current buffer.
 
 This is useful for updating buffer local variables with values
 from another buffer.  e.g. 
 
-`(in-other-buffer marker-of-other-buffer ((buffer-local-var buffer-local-var)))`
+ (in-other-buffer marker-of-other-buffer
+      ((buffer-local-var buffer-local-var)))
 
-will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) to 
-buffer-local-var in the current buffer. "
+will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) 
+to buffer-local-var in the current buffer."
   (declare (indent 1))
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
@@ -75,7 +76,7 @@ buffer-local-var in the current buffer. "
 (defun csv-show--marker-for-source-buffer ()
   "Returns a marker for the source buffer location which is used 
 in the Detail buffer.  If the current buffer is not a detail buffer
-it should be a CSV file and it will return the point-marker."
+it should be a CSV file and it will return (point-marker)."
   (if (boundp 'csv-show-source-marker)
       csv-show-source-marker
     (point-marker)))
@@ -183,7 +184,7 @@ the `csv-show-select' function."
     (s-trim field)))
 
 (defun csv-show--field-index-for-column (column)
-  "Returns the index of COLUMN."
+  "Return the index of COLUMN."
   (position column (csv-show--get-columns) :test #'equal))
     
 (require 'ert)
@@ -192,8 +193,8 @@ the `csv-show-select' function."
     (assert (equal (csv-show--field-index-for-column "Header2") 1))))
 
 (defun csv-show-parse-line (&optional indices)
-  "Parse the current line and return the list of values. When 
-   INDICES is specified, returns a list with values on those INDICES."
+  "Parse the current line and return the list of values.
+When  INDICES is specified, returns a list with values on those INDICES."
   (let ((start (point))
         (index -1)
         (all-indices (not indices))
@@ -230,7 +231,7 @@ the `csv-show-select' function."
       (nreverse result)))
 
 (defun csv-show-parse-line-vec ()
-  "Dumb csv-show-parse-line that is fast but not always correct."
+  "Dumb `csv-show-parse-line' that is fast but not always correct."
   (vconcat (mapcar 's-trim 
 		   (split-string (buffer-substring-no-properties 
 				  (progn (beginning-of-line) (point)) 
@@ -256,8 +257,8 @@ the `csv-show-select' function."
   (vconcat (csv-show--get-cells-fast indices)))
 
 (defun csv-show--get-cells-fast (indices)
-  "Returns a list of values at the current
-line indicated by the indices. 
+  "Return a list of values at the current line indicated by the INDICES.
+
 The resulting list is of the same length as `indices'.
 If an index, the corresponding value will be nil.
 
@@ -433,7 +434,7 @@ See also `csv-show-column-state'"
 
 
 (defun csv-show-column-state (column)
-  "Returns the state of the `column'.
+  "Return the state of the `COLUMN'.
 The valid states are 
 
   - nil    -- meaning the state is never set.
@@ -444,7 +445,7 @@ The valid states are
   (assoc-default column csv-show-column-state))
 
 (defun csv-show-column-name (&optional point)
-  "Returns the column name for the line containing `point'.
+  "Return the column name for the line containing `POINT'.
 If `point' is nil or not provided, use the current point in the
 buffer."
   (save-excursion
@@ -558,7 +559,7 @@ buffer."
     (next-line)))
 
 (defun csv-show-set-key-column ()
-  "Will mark the column as Key column"
+  "Will mark the column as Key column."
   (interactive)
   (let ((column (csv-show-column-name)))
     (csv-show--in-source-buffer 
@@ -585,14 +586,14 @@ See also `csv-show-column-state-toggle'"
     (next-line)))
 
 (defun csv-show-normal-column ()
-  "Remove all state: bold, hidden, sparkline etc. from the current column"
+  "Remove all state: bold, hidden, sparkline etc.  from the current column."
   (interactive)
   (csv-show-set-column-state (csv-show-column-name) 'normal)
   (csv-show-fontify-detail-buffer)
   (next-line))
 
 (defun csv-show-normal-all ()
-  "Remove all states from all columns"
+  "Remove all states from all columns."
   (interactive)
   (setq csv-show-column-state nil)
   (csv-show-fontify-detail-buffer))
@@ -617,7 +618,7 @@ are marked for hiding.  See also `csv-show-hide-column'"
   (csv-show-fontify-detail-buffer))
 
 (defun csv-show-format-toggle ()
-  "Toggles between showing raw values and their formatted counterparts."
+  "Toggle between showing raw values and their formatted counterparts."
   (interactive)
   (setq csv-show-format-toggle (not csv-show-format-toggle))
   (csv-show-fill-buffer))
@@ -638,19 +639,19 @@ are marked for hiding.  See also `csv-show-hide-column'"
           (substring smis-time 12 14)))
 
 (defun parse-smis-time-string ( smis-time )
-  "Converts SMIS-TIME to a time."
+  "Convert SMIS-TIME to a time."
   (date-to-time (smis-time-to-time-string smis-time)))
 
 (defun float-smis-time ( smis-time )
-  "Returns a float representing the epoch for SMIS-TIME."
+  "Return a float representing the epoch for SMIS-TIME."
   (float-time (parse-smis-time-string smis-time)))
 
 (defun diff-smis-times ( smis-time1 smis-time2 )
-  "Returns the difference in seconds of SMIS-TIME1 - SMIS-TIME2."
+  "Return the difference in seconds of SMIS-TIME1 - SMIS-TIME2."
   (- (float-smis-time smis-time1) (float-smis-time smis-time2)))
 
 (defun seconds-to-string (seconds)
-  "Converts SECONDS to a nicely formatted string with hours, minutes and seconds."
+  "Convert SECONDS to a nicely formatted string with hours, minutes and seconds."
   (let (result)
     (dolist (divider (list (cons 3600 nil) (cons 60 ":") (cons 1 "'")))
       (let ((amount (truncate (/ seconds (car divider)))))
@@ -659,7 +660,7 @@ are marked for hiding.  See also `csv-show-hide-column'"
     result))
 
 (defun csv-show--diff-statistictime ( time1 time2 )
-  "Returns a nice string representation of TIME1 - TIME2."
+  "Return a nice string representation of TIME1 - TIME2."
   (seconds-to-string (diff-smis-times time1 time2)))
 
 (defun csv-show--make-sure-string-doesnt-start-with ( prefix s )
@@ -729,7 +730,7 @@ Think of it as num1 - num2."
   (cons (line-number-at-pos) (current-column)))
 
 (defun csv-show--restore-line-col-position (line-col)
-  "Move point to the `line-col' position, see `csv-show--line-col-position'"
+  "Move point to the `LINE-COL' position, see `csv-show--line-col-position'."
   (goto-char (point-min))
   (forward-line (1- (car line-col)))
   (move-to-column (cdr line-col)))
