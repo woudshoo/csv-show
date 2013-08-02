@@ -34,7 +34,6 @@
 
 ;;; Code:
 
-(require 'cl)
 (require 'cl-lib)
 (require 's)
 (require 'dash)
@@ -84,6 +83,7 @@ it should be a CSV file and it will return (point-marker)."
 (defmacro csv-show--in-source-buffer (bindings &rest body)
   `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,@body))
 
+(defvar csv-show-map)
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
@@ -964,7 +964,7 @@ Post conditions:
 "
   (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
 	 (variable-column-index (csv-show--field-index-for-column column))
-	 (instanceid-index (csv-show--field-index-for-column "InstanceID"))
+	 (instanceid-index csv-show-key-column-field-index)
 	 (current-value (csv-show--get-current-value-for-index variable-column-index))
 	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index))
          (found t))
