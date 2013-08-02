@@ -4,6 +4,18 @@
 ;; Copyright (C) 2013  Tom Koelman
 ;; Copyright (C) 2013  Willem Rein Oudshoorn <woudshoo@xs4all.nl>
 ;;
+;; Author: Alex Shroeder <alex@gnu.org>
+;;     Tom Koelman
+;;     Willem Rein Oudshoorn <woudshoo@xs4all.nl>
+;; Maintainer: ???
+;; Version: 0.1
+;; Keywords: data
+;; Homepage: http://github.com/woudshoo/csv-show
+;; Package-Requires: ((cl-lib "1.0")
+;;                    (s "1.6.1")
+;;                    (dash "1.5.0")
+;;                    (spark-lines "0.1"))
+;;
 ;; This file is not part of GNU Emacs.
 
 ;; This is free software; you can redistribute it and/or modify it under
