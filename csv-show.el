@@ -14,7 +14,7 @@
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
 ;;                    (dash "1.5.0")
-;;                    (spark-lines "0.1"))
+;;                    (sparkline "0.1"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,7 @@
 (require 'dash)
 (require 'calc)
 (require 'simple)
-(require 'spark-lines)
+(require 'sparkline)
 
 
 ;; Variables
@@ -591,7 +591,7 @@ buffer."
     (setq result (nreverse result))
     (when csv-show-spark-line-incremental
       (setq result (csv-show-diff-values result)))
-    (csv-show-set-column-state column (wo-make-spark-line 80 11 result))
+    (csv-show-set-column-state column (sparkline-make-sparkline 80 11 result))
     (csv-show-fontify-detail-buffer)
     (next-line)))
 
