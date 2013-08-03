@@ -50,8 +50,25 @@
 (require 's)
 (require 'dash)
 (require 'calc)
-
+(require 'simple)
 (require 'spark-lines)
+
+
+;; Variables
+(defvar csv-show-key-column-name)
+(defvar csv-show-key-column-field-index)
+(defvar csv-show-source-line-no)
+(defvar csv-show-source-marker)
+(defvar csv-show-previous-cells)
+(defvar csv-show-detail-map)
+(defvar csv-show-column-state)
+(defvar csv-show-spark-line-incremental)
+(defvar csv-show-column-state-toggle)
+(defvar csv-show-format-toggle)
+(defvar csv-show-columns)
+(defvar csv-show-cells)
+(defvar csv-show-previous-line)
+(defvar csv-show-previous-cells)
 
 (defmacro in-other-buffer (marker bindings &rest body)
   "Executes BODY in the buffer indicated by MARKER.  
@@ -75,14 +92,20 @@ to buffer-local-var in the current buffer."
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 (set-tmps (cl-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
 	 (set-vars (cl-mapcar (lambda (v tmp) (list (car v) tmp)) bindings tmps)))
-    `(let ,tmps
-       (let ((,old-mark ,marker))
-	 (with-current-buffer (marker-buffer ,marker)
-	   (save-excursion
-	     (goto-char ,old-mark)
-	     ,@body
-	     ,@(mapcar (lambda (tmp-form) `(setq ,@tmp-form)) set-tmps))))
-       ,@(mapcar (lambda (var-form) `(setq ,@var-form)) set-vars))))
+    (if bindings
+	`(let ,tmps
+	   (let ((,old-mark ,marker))
+	     (with-current-buffer (marker-buffer ,marker)
+	       (save-excursion
+		 (goto-char ,old-mark)
+		 ,@body
+		 ,@(mapcar (lambda (tmp-form) `(setq ,@tmp-form)) set-tmps))))
+	   ,@(mapcar (lambda (var-form) `(setq ,@var-form)) set-vars))
+      `(let ((,old-mark ,marker))
+	(with-current-buffer (marker-buffer ,marker)
+	  (save-excursion 
+	    (goto-char ,old-mark)
+	    ,@body))))))
 
 (defun csv-show--marker-for-source-buffer ()
   "Returns a marker for the source buffer location which is used 
@@ -278,6 +301,7 @@ If an index, the corresponding value will be nil.
 The assumption is that indices is sorted from low to high!"
   (let* ((end (progn (end-of-line) (+ (point) 1)))
 	 (column-pos 0)
+	 index
 	 old-pos
 	 new-pos
 	 result)
