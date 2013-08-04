@@ -14,7 +14,8 @@
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
 ;;                    (dash "1.5.0")
-;;                    (sparkline "0.3"))
+;;                    (sparkline "0.3")
+;;                    (vendor-from-wwn "0.1.0"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -52,7 +53,7 @@
 (require 'calc)
 (require 'simple)
 (require 'sparkline)
-
+(require 'vendor-from-wwn)
 
 ;; Variables
 (defvar csv-show-key-column-name nil 
@@ -407,7 +408,6 @@ if it exists."
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
-(require 'vendor-from-wwn)
 (defun csv-show--format-wwn (wwn)
   "Returns a nicely formatted WWN."
   (interactive)
