@@ -543,8 +543,10 @@ buffer."
             (csv-show-spark-line)
             (forward-line)))))))
 
+
 (defun csv-show-spark-line ()
   (interactive)
+
   (let ((column (csv-show-column-name))
 	(result (list)))
     (message (concat "Spark line for " column ))
@@ -569,7 +571,7 @@ buffer."
 	   (setq value--index 0)
 	   (setq indices (list value-index))))
        
-       (flet ((value-to-plot (line-values)
+       (cl-flet ((value-to-plot (line-values)
 			     (nth value--index line-values))
 	      (key-value (line-values)
 			 (when key-index (nth key--index line-values))))
