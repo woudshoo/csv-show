@@ -1,4 +1,4 @@
-;;; csv-show.el --- navigate and edit CSV files
+;;; csv-lens.el --- navigate and edit CSV files
 
 ;; Copyright (C) 2006  Alex Schroeder <alex@gnu.org>
 ;; Copyright (C) 2013  Tom Koelman
@@ -35,13 +35,13 @@
 
 ;;; Commentary:
 
-;; Use the `csv-show-mode' minor mode in a CSV file to activate
-;; the csv-show feature.
+;; Use the `csv-lens-mode' minor mode in a CSV file to activate
+;; the csv-lens feature.
 ;;
 ;; When this minor mode is enabled C-return will open up a new buffer
 ;; showing the content of the current CSV row in a table format.
 ;;
-;; In this CSV-Show buffer the keys `n' and 'p' will select the next
+;; In this csv-lens buffer the keys `n' and 'p' will select the next
 ;; or previous row to display.
 
 ;;; Code:
@@ -55,7 +55,7 @@
 
 
 ;; Variables
-(defvar csv-show-key-column-name nil 
+(defvar csv-lens-key-column-name nil 
   "Name of the key column.  
 This is set by the user (or defaults to InstanceID) 
 and is used for the navigation commands to go the next line
@@ -63,30 +63,30 @@ with the same key value.
 Also used when making sparkline graphs to create the sparkline
 for the element indicated by the key column value.")
 
-(defvar csv-show--key-column-field-index nil
-  "Column number of the csv-show-key-column-name in the source buffer.
+(defvar csv-lens--key-column-field-index nil
+  "Column number of the csv-lens-key-column-name in the source buffer.
 This should not be set by the user, but the code that updates the 
-`csv-show-key-column-name' should also update this value.")
+`csv-lens-key-column-name' should also update this value.")
 
-(defvar csv-show-source-line-no)
-(defvar csv-show-source-marker)
-(defvar csv-show-previous-cells)
-(defvar csv-show-detail-map)
-(defvar csv-show-column-state)
-(defvar csv-show-spark-line-incremental)
-(defvar csv-show-column-state-toggle)
-(defvar csv-show-format-toggle)
-(defvar csv-show-columns)
-(defvar csv-show-cells)
-(defvar csv-show-previous-line)
-(defvar csv-show-previous-cells)
-(defvar csv-show-column-format-functions nil)
+(defvar csv-lens-source-line-no)
+(defvar csv-lens-source-marker)
+(defvar csv-lens-previous-cells)
+(defvar csv-lens-detail-map)
+(defvar csv-lens-column-state)
+(defvar csv-lens-spark-line-incremental)
+(defvar csv-lens-column-state-toggle)
+(defvar csv-lens-format-toggle)
+(defvar csv-lens-columns)
+(defvar csv-lens-cells)
+(defvar csv-lens-previous-line)
+(defvar csv-lens-previous-cells)
+(defvar csv-lens-column-format-functions nil)
 
-(defvar csv-show--get-columns-cache nil)
+(defvar csv-lens--get-columns-cache nil)
 
-(defvar csv-show-map)
+(defvar csv-lens-map)
 
-(defvar csv-show-update-timer nil
+(defvar csv-lens-update-timer nil
   "Holds the timer used to keep the *CSV Detail* buffer in sync
 with the underlying CSV buffer.
 
@@ -130,107 +130,107 @@ to buffer-local-var in the current buffer."
 	    (goto-char ,old-mark)
 	    ,@body))))))
 
-(defun csv-show--marker-for-source-buffer ()
+(defun csv-lens--marker-for-source-buffer ()
   "Returns a marker for the source buffer location which is used 
 in the Detail buffer.  If the current buffer is not a detail buffer
 it should be a CSV file and it will return (point-marker)."
-  (if (boundp 'csv-show-source-marker)
-      csv-show-source-marker
+  (if (boundp 'csv-lens-source-marker)
+      csv-lens-source-marker
     (point-marker)))
 
-(defmacro csv-show--in-source-buffer (bindings &rest body)
+(defmacro csv-lens--in-source-buffer (bindings &rest body)
   (declare (indent 1))
-  `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,@body))
+  `(in-other-buffer (csv-lens--marker-for-source-buffer) ,bindings ,@body))
 
 
-(setq csv-show-map
+(setq csv-lens-map
       (let ((map (make-sparse-keymap)))
-	(define-key map [?\C-.] 'csv-show-toggle-timer)
-	(define-key map [C-return] 'csv-show-select)
+	(define-key map [?\C-.] 'csv-lens-toggle-timer)
+	(define-key map [C-return] 'csv-lens-select)
 	map))
 
 (defun set-key-column-field-index ()
   ""
-  (setq-local csv-show--key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
+  (setq-local csv-lens--key-column-field-index (csv-lens--field-index-for-column csv-lens-key-column-name)))
 
 ;;;###autoload
-(define-minor-mode csv-show-mode 
+(define-minor-mode csv-lens-mode 
   "Shows a row in a CSV file in a separate buffer.
 
 This is a minor mode to show in a separate buffer the content
 of the current line as a table.
 
 \\{csv-show-map}"
-  nil " csv-show" csv-show-map
-  (make-local-variable 'csv-show-key-column-name)
-  (make-local-variable 'csv-show--key-column-field-index)
-  (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
-  (setq-local csv-show--key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
+  nil " csv-lens" csv-lens-map
+  (make-local-variable 'csv-lens-key-column-name)
+  (make-local-variable 'csv-lens--key-column-field-index)
+  (setq-local csv-lens-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
+  (setq-local csv-lens--key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
   (set-key-column-field-index))
 
-(setq csv-show-detail-map 
+(setq csv-lens-detail-map 
       (let ((map (make-sparse-keymap)))
 	(set-keymap-parent map special-mode-map)
-	(define-key map "n" 'csv-show-next)
-	(define-key map "N" (lambda () (interactive) (csv-show-next/prev-statistictime 1)))
-	(define-key map "." 'csv-show-current)
-	(define-key map [?\C-.] 'csv-show-toggle-timer)
-	(define-key map "p" 'csv-show-prev)
-	(define-key map "P" (lambda () (interactive) (csv-show-next/prev-statistictime -1)))
-	(define-key map "h" 'csv-show-hide-column)
-        (define-key map "c" 'csv-show-hide-constant-columns)
-	(define-key map "b" 'csv-show-bold-column)
-	(define-key map "u" 'csv-show-normal-column)
-	(define-key map "U" 'csv-show-normal-all)
-	(define-key map "s" 'csv-show-column-state-toggle)
-	(define-key map "S" 'csv-show-spark-line)
-        (define-key map "Z" 'csv-show-spark-line-for-all-visible-columns)
-	(define-key map "I" 'csv-show-spark-line-toggle-incremental)
-        (define-key map "o" 'csv-show-switch-to-source-buffer)
-        (define-key map "j" 'csv-show-next-value)
-        (define-key map "k" 'csv-show-prev-value)
-	(define-key map "K" 'csv-show-set-key-column)
-        (define-key map "Q" 'csv-show-kill-detail-buffer)
-        (define-key map [C-return] 'csv-show-switch-to-source-buffer)
-        (define-key map "f" 'csv-show-format-toggle)
-        (define-key map "<" 'csv-show-jump-first-line-for-key-value)
-        (define-key map ">" 'csv-show-jump-last-line-for-key-value)
+	(define-key map "n" 'csv-lens-next)
+	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-statistictime 1)))
+	(define-key map "." 'csv-lens-current)
+	(define-key map [?\C-.] 'csv-lens-toggle-timer)
+	(define-key map "p" 'csv-lens-prev)
+	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-statistictime -1)))
+	(define-key map "h" 'csv-lens-hide-column)
+        (define-key map "c" 'csv-lens-hide-constant-columns)
+	(define-key map "b" 'csv-lens-bold-column)
+	(define-key map "u" 'csv-lens-normal-column)
+	(define-key map "U" 'csv-lens-normal-all)
+	(define-key map "s" 'csv-lens-column-state-toggle)
+	(define-key map "S" 'csv-lens-spark-line)
+        (define-key map "Z" 'csv-lens-spark-line-for-all-visible-columns)
+	(define-key map "I" 'csv-lens-spark-line-toggle-incremental)
+        (define-key map "o" 'csv-lens-switch-to-source-buffer)
+        (define-key map "j" 'csv-lens-next-value)
+        (define-key map "k" 'csv-lens-prev-value)
+	(define-key map "K" 'csv-lens-set-key-column)
+        (define-key map "Q" 'csv-lens-kill-detail-buffer)
+        (define-key map [C-return] 'csv-lens-switch-to-source-buffer)
+        (define-key map "f" 'csv-lens-format-toggle)
+        (define-key map "<" 'csv-lens-jump-first-line-for-key-value)
+        (define-key map ">" 'csv-lens-jump-last-line-for-key-value)
 	map))
 
-(define-generic-mode csv-show-detail-mode
-  nil nil nil nil '(csv-show--detail-setup)
+(define-generic-mode csv-lens-detail-mode
+  nil nil nil nil '(csv-lens--detail-setup)
   "Major mode for viewing CSV file records.
 
 This mode is enabled for buffers that are created by the
-`csv-show-select' function.  It should not be toggled by the user.
+`csv-lens-select' function.  It should not be toggled by the user.
 
 \\{csv-show-detail-map}")
 
-(defun csv-show--detail-setup ()
-  "Main code to setup the csv-show major mode.
+(defun csv-lens--detail-setup ()
+  "Main code to setup the csv-lens major mode.
 This mode should not be selected by the user, but by 
-the `csv-show-select' function."
+the `csv-lens-select' function."
   (setq font-lock-defaults nil) 
-  (use-local-map csv-show-detail-map)
-  (make-local-variable 'csv-show-source-marker)
-  (make-local-variable 'csv-show-source-line-no)
-  (make-local-variable 'csv-show-columns)
-  (make-local-variable 'csv-show-cells)
-  (make-local-variable 'csv-show-previous-cells)
-  (make-local-variable 'csv-show-previous-line)
-  (setq-local csv-show-spark-line-incremental nil)
-  (setq-local csv-show-column-state (list))
-  (setq-local csv-show-column-state-toggle nil)
-  (setq-local csv-show-format-toggle t)
+  (use-local-map csv-lens-detail-map)
+  (make-local-variable 'csv-lens-source-marker)
+  (make-local-variable 'csv-lens-source-line-no)
+  (make-local-variable 'csv-lens-columns)
+  (make-local-variable 'csv-lens-cells)
+  (make-local-variable 'csv-lens-previous-cells)
+  (make-local-variable 'csv-lens-previous-line)
+  (setq-local csv-lens-spark-line-incremental nil)
+  (setq-local csv-lens-column-state (list))
+  (setq-local csv-lens-column-state-toggle nil)
+  (setq-local csv-lens-format-toggle t)
   (setq buffer-read-only t))
 
-(defvar csv-show-syntax-table
+(defvar csv-lens-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?\"  "\"" table)
     (modify-syntax-entry ?,  "." table)
     table))
 
-(defun csv-show-parse-field (start)
+(defun csv-lens-parse-field (start)
   "Return field starting at START and ending at point."
   (let ((field (buffer-substring-no-properties start (point))))
     ;; remove double quotes, fix newlines
@@ -243,16 +243,16 @@ the `csv-show-select' function."
 		      "\"\"" "\"" (substring field 1 -1)))))
     (s-trim field)))
 
-(defun csv-show--field-index-for-column (column)
+(defun csv-lens--field-index-for-column (column)
   "Return the index of COLUMN."
-  (position column (csv-show--get-columns) :test #'equal))
+  (position column (csv-lens--get-columns) :test #'equal))
     
 (require 'ert)
-(ert-deftest csv-show--field-index-for-column-test ()
-  (let ((csv-show--get-columns-cache '("Header1" "Header2" "Header3")))
-    (assert (equal (csv-show--field-index-for-column "Header2") 1))))
+(ert-deftest csv-lens--field-index-for-column-test ()
+  (let ((csv-lens--get-columns-cache '("Header1" "Header2" "Header3")))
+    (assert (equal (csv-lens--field-index-for-column "Header2") 1))))
 
-(defun csv-show-parse-line (&optional indices)
+(defun csv-lens-parse-line (&optional indices)
   "Parse the current line and return the list of values.
 When  INDICES is specified, returns a list with values on those INDICES."
   (let ((start (point))
@@ -260,19 +260,19 @@ When  INDICES is specified, returns a list with values on those INDICES."
         (all-indices (not indices))
         current-value
 	result)
-    (with-syntax-table csv-show-syntax-table
+    (with-syntax-table csv-lens-syntax-table
       (while (and start
                   (or all-indices
                       indices))
         (setq current-value nil)
 	(skip-syntax-forward "^.\" ")
 	(cond ((eq (char-after) ?,)
-               (setq current-value (csv-show-parse-field start)
+               (setq current-value (csv-lens-parse-field start)
                      index (1+ index)
                      start (1+ (point)))
 	       (forward-char 1))
               ((eq (char-after) ?\n)
-               (setq current-value (csv-show-parse-field start)
+               (setq current-value (csv-lens-parse-field start)
                      index (1+ index)
                      start nil)
 	       (forward-char 1))
@@ -290,8 +290,8 @@ When  INDICES is specified, returns a list with values on those INDICES."
         )) ;break
       (nreverse result)))
 
-(defun csv-show-parse-line-vec ()
-  "Dumb `csv-show-parse-line' that is fast but not always correct."
+(defun csv-lens-parse-line-vec ()
+  "Dumb `csv-lens-parse-line' that is fast but not always correct."
   (vconcat (mapcar 's-trim 
 		   (split-string (buffer-substring-no-properties 
 				  (progn (beginning-of-line) (point)) 
@@ -301,22 +301,22 @@ When  INDICES is specified, returns a list with values on those INDICES."
 
 
 
-(defun csv-show--get-columns ()
+(defun csv-lens--get-columns ()
   "Get the field names of the buffer."
-  (or csv-show--get-columns-cache
+  (or csv-lens--get-columns-cache
       (save-excursion
         (goto-char (point-min))
-        (csv-show-parse-line))))
+        (csv-lens-parse-line))))
 
-(defun csv-show--get-cells (&optional indices)
+(defun csv-lens--get-cells (&optional indices)
   (save-excursion
-    (csv-show-parse-line indices)))
+    (csv-lens-parse-line indices)))
 
-(defun csv-show--get-cells-vec (indices)
+(defun csv-lens--get-cells-vec (indices)
   ""
-  (vconcat (csv-show--get-cells-fast indices)))
+  (vconcat (csv-lens--get-cells-fast indices)))
 
-(defun csv-show--get-cells-fast (indices)
+(defun csv-lens--get-cells-fast (indices)
   "Return a list of values at the current line indicated by the INDICES.
 
 The resulting list is of the same length as `indices'.
@@ -343,45 +343,45 @@ The assumption is that indices is sorted from low to high!"
 	(push (buffer-substring-no-properties old-pos new-pos) result)))
     (nreverse result)))
 
-(defun csv-show-select ()
+(defun csv-lens-select ()
   "Show the current row."
   (interactive)
   (let ((current-buffer-v (current-buffer))
 	(start (point-marker)))
     (pop-to-buffer (get-buffer-create (concat "*CSV Detail " (buffer-file-name current-buffer-v) "*" )))
-    (csv-show-detail-mode)
-    (setq csv-show-source-marker start)
-    (csv-show-current)))
+    (csv-lens-detail-mode)
+    (setq csv-lens-source-marker start)
+    (csv-lens-current)))
 
 
 
-(defun csv-show-toggle-timer ()
+(defun csv-lens-toggle-timer ()
   "When enabled, the *CSV Detail* buffer tracks the cursor in the
 underlying CSV buffer.  This function toggles this
 functionality."
   (interactive)
-  (if csv-show-update-timer 
+  (if csv-lens-update-timer 
       (progn
-	(cancel-timer csv-show-update-timer)
-	(setq csv-show-update-timer nil))
-    (setq csv-show-update-timer 
-	  (run-with-idle-timer 0.1 t 'csv-show-update-detail-buffer))))
+	(cancel-timer csv-lens-update-timer)
+	(setq csv-lens-update-timer nil))
+    (setq csv-lens-update-timer 
+	  (run-with-idle-timer 0.1 t 'csv-lens-update-detail-buffer))))
 
 
 
-(defun csv-show-update-detail-buffer ()
+(defun csv-lens-update-detail-buffer ()
   "Updates the *CSV Detail* buffer with the content of the line
 containing point in the underlying CSV buffer.  It is similar to the 
-`csv-show-select', except that it does not create a *CSV Detail* buffer
+`csv-lens-select', except that it does not create a *CSV Detail* buffer
 if it exists."
   (interactive)
   (let ((detail-buffer (get-buffer "*CSV Detail*")))
     (when detail-buffer
       (save-match-data
 	(with-current-buffer detail-buffer
-	  (csv-show-current t))))))
+	  (csv-lens-current t))))))
 
-(defun csv-show--statistictime-to-string (statistictime)
+(defun csv-lens--statistictime-to-string (statistictime)
   "Returns a nicely formatted STATISTICTIME."
   (interactive)
   (if (> (length statistictime) 18)
@@ -396,7 +396,7 @@ if it exists."
 	(concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" ))
     statistictime))
 
-(defun csv-show--usagerestriction-to-string (usagerestriction)
+(defun csv-lens--usagerestriction-to-string (usagerestriction)
   "Returns a nicely formatted USAGERESTRICTION."
   (interactive)
   (or
@@ -408,7 +408,7 @@ if it exists."
    usagerestriction))
 
 (require 'vendor-from-wwn)
-(defun csv-show--format-wwn (wwn)
+(defun csv-lens--format-wwn (wwn)
   "Returns a nicely formatted WWN."
   (interactive)
   (if (and (vendor-from-wwn/valid-wwn wwn)
@@ -416,7 +416,7 @@ if it exists."
       (concat (vendor-from-wwn/vendor-specific-nice-wwn wwn) " ("  (vendor-from-wwn wwn) ")*" )
     wwn))
 
-(defun csv-show--format-huge-number (hugenumber)
+(defun csv-lens--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
   (interactive)
   (let (groups)
@@ -432,75 +432,75 @@ if it exists."
 
 (require 'format-human-readable-big-number)
 
-(defun csv-show--format-big-number-of-bytes (big-number-of-bytes)
+(defun csv-lens--format-big-number-of-bytes (big-number-of-bytes)
  ""
  (interactive)
  (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
 
-(defun csv-show--format-big-number-of-kilobytes (big-number-of-kilobytes)
+(defun csv-lens--format-big-number-of-kilobytes (big-number-of-kilobytes)
  ""
  (concat
   (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
   "*"))
 
-(defun csv-show--format-big-number-of-blocks (big-number-of-blocks)
+(defun csv-lens--format-big-number-of-blocks (big-number-of-blocks)
  ""
  (concat
   (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
   "*"))
 
 
-(setq csv-show-column-format-functions
-  `(("StatisticTime" . csv-show--statistictime-to-string)
-    ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
-    ("UsageRestriction" . csv-show--usagerestriction-to-string)
-    ("Consumed" . csv-show--format-huge-number)
-    ("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
-    ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
-    ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
-    ("KBytesTransferred" . csv-show--format-big-number-of-kilobytes)
-    ("KBytesWritten" . csv-show--format-big-number-of-kilobytes)
-    ("MaxSpeed" . csv-show--format-big-number-of-bytes)
-    ("RequestedSpeed" . csv-show--format-big-number-of-bytes)
-    ("EMCKBytesSPARead" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBRead" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPAWritten" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBWritten" . csv-show--format-big-number-of-kilobytes)
-    ("PermanentAddress" . csv-show--format-wwn)
-    ("SwitchWWPN" . csv-show--format-wwn)
-    ("DeviceID" . csv-show--format-wwn)
-    ("ElementName" . csv-show--format-wwn)
-    ("EMCWWN" . csv-show--format-wwn)
-    ("OtherIdentifyingInfo" . csv-show--format-wwn)
-    ("Speed" . csv-show--format-big-number-of-bytes)))
+(setq csv-lens-column-format-functions
+  `(("StatisticTime" . csv-lens--statistictime-to-string)
+    ("IM_OriginalStatisticTime" . csv-lens--statistictime-to-string)
+    ("UsageRestriction" . csv-lens--usagerestriction-to-string)
+    ("Consumed" . csv-lens--format-huge-number)
+    ("ConsumableBlocks" . csv-lens--format-big-number-of-blocks)
+    ("NumberOfBlocks" . csv-lens--format-big-number-of-blocks)
+    ("KBytesRead" . csv-lens--format-big-number-of-kilobytes)
+    ("KBytesTransferred" . csv-lens--format-big-number-of-kilobytes)
+    ("KBytesWritten" . csv-lens--format-big-number-of-kilobytes)
+    ("MaxSpeed" . csv-lens--format-big-number-of-bytes)
+    ("RequestedSpeed" . csv-lens--format-big-number-of-bytes)
+    ("EMCKBytesSPARead" . csv-lens--format-big-number-of-kilobytes)
+    ("EMCKBytesSPBRead" . csv-lens--format-big-number-of-kilobytes)
+    ("EMCKBytesSPAWritten" . csv-lens--format-big-number-of-kilobytes)
+    ("EMCKBytesSPBWritten" . csv-lens--format-big-number-of-kilobytes)
+    ("PermanentAddress" . csv-lens--format-wwn)
+    ("SwitchWWPN" . csv-lens--format-wwn)
+    ("DeviceID" . csv-lens--format-wwn)
+    ("ElementName" . csv-lens--format-wwn)
+    ("EMCWWN" . csv-lens--format-wwn)
+    ("OtherIdentifyingInfo" . csv-lens--format-wwn)
+    ("Speed" . csv-lens--format-big-number-of-bytes)))
 
-(defun csv-show--format-function-for-column (column)
+(defun csv-lens--format-function-for-column (column)
   "Return the format function for COLUMN."
   (or
-   (assoc-default column csv-show-column-format-functions )
+   (assoc-default column csv-lens-column-format-functions )
    #'identity))
 
-(defun csv-show-set-column-state (column state)
+(defun csv-lens-set-column-state (column state)
   "Sets the state of `column' to `state'.  
-See also `csv-show-column-state'"
-  (let ((assoc-pair (assoc column csv-show-column-state)))
+See also `csv-lens-column-state'"
+  (let ((assoc-pair (assoc column csv-lens-column-state)))
     (if assoc-pair
-	(setcdr assoc-pair csv-show-column-state))
-    (push (cons column state) csv-show-column-state)))
+	(setcdr assoc-pair csv-lens-column-state))
+    (push (cons column state) csv-lens-column-state)))
 
 
-(defun csv-show-column-state (column)
+(defun csv-lens-column-state (column)
   "Return the state of the `COLUMN'.
 The valid states are 
 
   - nil    -- meaning the state is never set.
   - normal -- should have the same meaning as nil.
   - hidden -- hides the column in CSV Detail buffer, 
-              but see also `csv-show-column-state-toggle'
+              but see also `csv-lens-column-state-toggle'
   - constant -- hides the column in CSV Detail buffer"
-  (assoc-default column csv-show-column-state))
+  (assoc-default column csv-lens-column-state))
 
-(defun csv-show-column-name (&optional point)
+(defun csv-lens-column-name (&optional point)
   "Return the column name for the line containing `POINT'.
 If `point' is nil or not provided, use the current point in the
 buffer."
@@ -512,26 +512,26 @@ buffer."
     (buffer-substring-no-properties (point)
 				    (1- (search-forward ":")))))
 
-(defun csv-show-hide-constant-columns ()
+(defun csv-lens-hide-constant-columns ()
   "Hides all columns that have constant value."
   (interactive)
   (let (constant-columns)
-    (csv-show--in-source-buffer ((constant-columns (csv-show-constant-columns))))
+    (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns))))
     (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
-      (csv-show-set-column-state column 'constant)))
-  (csv-show-fontify-detail-buffer))
+      (csv-lens-set-column-state column 'constant)))
+  (csv-lens-fontify-detail-buffer))
 
-(defadvice csv-show-hide-constant-columns (around time-csv-show-hide-constant-columns)
+(defadvice csv-lens-hide-constant-columns (around time-csv-show-hide-constant-columns)
   ""
   (interactive)
   (let ((c-s-s (current-time)))
     ad-do-it
     (let ((elapsed (float-time (time-subtract (current-time) c-s-s))))
       (message "Hiding constant columns took %.3fs" elapsed))))
-(ad-activate 'csv-show-hide-constant-columns)
+(ad-activate 'csv-lens-hide-constant-columns)
 
-(defun csv-show-diff-values (list)
+(defun csv-lens-diff-values (list)
   (let ((first-value (first list))
 	result)
     (dolist (element (rest list))
@@ -539,16 +539,16 @@ buffer."
       (setq first-value element))
     (nreverse result)))
 
-(ert-deftest csv-show-diff-values-test ()
-  (should (equal '(1 1 1) (csv-show-diff-values '(10 11 12 13)))))
+(ert-deftest csv-lens-diff-values-test ()
+  (should (equal '(1 1 1) (csv-lens-diff-values '(10 11 12 13)))))
 
-(defun csv-show-spark-line-toggle-incremental ()
+(defun csv-lens-spark-line-toggle-incremental ()
   "Toggle between using diff's of values for the sparkle lines"
   (interactive)
-  (setq csv-show-spark-line-incremental (not csv-show-spark-line-incremental))
-  (csv-show-fill-buffer))
+  (setq csv-lens-spark-line-incremental (not csv-lens-spark-line-incremental))
+  (csv-lens-fill-buffer))
 
-(defun csv-show-spark-line-for-all-visible-columns ()
+(defun csv-lens-spark-line-for-all-visible-columns ()
   (interactive)
   (save-excursion
     (beginning-of-buffer)
@@ -556,22 +556,22 @@ buffer."
     (let ((list-of-non-sparkling-column-names (list "InstanceID" "StatisticTime" "ElementType")))
       (while (thing-at-point 'symbol t)
         (let ((column-name (thing-at-point 'symbol t)))
-          (if (and (not (equal (csv-show-column-state column-name) 'hidden))
+          (if (and (not (equal (csv-lens-column-state column-name) 'hidden))
                    (not (-contains? list-of-non-sparkling-column-names column-name)))
-            (csv-show-spark-line)
+            (csv-lens-spark-line)
             (forward-line)))))))
 
 
-(defun csv-show-spark-line ()
+(defun csv-lens-spark-line ()
   (interactive)
 
-  (let ((column (csv-show-column-name))
+  (let ((column (csv-lens-column-name))
 	(result (list)))
     (message (concat "Spark line for " column ))
-    (csv-show--in-source-buffer
+    (csv-lens--in-source-buffer
 	nil
-     (let ((key-index csv-show--key-column-field-index)
-	   (value-index (csv-show--field-index-for-column column))
+     (let ((key-index csv-lens--key-column-field-index)
+	   (value-index (csv-lens--field-index-for-column column))
 	   indices key--index value--index key-value)
 
        (if key-index
@@ -594,13 +594,13 @@ buffer."
 	      (key-value (line-values)
 			 (when key-index (nth key--index line-values))))
 
-	 (setq key-value (key-value (csv-show--get-cells-fast indices)))
+	 (setq key-value (key-value (csv-lens--get-cells-fast indices)))
 
 	 (goto-char (point-min))
 	 (while (and (forward-line)
 		     (not (eobp)))
 	   
-	   (let* ((line-values (csv-show--get-cells-fast indices))
+	   (let* ((line-values (csv-lens--get-cells-fast indices))
 		  (value (value-to-plot line-values))
 		  (key (key-value line-values)))
 	     
@@ -610,22 +610,22 @@ buffer."
 		   (push value result)))))))))
     
     (setq result (nreverse result))
-    (when csv-show-spark-line-incremental
-      (setq result (csv-show-diff-values result)))
-    (csv-show-set-column-state column (sparkline-make-sparkline 80 11 result))
-    (csv-show-fontify-detail-buffer)
+    (when csv-lens-spark-line-incremental
+      (setq result (csv-lens-diff-values result)))
+    (csv-lens-set-column-state column (sparkline-make-sparkline 80 11 result))
+    (csv-lens-fontify-detail-buffer)
     (next-line)))
 
-(defun csv-show-set-key-column ()
+(defun csv-lens-set-key-column ()
   "Will mark the column as Key column."
   (interactive)
-  (let ((column (csv-show-column-name)))
-    (csv-show--in-source-buffer 
+  (let ((column (csv-lens-column-name)))
+    (csv-lens--in-source-buffer 
 	nil 
-     (setq csv-show-key-column-name column)
+     (setq csv-lens-key-column-name column)
      (set-key-column-field-index))))
 
-(defun csv-show-hide-column ()
+(defun csv-lens-hide-column ()
   "Will mark the column on the current row for hiding. 
 Depending on the `column-state-toggle' it will either immediate hide
 the column, or it will mark it visibly as hidden.
@@ -633,58 +633,58 @@ the column, or it will mark it visibly as hidden.
 If used on an already hidden column (displayed with the highlight),
 unhide the column.
 
-See also `csv-show-column-state-toggle'"
+See also `csv-lens-column-state-toggle'"
   (interactive)
-  (let ((column (csv-show-column-name)))
-    (case (csv-show-column-state column)
-      ('hidden (csv-show-set-column-state column 'normal))
-      (t (csv-show-set-column-state column 'hidden))))
-  (csv-show-fontify-detail-buffer)
-  (when csv-show-column-state-toggle
+  (let ((column (csv-lens-column-name)))
+    (case (csv-lens-column-state column)
+      ('hidden (csv-lens-set-column-state column 'normal))
+      (t (csv-lens-set-column-state column 'hidden))))
+  (csv-lens-fontify-detail-buffer)
+  (when csv-lens-column-state-toggle
     (next-line)))
 
-(defun csv-show-normal-column ()
+(defun csv-lens-normal-column ()
   "Remove all state: bold, hidden, sparkline etc.  from the current column."
   (interactive)
-  (csv-show-set-column-state (csv-show-column-name) 'normal)
-  (csv-show-fontify-detail-buffer)
+  (csv-lens-set-column-state (csv-lens-column-name) 'normal)
+  (csv-lens-fontify-detail-buffer)
   (next-line))
 
-(defun csv-show-normal-all ()
+(defun csv-lens-normal-all ()
   "Remove all states from all columns."
   (interactive)
-  (setq csv-show-column-state nil)
-  (csv-show-fontify-detail-buffer))
+  (setq csv-lens-column-state nil)
+  (csv-lens-fontify-detail-buffer))
 
-(defun csv-show-bold-column ()
+(defun csv-lens-bold-column ()
   "Will mark the column on the current row for bolding. 
 
-See also `csv-show-column-state-toggle'"
+See also `csv-lens-column-state-toggle'"
   (interactive)
-  (let ((column (csv-show-column-name)))
-    (case (csv-show-column-state column)
-      ('bold (csv-show-set-column-state column 'normal))
-      (t (csv-show-set-column-state column 'bold))))
-  (csv-show-fontify-detail-buffer)
+  (let ((column (csv-lens-column-name)))
+    (case (csv-lens-column-state column)
+      ('bold (csv-lens-set-column-state column 'normal))
+      (t (csv-lens-set-column-state column 'bold))))
+  (csv-lens-fontify-detail-buffer)
   (next-line))
 
-(defun csv-show-column-state-toggle ()
+(defun csv-lens-column-state-toggle ()
   "Toggles between showing all columns and hiding the columns that
-are marked for hiding.  See also `csv-show-hide-column'"
+are marked for hiding.  See also `csv-lens-hide-column'"
   (interactive)
-  (setq csv-show-column-state-toggle (not csv-show-column-state-toggle))
-  (csv-show-fontify-detail-buffer))
+  (setq csv-lens-column-state-toggle (not csv-lens-column-state-toggle))
+  (csv-lens-fontify-detail-buffer))
 
-(defun csv-show-format-toggle ()
+(defun csv-lens-format-toggle ()
   "Toggle between showing raw values and their formatted counterparts."
   (interactive)
-  (setq csv-show-format-toggle (not csv-show-format-toggle))
-  (csv-show-fill-buffer))
+  (setq csv-lens-format-toggle (not csv-lens-format-toggle))
+  (csv-lens-fill-buffer))
 
-(defun csv-show--insert-cell ( column cell )
+(defun csv-lens--insert-cell ( column cell )
   ""
-  (if csv-show-format-toggle
-      (insert (funcall (csv-show--format-function-for-column column) cell))
+  (if csv-lens-format-toggle
+      (insert (funcall (csv-lens--format-function-for-column column) cell))
     (insert cell)))
 
 (defun smis-time-to-time-string ( smis-time )
@@ -717,11 +717,11 @@ are marked for hiding.  See also `csv-show-hide-column'"
                 seconds (- seconds (* amount (car divider))))))
     result))
 
-(defun csv-show--diff-statistictime ( time1 time2 )
+(defun csv-lens--diff-statistictime ( time1 time2 )
   "Return a nice string representation of TIME1 - TIME2."
   (seconds-to-string (diff-smis-times time1 time2)))
 
-(defun csv-show--make-sure-string-doesnt-start-with ( prefix s )
+(defun csv-lens--make-sure-string-doesnt-start-with ( prefix s )
   "Remove as much instances of PREFIX from the start of S so that it doesn't start with PREFIX anymore.
 However, if S has a length greater than 0 to begin with, it never leaves S at length 0."
   (if (= (length prefix) 0)
@@ -732,14 +732,14 @@ However, if S has a length greater than 0 to begin with, it never leaves S at le
         (setq s (substring s (length prefix))))
       s)))
 
-(ert-deftest csv-show--make-sure-string-doesnt-start-with-test ()
-  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000123") "123"))
-  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "") ""))
-  (should (equal (csv-show--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
-  (should (equal (csv-show--make-sure-string-doesnt-start-with "0" "00000000") "0"))
-  (should (equal (csv-show--make-sure-string-doesnt-start-with " " "       ") " ")))
+(ert-deftest csv-lens--make-sure-string-doesnt-start-with-test ()
+  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000123") "123"))
+  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "") ""))
+  (should (equal (csv-lens--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
+  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000000") "0"))
+  (should (equal (csv-lens--make-sure-string-doesnt-start-with " " "       ") " ")))
 
-(defun csv-show--diff-number (num1 num2)
+(defun csv-lens--diff-number (num1 num2)
   "Given two strings num1 and num2 containing arbitrary numbers,
 returns a string representing the difference.
 Think of it as num1 - num2."
@@ -749,7 +749,7 @@ Think of it as num1 - num2."
 	(math-format-number (math-sub num1 num2))
       "")))
 
-;; (defun csv-show--diff-integer (int1 int2)
+;; (defun csv-lens--diff-integer (int1 int2)
 ;;   "Given two strings INT1 and INT2 which contain arbitrarily
 ;; large integers, returns a string representing the difference.
 ;; Think of it as INT1 - INT2."
@@ -758,49 +758,49 @@ Think of it as num1 - num2."
 ;;     (when (equal diff 'neg)
 ;;       (setq diff (math-sub-bignum (math-read-bignum int2) (math-read-bignum int1))
 ;;             result-is-positive nil))
-;;     (let ((diff-string (csv-show--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
+;;     (let ((diff-string (csv-lens--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
 ;;       (when (not result-is-positive)
 ;;         (setq diff-string (concat "-" diff-string)))
 ;;       diff-string)))
 
-;; (ert-deftest csv-show--diff-integer-test ()
-;;   (should (equal (csv-show--diff-integer "5" "3") "2"))
-;;   (should (equal (csv-show--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-;;   (should (equal (csv-show--diff-integer "3" "5") "-2")))
+;; (ert-deftest csv-lens--diff-integer-test ()
+;;   (should (equal (csv-lens--diff-integer "5" "3") "2"))
+;;   (should (equal (csv-lens--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+;;   (should (equal (csv-lens--diff-integer "3" "5") "-2")))
 
-(ert-deftest csv-show--diff-number-test ()
-  (should (equal (csv-show--diff-number "5" "3") "2"))
-  (should (equal (csv-show--diff-number "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-  (should (equal (csv-show--diff-number "3" "5") "-2"))
-  (should (equal (csv-show--diff-number "0.936340455076744" "0.920434747227233") "0.01590570785"))
-  (should (equal (csv-show--diff-number "0sdfsaf44" "0.920434747227233") "")))
+(ert-deftest csv-lens--diff-number-test ()
+  (should (equal (csv-lens--diff-number "5" "3") "2"))
+  (should (equal (csv-lens--diff-number "55555555555555555555" "33333333333333333333") "22222222222222222222"))
+  (should (equal (csv-lens--diff-number "3" "5") "-2"))
+  (should (equal (csv-lens--diff-number "0.936340455076744" "0.920434747227233") "0.01590570785"))
+  (should (equal (csv-lens--diff-number "0sdfsaf44" "0.920434747227233") "")))
 
-(defun csv-show--diff-cells ( column cell1 cell2 )
+(defun csv-lens--diff-cells ( column cell1 cell2 )
   "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
   (cond ((member column '("InstanceID" "ElementType"))
                  nil)
          ((equal column "StatisticTime")
-          (csv-show--diff-statistictime cell1 cell2))
-         (t (csv-show--diff-number cell1 cell2))))
+          (csv-lens--diff-statistictime cell1 cell2))
+         (t (csv-lens--diff-number cell1 cell2))))
 
-(defun csv-show--line-col-position ()
+(defun csv-lens--line-col-position ()
   "Returns the position of point as a line number, column number combination"
   (cons (line-number-at-pos) (current-column)))
 
-(defun csv-show--restore-line-col-position (line-col)
-  "Move point to the `LINE-COL' position, see `csv-show--line-col-position'."
+(defun csv-lens--restore-line-col-position (line-col)
+  "Move point to the `LINE-COL' position, see `csv-lens--line-col-position'."
   (goto-char (point-min))
   (forward-line (1- (car line-col)))
   (move-to-column (cdr line-col)))
 
-(defun csv-show--fill-line (column width cell cell-width previous-cell)
+(defun csv-lens--fill-line (column width cell cell-width previous-cell)
   (insert column ":")
   (move-to-column (+ 4 width) t)
-  (csv-show--insert-cell column cell)
+  (csv-lens--insert-cell column cell)
   (move-to-column (+ 4 width cell-width 1) t)
   (when previous-cell
-    (csv-show--insert-cell column previous-cell)
-    (let ((diff (csv-show--diff-cells column cell previous-cell)))
+    (csv-lens--insert-cell column previous-cell)
+    (let ((diff (csv-lens--diff-cells column cell previous-cell)))
       (move-to-column (+ 4 width cell-width 1 cell-width 1) t)
       (when diff
 	(insert diff)
@@ -808,34 +808,34 @@ Think of it as num1 - num2."
   (insert " \n"))
 
 ; TODO: Make LINE: a field
-(defun csv-show-fill-buffer ()
+(defun csv-lens-fill-buffer ()
   "Fills the buffer with the content of the cells."
-    (let ((current-position (csv-show--line-col-position))
+    (let ((current-position (csv-lens--line-col-position))
 	  (buffer-read-only nil))
       (erase-buffer)
 
-      (insert "FILE: " (buffer-name (marker-buffer csv-show-source-marker))
-	      " Spark Lines use " (if csv-show-spark-line-incremental
+      (insert "FILE: " (buffer-name (marker-buffer csv-lens-source-marker))
+	      " Spark Lines use " (if csv-lens-spark-line-incremental
 				      "DIFFs" "Values") 
 	      " for plotting"
 	      "\n\n")
       
-      (let ((width (reduce 'max csv-show-columns :key 'length))
-            (cell-width (reduce 'max csv-show-cells :key 'length))
-            (display-columns (-flatten (list "Line" csv-show-columns)))
-            (display-cells (-flatten (list (format "%d" csv-show-source-line-no) csv-show-cells))))
-	(if csv-show-previous-cells
-            (let ((display-previous-cells (-flatten (list (format "%d" csv-show-previous-line) csv-show-previous-cells))))
+      (let ((width (reduce 'max csv-lens-columns :key 'length))
+            (cell-width (reduce 'max csv-lens-cells :key 'length))
+            (display-columns (-flatten (list "Line" csv-lens-columns)))
+            (display-cells (-flatten (list (format "%d" csv-lens-source-line-no) csv-lens-cells))))
+	(if csv-lens-previous-cells
+            (let ((display-previous-cells (-flatten (list (format "%d" csv-lens-previous-line) csv-lens-previous-cells))))
               (cl-mapcar (lambda (column cell previous-cell)
-                           (csv-show--fill-line column width cell cell-width previous-cell))
+                           (csv-lens--fill-line column width cell cell-width previous-cell))
                          display-columns display-cells display-previous-cells))
 	  (cl-mapcar (lambda (column cell)
-		       (csv-show--fill-line column width cell cell-width nil))
+		       (csv-lens--fill-line column width cell cell-width nil))
 		     display-columns display-cells)))
-      (csv-show-fontify-detail-buffer)
-      (csv-show--restore-line-col-position current-position)))
+      (csv-lens-fontify-detail-buffer)
+      (csv-lens--restore-line-col-position current-position)))
 
-(defun csv-show-fontify-detail-buffer ()
+(defun csv-lens-fontify-detail-buffer ()
   "Fontifies the detail buffer, assumes that the detail buffer is current buffer."
   (save-excursion
     (let ((buffer-read-only nil))
@@ -843,12 +843,12 @@ Think of it as num1 - num2."
       (set-text-properties (point) (point-max) nil)
       (forward-line 2)
       (while (not (eobp))
-	(let ((column (csv-show-column-name))
+	(let ((column (csv-lens-column-name))
 	      (start (point)))
-	  (case (csv-show-column-state column)
+	  (case (csv-lens-column-state column)
 	    ((hidden constant)
 	     (forward-line)
-	     (if csv-show-column-state-toggle
+	     (if csv-lens-column-state-toggle
 		 (put-text-property start (point) 'face 'highlight)
 	       (put-text-property start (point) 'invisible t)))
 	    (bold
@@ -856,12 +856,12 @@ Think of it as num1 - num2."
 	     (put-text-property start (point) 'face '(:weight bold)))
 	    (t
 	     (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face)
-	     (when (and (consp (csv-show-column-state column)))
+	     (when (and (consp (csv-lens-column-state column)))
 	       (end-of-line)
-	       (put-text-property (- (point) 1) (point) 'display (csv-show-column-state column)))
+	       (put-text-property (- (point) 1) (point) 'display (csv-lens-column-state column)))
 	     (forward-line))))))))
 
-(defun csv-show--mark-forward/backward (dir &optional do-not-parse-headers)
+(defun csv-lens--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
 Note that this does not update the content of the buffer,
 it will parse the column, cells and put these into the
@@ -870,89 +870,89 @@ corresponding local variables of the CSV-Detail buffer.
 Also move the mark down or up and update the line-no
 variable.
 
-For updating the content see the function `csv-show-fill-buffer'."
+For updating the content see the function `csv-lens-fill-buffer'."
   (let (new-show-columns)
-    (setq csv-show-previous-cells nil)
-    (setq csv-show-previous-line nil)
-    (csv-show--in-source-buffer
-	((csv-show-source-marker (point-marker))
-	 (csv-show-source-line-no (line-number-at-pos (point)))
-	 (csv-show-cells (csv-show--get-cells))
+    (setq csv-lens-previous-cells nil)
+    (setq csv-lens-previous-line nil)
+    (csv-lens--in-source-buffer
+	((csv-lens-source-marker (point-marker))
+	 (csv-lens-source-line-no (line-number-at-pos (point)))
+	 (csv-lens-cells (csv-lens--get-cells))
 	 (new-show-columns (unless do-not-parse-headers
-			     (csv-show--get-columns))))
+			     (csv-lens--get-columns))))
       
       (forward-line (or dir 1))
       (beginning-of-line))
     (unless do-not-parse-headers
-      (setq csv-show-columns new-show-columns))))
+      (setq csv-lens-columns new-show-columns))))
 
-(defun csv-show-current (&optional do-not-parse-headers)
+(defun csv-lens-current (&optional do-not-parse-headers)
   "Update the content of the *CSV-Detail* buffer with the content
 of the current line.  
 This function requires that the current buffer is a *CSV-Detail* buffer."
   (interactive)
-  (setq csv-show-source-marker 
-	(with-current-buffer (marker-buffer csv-show-source-marker)
+  (setq csv-lens-source-marker 
+	(with-current-buffer (marker-buffer csv-lens-source-marker)
 	  (save-excursion
 	    (beginning-of-line)
 	    (point-marker))))
-  (csv-show--mark-forward/backward 0 do-not-parse-headers) 
-  (csv-show-fill-buffer))
+  (csv-lens--mark-forward/backward 0 do-not-parse-headers) 
+  (csv-lens-fill-buffer))
 
-(defun csv-show-next/prev (&optional dir)
+(defun csv-lens-next/prev (&optional dir)
   "Shows the next or previous record."
   (interactive "p")
-  (csv-show--mark-forward/backward dir t)
-  (csv-show-fill-buffer))
+  (csv-lens--mark-forward/backward dir t)
+  (csv-lens-fill-buffer))
 
-(defun csv-show-next ()
+(defun csv-lens-next ()
   "Shows the next record of the underlying CSV file."
   (interactive)
-  (csv-show-next/prev 1))
+  (csv-lens-next/prev 1))
 
-(defun csv-show-prev ()
+(defun csv-lens-prev ()
   "Shows the previous record of the underlying CSV file."
   (interactive)
-  (csv-show-next/prev -1))
+  (csv-lens-next/prev -1))
 
-(defun csv-show--get-current-value-for-index (index)
+(defun csv-lens--get-current-value-for-index (index)
   "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
   (when index
     (beginning-of-line)
-    (car (csv-show-parse-line (list index)))))
+    (car (csv-lens-parse-line (list index)))))
 
-(defun csv-show-next/prev-statistictime (&optional dir)
+(defun csv-lens-next/prev-statistictime (&optional dir)
   "Shows the next or previous record for which the StatisticTime
 field is different than the current, and InstanceID is
 identical."
   (interactive)
-  (setq csv-show-previous-cells csv-show-cells)
-  (setq csv-show-previous-line csv-show-source-line-no)
-  (csv-show--in-source-buffer
-		   ((csv-show-source-marker (point-marker))
-		    (csv-show-source-line-no (line-number-at-pos (point)))
-		    (csv-show-cells (csv-show--get-cells)))
+  (setq csv-lens-previous-cells csv-lens-cells)
+  (setq csv-lens-previous-line csv-lens-source-line-no)
+  (csv-lens--in-source-buffer
+		   ((csv-lens-source-marker (point-marker))
+		    (csv-lens-source-line-no (line-number-at-pos (point)))
+		    (csv-lens-cells (csv-lens--get-cells)))
 		   
-		   (csv-show--next/prev-value "StatisticTime" (or dir 1)))
-  (csv-show-fill-buffer))
+		   (csv-lens--next/prev-value "StatisticTime" (or dir 1)))
+  (csv-lens-fill-buffer))
 
 
-(defun csv-show-next/prev-value (&optional dir)
+(defun csv-lens-next/prev-value (&optional dir)
   "Shows the next or previous record for which the value of the
 current column is different than the current value for the
 current column, and InstanceID is identical."
   (interactive)
-  (setq csv-show-previous-cells csv-show-cells)
-  (setq csv-show-previous-line csv-show-source-line-no)
-  (let ((variable-column (csv-show-column-name)))
-    (csv-show--in-source-buffer
-     ((csv-show-source-marker (point-marker))
-      (csv-show-source-line-no (line-number-at-pos (point)))
-      (csv-show-cells (csv-show--get-cells)))
-     (csv-show--next/prev-value variable-column (or dir 1))))
-  (csv-show-fill-buffer))
+  (setq csv-lens-previous-cells csv-lens-cells)
+  (setq csv-lens-previous-line csv-lens-source-line-no)
+  (let ((variable-column (csv-lens-column-name)))
+    (csv-lens--in-source-buffer
+     ((csv-lens-source-marker (point-marker))
+      (csv-lens-source-line-no (line-number-at-pos (point)))
+      (csv-lens-cells (csv-lens--get-cells)))
+     (csv-lens--next/prev-value variable-column (or dir 1))))
+  (csv-lens-fill-buffer))
 
-(defun csv-show--jump-first/last-line-for-key-value ( key-value first-last )
+(defun csv-lens--jump-first/last-line-for-key-value ( key-value first-last )
   ""
   (let ((start-point (point-min))
         (progress-function 'forward-line))
@@ -964,68 +964,68 @@ current column, and InstanceID is identical."
               (not (eobp))
               (not (equal 
                     key-value
-                    (car (csv-show-parse-line (list csv-show--key-column-field-index)))))))))
+                    (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))))))
   
-(defun csv-show-jump-first/last-line-for-key-value ( first-last )
+(defun csv-lens-jump-first/last-line-for-key-value ( first-last )
   "Expected to be performed in the detail buffer. Jumps to the first or last line in the
-source file that has the same value for `csv-show-key-column' as the current line. When FIRST-LAST
+source file that has the same value for `csv-lens-key-column' as the current line. When FIRST-LAST
 is 'first, jumps to the first, when FIRST-LAST is 'last, jumps to the last."
   (interactive)
-  (setq csv-show-previous-cells nil)
-  (setq csv-show-previous-line nil)
+  (setq csv-lens-previous-cells nil)
+  (setq csv-lens-previous-line nil)
   (let (key-index indices)
-    (csv-show--in-source-buffer ((key-index csv-show--key-column-field-index)
-                                 (indices (csv-show--indices-of-columns))))
-    (let ((key-value (nth key-index csv-show-cells)))
-      (csv-show--in-source-buffer ((csv-show-source-marker (point-marker))
-                                   (csv-show-source-line-no (line-number-at-pos (point)))
-                                   (csv-show-cells (csv-show--get-cells-fast indices)))
-                                  (csv-show--jump-first/last-line-for-key-value key-value first-last))))
-  (csv-show-fill-buffer))
+    (csv-lens--in-source-buffer ((key-index csv-lens--key-column-field-index)
+                                 (indices (csv-lens--indices-of-columns))))
+    (let ((key-value (nth key-index csv-lens-cells)))
+      (csv-lens--in-source-buffer ((csv-lens-source-marker (point-marker))
+                                   (csv-lens-source-line-no (line-number-at-pos (point)))
+                                   (csv-lens-cells (csv-lens--get-cells-fast indices)))
+                                  (csv-lens--jump-first/last-line-for-key-value key-value first-last))))
+  (csv-lens-fill-buffer))
 
-(defun csv-show-jump-first-line-for-key-value ()
+(defun csv-lens-jump-first-line-for-key-value ()
   "Expected to be performed in the detail buffer. Jumps to the first line in the
-source file that has the same value for `csv-show-key-column' as the current line."
+source file that has the same value for `csv-lens-key-column' as the current line."
   (interactive)
-  (csv-show-jump-first/last-line-for-key-value 'first))
+  (csv-lens-jump-first/last-line-for-key-value 'first))
 
-(defun csv-show-jump-last-line-for-key-value ()
+(defun csv-lens-jump-last-line-for-key-value ()
   "Expected to be performed in the detail buffer. Jumps to the last line in the
-source file that has the same value for `csv-show-key-column' as the current line."
+source file that has the same value for `csv-lens-key-column' as the current line."
   (interactive)
-  (csv-show-jump-first/last-line-for-key-value 'last))
+  (csv-lens-jump-first/last-line-for-key-value 'last))
 
-(defun csv-show--all-key-values ()
-  "Returns a list of all values for the `csv-show-key-column'."
+(defun csv-lens--all-key-values ()
+  "Returns a list of all values for the `csv-lens-key-column'."
   (let ((key-values (list)))
-    (csv-show--in-source-buffer nil
+    (csv-lens--in-source-buffer nil
      (goto-char (point-min))
      (while (and (forward-line)
                  (not (eobp)))
-       (let ((current-key-value (car (csv-show-parse-line (list csv-show--key-column-field-index)))))
+       (let ((current-key-value (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))
          (add-to-list 'key-values current-key-value t))))
     key-values))
 
-(defun csv-show--jump-to-first-value-change-of-column ( column )
+(defun csv-lens--jump-to-first-value-change-of-column ( column )
   "Expected to be performed in the source buffer. Iterates over
 all values for the key column and jumps to the first line where
 the value of COLUMN changes for a value of the key column."
   (--each-while 
-      (csv-show--all-key-values) 
-      (not (csv-show--jump-to-first-value-change-of-column column))
-    (csv-show--jump-first-line-for-key-value it)))
+      (csv-lens--all-key-values) 
+      (not (csv-lens--jump-to-first-value-change-of-column column))
+    (csv-lens--jump-first-line-for-key-value it)))
 
-(defun csv-show-next-value ()
-  "Show next record for which the current field is different, see `csv-show-next/prev-value'"
+(defun csv-lens-next-value ()
+  "Show next record for which the current field is different, see `csv-lens-next/prev-value'"
   (interactive)
-  (csv-show-next/prev-value 1))
+  (csv-lens-next/prev-value 1))
 
-(defun csv-show-prev-value ()
-  "Show previous record for which the current field is different, see `csv-show-next/prev-value'"
+(defun csv-lens-prev-value ()
+  "Show previous record for which the current field is different, see `csv-lens-next/prev-value'"
   (interactive)
-  (csv-show-next/prev-value -1))
+  (csv-lens-next/prev-value -1))
 
-(defun csv-show--next/prev-value (column dir)
+(defun csv-lens--next/prev-value (column dir)
   "Moves up or down in the CSV file (current buffer) until a line is encountered 
 with a different value for column but the same instance id. Returns t if such a
 line was found, nil otherwise.
@@ -1036,15 +1036,15 @@ Pre conditions are:
 Post conditions:
  - point is at the beginning of the new line.
 "
-  (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
-	 (variable-column-index (csv-show--field-index-for-column column))
-	 (instanceid-index csv-show--key-column-field-index)
-	 (current-value (csv-show--get-current-value-for-index variable-column-index))
-	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index))
+  (let* ((csv-lens--get-columns-cache (csv-lens--get-columns)) 
+	 (variable-column-index (csv-lens--field-index-for-column column))
+	 (instanceid-index csv-lens--key-column-field-index)
+	 (current-value (csv-lens--get-current-value-for-index variable-column-index))
+	 (current-instanceid (csv-lens--get-current-value-for-index instanceid-index))
          (found t))
     (while (or
-	    (not (equal current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
-	    (equal current-value (csv-show--get-current-value-for-index variable-column-index)))
+	    (not (equal current-instanceid (csv-lens--get-current-value-for-index instanceid-index)))
+	    (equal current-value (csv-lens--get-current-value-for-index variable-column-index)))
       (beginning-of-line)
       (unless (equal (forward-line dir) 0)
 	(error "No more records")
@@ -1052,29 +1052,29 @@ Post conditions:
     (beginning-of-line)
     found))
 
-(defun csv-show--indices-of-columns()
+(defun csv-lens--indices-of-columns()
   "Returns a list of indices of all the columns."
   (let ((i 0) 
         column-indices)
-      (dolist (c (csv-show--get-columns))
+      (dolist (c (csv-lens--get-columns))
         (push i column-indices)
         (setq i (+ i 1)))
       (nreverse column-indices)))
 
-(defun csv-show--key-value-from-column-indices-and-values (column-indices values)
+(defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
-   corresponding to csv-show-key-column-field-index."
+   corresponding to csv-lens-key-column-field-index."
   (let (key-value)
     (while (and (not key-value)
                 column-indices)
       (let ((column-index (pop column-indices))
             (value (pop values)))
-        (when (equal column-index csv-show--key-column-field-index)
+        (when (equal column-index csv-lens--key-column-field-index)
           (setq key-value value))))
     key-value))
 
 
-(defun csv-show--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
+(defun csv-lens--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
   "Return a list of indices for which `current-values' and `previous-values' are equal 
 and which occur in `candidate-constant-columns'.  Also note that
 the values at `key-column-index' are always considered equal, even if
@@ -1096,10 +1096,10 @@ input `candidate-constant-columns'."
     (nreverse constant-columns)))
 
 
-(defun csv-show-constant-columns ()
+(defun csv-lens-constant-columns ()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)
-  (let* ((constant-columns-indices (csv-show--indices-of-columns))
+  (let* ((constant-columns-indices (csv-lens--indices-of-columns))
          (all-columns-indices constant-columns-indices)
          (line-number 0)
          (number-of-lines (count-lines (point-min) (point-max)))
@@ -1118,46 +1118,46 @@ input `candidate-constant-columns'."
 		 (- (length constant-columns-indices) 1)))
 
       ;; Processing new line
-      (let* ((current-values (csv-show--get-cells-vec all-columns-indices))
-	     (key (aref current-values csv-show--key-column-field-index))
+      (let* ((current-values (csv-lens--get-cells-vec all-columns-indices))
+	     (key (aref current-values csv-lens--key-column-field-index))
 	     (previous-assoc (assoc key previous-cells)))
 	(if (not previous-assoc)
 	    (push (cons key current-values) previous-cells)
 	  (setq constant-columns-indices 
-		(csv-show--constant-columns constant-columns-indices 
-					    csv-show--key-column-field-index
+		(csv-lens--constant-columns constant-columns-indices 
+					    csv-lens--key-column-field-index
 					    current-values 
 					    (cdr previous-assoc)))
 	  (setcdr previous-assoc current-values)))) 
 
     ;; Remove key column from constant list
-    (setq constant-columns-indices (delete csv-show--key-column-field-index 
+    (setq constant-columns-indices (delete csv-lens--key-column-field-index 
 					   constant-columns-indices))
     
     (goto-char (point-min))
     (when constant-columns-indices
-        (csv-show--get-cells constant-columns-indices))))
+        (csv-lens--get-cells constant-columns-indices))))
 
-(defun csv-show-switch-to-source-buffer ()
+(defun csv-lens-switch-to-source-buffer ()
   "Switch to the source line in the underlying CSV file."
   (interactive)
-  (let ((line-no csv-show-source-line-no))
-    (pop-to-buffer (marker-buffer csv-show-source-marker))
+  (let ((line-no csv-lens-source-line-no))
+    (pop-to-buffer (marker-buffer csv-lens-source-marker))
     (goto-line line-no)))
 
-(defun csv-show-kill-detail-buffer ()
+(defun csv-lens-kill-detail-buffer ()
   "Expected to be performed from the detail buffer."
   (interactive)
-  (let ((source (marker-buffer csv-show-source-marker)))
+  (let ((source (marker-buffer csv-lens-source-marker)))
     (kill-buffer)
     (pop-to-buffer source))
 )
 
-(defun csv-show-kill-both-buffers ()
+(defun csv-lens-kill-both-buffers ()
   "Expected to be performed from the detail buffer."
   (interactive)
-  (kill-buffer (marker-buffer csv-show-source-marker))
-  (csv-show-kill-detail-buffer))
+  (kill-buffer (marker-buffer csv-lens-source-marker))
+  (csv-lens-kill-detail-buffer))
 
-(provide 'csv-show)
-;;; csv-show.el ends here
+(provide 'csv-lens)
+;;; csv-lens.el ends here
