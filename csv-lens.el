@@ -88,7 +88,7 @@ This should not be set by the user, but the code that updates the
 (defvar csv-lens-map)
 
 (defvar csv-lens-update-timer nil
-  "Holds the timer used to keep the *CSV Detail* buffer in sync
+  "Holds the timer used to keep the *CSV Lens* buffer in sync
 with the underlying CSV buffer.
 
 If nil the timer is not active.")
@@ -340,20 +340,23 @@ The assumption is that indices is sorted from low to high!"
 	(push (buffer-substring-no-properties old-pos new-pos) result)))
     (nreverse result)))
 
+(defun csv-lens-buffer-name-for-lens-buffer ( csv-buffer )
+  ""
+  (concat "*CSV Lens " (f-filename (buffer-file-name csv-buffer)) "*" ))
+
 (defun csv-lens-select ()
   "Show the current row."
   (interactive)
   (let ((current-buffer-v (current-buffer))
 	(start (point-marker)))
-    (pop-to-buffer (get-buffer-create (concat "*CSV Detail " (buffer-file-name current-buffer-v) "*" )))
+    (pop-to-buffer (get-buffer-create (csv-lens-buffer-name-for-lens-buffer current-buffer-v)))
     (csv-lens-detail-mode)
     (setq csv-lens-source-marker start)
     (csv-lens-current)))
 
 
-
 (defun csv-lens-toggle-timer ()
-  "When enabled, the *CSV Detail* buffer tracks the cursor in the
+  "When enabled, the *CSV Lens* buffer tracks the cursor in the
 underlying CSV buffer.  This function toggles this
 functionality."
   (interactive)
@@ -367,12 +370,12 @@ functionality."
 
 
 (defun csv-lens-update-detail-buffer ()
-  "Updates the *CSV Detail* buffer with the content of the line
+  "Updates the *CSV Lens* buffer with the content of the line
 containing point in the underlying CSV buffer.  It is similar to the 
-`csv-lens-select', except that it does not create a *CSV Detail* buffer
+`csv-lens-select', except that it does not create a *CSV Lens* buffer
 if it exists."
   (interactive)
-  (let ((detail-buffer (get-buffer "*CSV Detail*")))
+  (let ((detail-buffer (csv-lens-buffer-name-for-lens-buffer current-buffer-v)))
     (when detail-buffer
       (save-match-data
 	(with-current-buffer detail-buffer
@@ -394,9 +397,9 @@ The valid states are
 
   - nil    -- meaning the state is never set.
   - normal -- should have the same meaning as nil.
-  - hidden -- hides the column in CSV Detail buffer, 
+  - hidden -- hides the column in CSV Lens buffer, 
               but see also `csv-lens-column-state-toggle'
-  - constant -- hides the column in CSV Detail buffer"
+  - constant -- hides the column in CSV Lens buffer"
   (assoc-default column csv-lens-column-state))
 
 (defun csv-lens-column-name (&optional point)
