@@ -14,7 +14,7 @@
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
 ;;                    (dash "1.5.0")
-;;                    (sparkline "0.1"))
+;;                    (sparkline "0.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 
