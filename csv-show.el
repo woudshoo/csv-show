@@ -55,8 +55,19 @@
 
 
 ;; Variables
-(defvar csv-show-key-column-name)
-(defvar csv-show-key-column-field-index)
+(defvar csv-show-key-column-name nil 
+  "Name of the key column.  
+This is set by the user (or defaults to InstanceID) 
+and is used for the navigation commands to go the next line
+with the same key value.
+Also used when making sparkline graphs to create the sparkline
+for the element indicated by the key column value.")
+
+(defvar csv-show--key-column-field-index nil
+  "Column number of the csv-show-key-column-name in the source buffer.
+This should not be set by the user, but the code that updates the 
+`csv-show-key-column-name' should also update this value.")
+
 (defvar csv-show-source-line-no)
 (defvar csv-show-source-marker)
 (defvar csv-show-previous-cells)
@@ -69,6 +80,18 @@
 (defvar csv-show-cells)
 (defvar csv-show-previous-line)
 (defvar csv-show-previous-cells)
+(defvar csv-show-column-format-functions nil)
+
+(defvar csv-show--get-columns-cache nil)
+
+(defvar csv-show-map)
+
+(defvar csv-show-update-timer nil
+  "Holds the timer used to keep the *CSV Detail* buffer in sync
+with the underlying CSV buffer.
+
+If nil the timer is not active.")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro in-other-buffer (marker bindings &rest body)
   "Executes BODY in the buffer indicated by MARKER.  
@@ -119,7 +142,7 @@ it should be a CSV file and it will return (point-marker)."
   (declare (indent 1))
   `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,@body))
 
-(defvar csv-show-map)
+
 (setq csv-show-map
       (let ((map (make-sparse-keymap)))
 	(define-key map [?\C-.] 'csv-show-toggle-timer)
@@ -128,7 +151,7 @@ it should be a CSV file and it will return (point-marker)."
 
 (defun set-key-column-field-index ()
   ""
-  (setq-local csv-show-key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
+  (setq-local csv-show--key-column-field-index (csv-show--field-index-for-column csv-show-key-column-name)))
 
 ;;;###autoload
 (define-minor-mode csv-show-mode 
@@ -140,9 +163,9 @@ of the current line as a table.
 \\{csv-show-map}"
   nil " csv-show" csv-show-map
   (make-local-variable 'csv-show-key-column-name)
-  (make-local-variable 'csv-show-key-column-field-index)
+  (make-local-variable 'csv-show--key-column-field-index)
   (setq-local csv-show-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
-  (setq-local csv-show-key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
+  (setq-local csv-show--key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
   (set-key-column-field-index))
 
 (setq csv-show-detail-map 
@@ -276,7 +299,7 @@ When  INDICES is specified, returns a list with values on those INDICES."
 				 ","))))
 
 
-(defvar csv-show--get-columns-cache nil)
+
 
 (defun csv-show--get-columns ()
   "Get the field names of the buffer."
@@ -330,11 +353,7 @@ The assumption is that indices is sorted from low to high!"
     (setq csv-show-source-marker start)
     (csv-show-current)))
 
-(defvar csv-show-update-timer nil
-  "Holds the timer used to keep the *CSV Detail* buffer in sync
-with the underlying CSV buffer.
 
-If nil the timer is not active.")
 
 (defun csv-show-toggle-timer ()
   "When enabled, the *CSV Detail* buffer tracks the cursor in the
@@ -430,7 +449,6 @@ if it exists."
   (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
   "*"))
 
-(defvar csv-show-column-format-functions nil)
 
 (setq csv-show-column-format-functions
   `(("StatisticTime" . csv-show--statistictime-to-string)
@@ -552,7 +570,7 @@ buffer."
     (message (concat "Spark line for " column ))
     (csv-show--in-source-buffer
 	nil
-     (let ((key-index csv-show-key-column-field-index)
+     (let ((key-index csv-show--key-column-field-index)
 	   (value-index (csv-show--field-index-for-column column))
 	   indices key--index value--index key-value)
 
@@ -946,7 +964,7 @@ current column, and InstanceID is identical."
               (not (eobp))
               (not (equal 
                     key-value
-                    (car (csv-show-parse-line (list csv-show-key-column-field-index)))))))))
+                    (car (csv-show-parse-line (list csv-show--key-column-field-index)))))))))
   
 (defun csv-show-jump-first/last-line-for-key-value ( first-last )
   "Expected to be performed in the detail buffer. Jumps to the first or last line in the
@@ -956,7 +974,7 @@ is 'first, jumps to the first, when FIRST-LAST is 'last, jumps to the last."
   (setq csv-show-previous-cells nil)
   (setq csv-show-previous-line nil)
   (let (key-index indices)
-    (csv-show--in-source-buffer ((key-index csv-show-key-column-field-index)
+    (csv-show--in-source-buffer ((key-index csv-show--key-column-field-index)
                                  (indices (csv-show--indices-of-columns))))
     (let ((key-value (nth key-index csv-show-cells)))
       (csv-show--in-source-buffer ((csv-show-source-marker (point-marker))
@@ -984,7 +1002,7 @@ source file that has the same value for `csv-show-key-column' as the current lin
      (goto-char (point-min))
      (while (and (forward-line)
                  (not (eobp)))
-       (let ((current-key-value (car (csv-show-parse-line (list csv-show-key-column-field-index)))))
+       (let ((current-key-value (car (csv-show-parse-line (list csv-show--key-column-field-index)))))
          (add-to-list 'key-values current-key-value t))))
     key-values))
 
@@ -1020,7 +1038,7 @@ Post conditions:
 "
   (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
 	 (variable-column-index (csv-show--field-index-for-column column))
-	 (instanceid-index csv-show-key-column-field-index)
+	 (instanceid-index csv-show--key-column-field-index)
 	 (current-value (csv-show--get-current-value-for-index variable-column-index))
 	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index))
          (found t))
@@ -1051,7 +1069,7 @@ Post conditions:
                 column-indices)
       (let ((column-index (pop column-indices))
             (value (pop values)))
-        (when (equal column-index csv-show-key-column-field-index)
+        (when (equal column-index csv-show--key-column-field-index)
           (setq key-value value))))
     key-value))
 
@@ -1101,19 +1119,19 @@ input `candidate-constant-columns'."
 
       ;; Processing new line
       (let* ((current-values (csv-show--get-cells-vec all-columns-indices))
-	     (key (aref current-values csv-show-key-column-field-index))
+	     (key (aref current-values csv-show--key-column-field-index))
 	     (previous-assoc (assoc key previous-cells)))
 	(if (not previous-assoc)
 	    (push (cons key current-values) previous-cells)
 	  (setq constant-columns-indices 
 		(csv-show--constant-columns constant-columns-indices 
-					    csv-show-key-column-field-index
+					    csv-show--key-column-field-index
 					    current-values 
 					    (cdr previous-assoc)))
 	  (setcdr previous-assoc current-values)))) 
 
     ;; Remove key column from constant list
-    (setq constant-columns-indices (delete csv-show-key-column-field-index 
+    (setq constant-columns-indices (delete csv-show--key-column-field-index 
 					   constant-columns-indices))
     
     (goto-char (point-min))
