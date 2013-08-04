@@ -87,7 +87,7 @@ from another buffer.  e.g.
 
 will copy the buffer-local-var from (marker-buffer marker-of-other-buffer) 
 to buffer-local-var in the current buffer."
-  (declare (indent 1))
+  (declare (indent 2))
   (let* ((old-mark (make-symbol "OLD-MARKER"))
 	 (tmps (mapcar (lambda (v) (make-symbol "TMP")) bindings))
 	 (set-tmps (cl-mapcar (lambda (v tmp) (list tmp (cadr v))) bindings tmps))
@@ -116,6 +116,7 @@ it should be a CSV file and it will return (point-marker)."
     (point-marker)))
 
 (defmacro csv-show--in-source-buffer (bindings &rest body)
+  (declare (indent 1))
   `(in-other-buffer (csv-show--marker-for-source-buffer) ,bindings ,@body))
 
 (defvar csv-show-map)
@@ -548,7 +549,7 @@ buffer."
 	(result (list)))
     (message (concat "Spark line for " column ))
     (csv-show--in-source-buffer
-     nil
+	nil
      (let ((key-index csv-show-key-column-field-index)
 	   (value-index (csv-show--field-index-for-column column))
 	   indices key--index value--index key-value)
@@ -600,7 +601,7 @@ buffer."
   (interactive)
   (let ((column (csv-show-column-name)))
     (csv-show--in-source-buffer 
-     nil 
+	nil 
      (setq csv-show-key-column-name column)
      (set-key-column-field-index))))
 
@@ -854,14 +855,14 @@ For updating the content see the function `csv-show-fill-buffer'."
     (setq csv-show-previous-cells nil)
     (setq csv-show-previous-line nil)
     (csv-show--in-source-buffer
-		     ((csv-show-source-marker (point-marker))
-		      (csv-show-source-line-no (line-number-at-pos (point)))
-		      (csv-show-cells (csv-show--get-cells))
-		      (new-show-columns (unless do-not-parse-headers
-					  (csv-show--get-columns))))
-		     
-		     (forward-line (or dir 1))
-		     (beginning-of-line))
+	((csv-show-source-marker (point-marker))
+	 (csv-show-source-line-no (line-number-at-pos (point)))
+	 (csv-show-cells (csv-show--get-cells))
+	 (new-show-columns (unless do-not-parse-headers
+			     (csv-show--get-columns))))
+      
+      (forward-line (or dir 1))
+      (beginning-of-line))
     (unless do-not-parse-headers
       (setq csv-show-columns new-show-columns))))
 
