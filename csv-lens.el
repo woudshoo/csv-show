@@ -52,7 +52,7 @@
 (require 'calc)
 (require 'simple)
 (require 'sparkline)
-
+(require 'csv-lens-cell)
 
 ;; Variables
 (defvar csv-lens-key-column-name nil 
@@ -80,7 +80,6 @@ This should not be set by the user, but the code that updates the
 (defvar csv-lens-cells)
 (defvar csv-lens-previous-line)
 (defvar csv-lens-previous-cells)
-(defvar csv-lens-column-format-functions nil)
 
 (defvar csv-lens--get-columns-cache nil)
 
@@ -247,10 +246,6 @@ the `csv-lens-select' function."
   "Return the index of COLUMN."
   (position column (csv-lens--get-columns) :test #'equal))
     
-(require 'ert)
-(ert-deftest csv-lens--field-index-for-column-test ()
-  (let ((csv-lens--get-columns-cache '("Header1" "Header2" "Header3")))
-    (assert (equal (csv-lens--field-index-for-column "Header2") 1))))
 
 (defun csv-lens-parse-line (&optional indices)
   "Parse the current line and return the list of values.
@@ -381,104 +376,11 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-lens-current t))))))
 
-(defun csv-lens--statistictime-to-string (statistictime)
-  "Returns a nicely formatted STATISTICTIME."
-  (interactive)
-  (if (> (length statistictime) 18)
-      (let (year month day hour minute second offset)
-	(setq year (substring statistictime 0 4)
-	      month (substring statistictime 4 6)
-	      day (substring statistictime 6 8)
-	      hour (substring statistictime 8 10)
-	      minute (substring statistictime 10 12)
-	      second (substring statistictime 12 14)
-	      offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
-	(concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" ))
-    statistictime))
-
-(defun csv-lens--usagerestriction-to-string (usagerestriction)
-  "Returns a nicely formatted USAGERESTRICTION."
-  (interactive)
-  (or
-   (assoc-default usagerestriction
-		  '(("0" .    "Unknown*")
-		    ("2" .    "Front-end only*")
-		    ("3" .    "Back-end only*")
-		    ("4" .    "Not restricted*")))
-   usagerestriction))
-
-(require 'vendor-from-wwn)
-(defun csv-lens--format-wwn (wwn)
-  "Returns a nicely formatted WWN."
-  (interactive)
-  (if (and (vendor-from-wwn/valid-wwn wwn)
-           (vendor-from-wwn wwn))
-      (concat (vendor-from-wwn/vendor-specific-nice-wwn wwn) " ("  (vendor-from-wwn wwn) ")*" )
-    wwn))
-
-(defun csv-lens--format-huge-number (hugenumber)
-  "Returns a nicely formatted HUGENUMBER."
-  (interactive)
-  (let (groups)
-    (while (> (length hugenumber) 0)
-      (if (>= (length hugenumber) 3)
-          (progn
-            (push (substring hugenumber -3) groups)
-            (setq hugenumber (substring hugenumber 0 (- (length hugenumber) 3))))
-        (progn
-         (push hugenumber groups)
-         (setq hugenumber ""))))
-    (concat (mapconcat 'identity groups " ") "*")))
-
-(require 'format-human-readable-big-number)
-
-(defun csv-lens--format-big-number-of-bytes (big-number-of-bytes)
- ""
- (interactive)
- (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
-
-(defun csv-lens--format-big-number-of-kilobytes (big-number-of-kilobytes)
- ""
- (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
-  "*"))
-
-(defun csv-lens--format-big-number-of-blocks (big-number-of-blocks)
- ""
- (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
-  "*"))
 
 
-(setq csv-lens-column-format-functions
-  `(("StatisticTime" . csv-lens--statistictime-to-string)
-    ("IM_OriginalStatisticTime" . csv-lens--statistictime-to-string)
-    ("UsageRestriction" . csv-lens--usagerestriction-to-string)
-    ("Consumed" . csv-lens--format-huge-number)
-    ("ConsumableBlocks" . csv-lens--format-big-number-of-blocks)
-    ("NumberOfBlocks" . csv-lens--format-big-number-of-blocks)
-    ("KBytesRead" . csv-lens--format-big-number-of-kilobytes)
-    ("KBytesTransferred" . csv-lens--format-big-number-of-kilobytes)
-    ("KBytesWritten" . csv-lens--format-big-number-of-kilobytes)
-    ("MaxSpeed" . csv-lens--format-big-number-of-bytes)
-    ("RequestedSpeed" . csv-lens--format-big-number-of-bytes)
-    ("EMCKBytesSPARead" . csv-lens--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBRead" . csv-lens--format-big-number-of-kilobytes)
-    ("EMCKBytesSPAWritten" . csv-lens--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBWritten" . csv-lens--format-big-number-of-kilobytes)
-    ("PermanentAddress" . csv-lens--format-wwn)
-    ("SwitchWWPN" . csv-lens--format-wwn)
-    ("DeviceID" . csv-lens--format-wwn)
-    ("ElementName" . csv-lens--format-wwn)
-    ("EMCWWN" . csv-lens--format-wwn)
-    ("OtherIdentifyingInfo" . csv-lens--format-wwn)
-    ("Speed" . csv-lens--format-big-number-of-bytes)))
 
-(defun csv-lens--format-function-for-column (column)
-  "Return the format function for COLUMN."
-  (or
-   (assoc-default column csv-lens-column-format-functions )
-   #'identity))
+
+
 
 (defun csv-lens-set-column-state (column state)
   "Sets the state of `column' to `state'.  
@@ -539,8 +441,6 @@ buffer."
       (setq first-value element))
     (nreverse result)))
 
-(ert-deftest csv-lens-diff-values-test ()
-  (should (equal '(1 1 1) (csv-lens-diff-values '(10 11 12 13)))))
 
 (defun csv-lens-spark-line-toggle-incremental ()
   "Toggle between using diff's of values for the sparkle lines"
@@ -684,7 +584,7 @@ are marked for hiding.  See also `csv-lens-hide-column'"
 (defun csv-lens--insert-cell ( column cell )
   ""
   (if csv-lens-format-toggle
-      (insert (funcall (csv-lens--format-function-for-column column) cell))
+      (insert (funcall (csv-lens-cell-format-function-for-column column) cell))
     (insert cell)))
 
 (defun smis-time-to-time-string ( smis-time )
@@ -732,12 +632,6 @@ However, if S has a length greater than 0 to begin with, it never leaves S at le
         (setq s (substring s (length prefix))))
       s)))
 
-(ert-deftest csv-lens--make-sure-string-doesnt-start-with-test ()
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000123") "123"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "") ""))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000000") "0"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with " " "       ") " ")))
 
 (defun csv-lens--diff-number (num1 num2)
   "Given two strings num1 and num2 containing arbitrary numbers,
@@ -749,31 +643,6 @@ Think of it as num1 - num2."
 	(math-format-number (math-sub num1 num2))
       "")))
 
-;; (defun csv-lens--diff-integer (int1 int2)
-;;   "Given two strings INT1 and INT2 which contain arbitrarily
-;; large integers, returns a string representing the difference.
-;; Think of it as INT1 - INT2."
-;;   (let ((diff (math-sub-bignum (math-read-bignum int1) (math-read-bignum int2)))
-;;         (result-is-positive t))
-;;     (when (equal diff 'neg)
-;;       (setq diff (math-sub-bignum (math-read-bignum int2) (math-read-bignum int1))
-;;             result-is-positive nil))
-;;     (let ((diff-string (csv-lens--make-sure-string-doesnt-start-with "0" (math-format-bignum diff))))
-;;       (when (not result-is-positive)
-;;         (setq diff-string (concat "-" diff-string)))
-;;       diff-string)))
-
-;; (ert-deftest csv-lens--diff-integer-test ()
-;;   (should (equal (csv-lens--diff-integer "5" "3") "2"))
-;;   (should (equal (csv-lens--diff-integer "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-;;   (should (equal (csv-lens--diff-integer "3" "5") "-2")))
-
-(ert-deftest csv-lens--diff-number-test ()
-  (should (equal (csv-lens--diff-number "5" "3") "2"))
-  (should (equal (csv-lens--diff-number "55555555555555555555" "33333333333333333333") "22222222222222222222"))
-  (should (equal (csv-lens--diff-number "3" "5") "-2"))
-  (should (equal (csv-lens--diff-number "0.936340455076744" "0.920434747227233") "0.01590570785"))
-  (should (equal (csv-lens--diff-number "0sdfsaf44" "0.920434747227233") "")))
 
 (defun csv-lens--diff-cells ( column cell1 cell2 )
   "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
@@ -1005,15 +874,6 @@ source file that has the same value for `csv-lens-key-column' as the current lin
        (let ((current-key-value (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))
          (add-to-list 'key-values current-key-value t))))
     key-values))
-
-(defun csv-lens--jump-to-first-value-change-of-column ( column )
-  "Expected to be performed in the source buffer. Iterates over
-all values for the key column and jumps to the first line where
-the value of COLUMN changes for a value of the key column."
-  (--each-while 
-      (csv-lens--all-key-values) 
-      (not (csv-lens--jump-to-first-value-change-of-column column))
-    (csv-lens--jump-first-line-for-key-value it)))
 
 (defun csv-lens-next-value ()
   "Show next record for which the current field is different, see `csv-lens-next/prev-value'"
