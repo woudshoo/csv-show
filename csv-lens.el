@@ -424,14 +424,14 @@ buffer."
       (csv-lens-set-column-state column 'constant)))
   (csv-lens-fontify-detail-buffer))
 
-(defadvice csv-lens-hide-constant-columns (around time-csv-show-hide-constant-columns)
-  ""
-  (interactive)
-  (let ((c-s-s (current-time)))
-    ad-do-it
-    (let ((elapsed (float-time (time-subtract (current-time) c-s-s))))
-      (message "Hiding constant columns took %.3fs" elapsed))))
-(ad-activate 'csv-lens-hide-constant-columns)
+;; (defadvice csv-lens-hide-constant-columns (around time-csv-show-hide-constant-columns)
+;;   ""
+;;   (interactive)
+;;   (let ((c-s-s (current-time)))
+;;     ad-do-it
+;;     (let ((elapsed (float-time (time-subtract (current-time) c-s-s))))
+;;       (message "Hiding constant columns took %.3fs" elapsed))))
+;; (ad-activate 'csv-lens-hide-constant-columns)
 
 (defun csv-lens-diff-values (list)
   (let ((first-value (first list))
@@ -962,7 +962,7 @@ input `candidate-constant-columns'."
   (let* ((constant-columns-indices (csv-lens--indices-of-columns))
          (all-columns-indices constant-columns-indices)
          (line-number 0)
-         (number-of-lines (count-lines (point-min) (point-max)))
+         (reporter (make-progress-reporter "Scanning for constant columns..." 0 (count-lines (point-min) (point-max))))
          previous-cells)
 
     (goto-char (point-min))
@@ -970,12 +970,7 @@ input `candidate-constant-columns'."
     (while (and (cdr constant-columns-indices)
 		(forward-line) 
 		(not (eobp)))
-      ;; Progress Reporting
-      (incf line-number)
-      (when (= (% line-number 1000) 0)
-	(message "%d%%: %d possible constant columns left." 
-		 (/ (* line-number 100) number-of-lines) 
-		 (- (length constant-columns-indices) 1)))
+      (progress-reporter-update reporter (incf line-number))
 
       ;; Processing new line
       (let* ((current-values (csv-lens--get-cells-vec all-columns-indices))
@@ -983,17 +978,24 @@ input `candidate-constant-columns'."
 	     (previous-assoc (assoc key previous-cells)))
 	(if (not previous-assoc)
 	    (push (cons key current-values) previous-cells)
-	  (setq constant-columns-indices 
-		(csv-lens--constant-columns constant-columns-indices 
-					    csv-lens--key-column-field-index
-					    current-values 
-					    (cdr previous-assoc)))
-	  (setcdr previous-assoc current-values)))) 
+          (let ((previous-number-of-constant-columns (length constant-columns-indices)))
+            (setq constant-columns-indices 
+                  (csv-lens--constant-columns constant-columns-indices 
+                                              csv-lens--key-column-field-index
+                                              current-values 
+                                              (cdr previous-assoc)))
+            (when (not (equal previous-number-of-constant-columns (length constant-columns-indices)))
+              (progress-reporter-force-update
+               reporter
+               line-number
+               (format "%d possible constant columns left... " (- (length constant-columns-indices) 1)))))
+	  (setcdr previous-assoc current-values))))
 
     ;; Remove key column from constant list
     (setq constant-columns-indices (delete csv-lens--key-column-field-index 
 					   constant-columns-indices))
-    
+
+    (progress-reporter-done reporter)
     (goto-char (point-min))
     (when constant-columns-indices
         (csv-lens--get-cells constant-columns-indices))))
