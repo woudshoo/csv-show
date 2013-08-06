@@ -54,6 +54,7 @@
 (require 'simple)
 (require 'sparkline)
 (require 'vendor-from-wwn)
+(require 'csv-lens-column)
 (require 'csv-lens-cell)
 
 ;; Variables
@@ -74,8 +75,6 @@ This should not be set by the user, but the code that updates the
 (defvar csv-lens-source-marker)
 (defvar csv-lens-previous-cells)
 (defvar csv-lens-detail-map)
-(defvar csv-lens-column-state)
-(defvar csv-lens-spark-line-incremental)
 (defvar csv-lens-column-state-toggle)
 (defvar csv-lens-format-toggle)
 (defvar csv-lens-columns)
@@ -379,26 +378,6 @@ if it exists."
 	  (csv-lens-current t))))))
 
 
-(defun csv-lens-set-column-state (column state)
-  "Sets the state of `column' to `state'.  
-See also `csv-lens-column-state'"
-  (let ((assoc-pair (assoc column csv-lens-column-state)))
-    (if assoc-pair
-	(setcdr assoc-pair csv-lens-column-state))
-    (push (cons column state) csv-lens-column-state)))
-
-
-(defun csv-lens-column-state (column)
-  "Return the state of the `COLUMN'.
-The valid states are 
-
-  - nil    -- meaning the state is never set.
-  - normal -- should have the same meaning as nil.
-  - hidden -- hides the column in CSV Detail buffer, 
-              but see also `csv-lens-column-state-toggle'
-  - constant -- hides the column in CSV Detail buffer"
-  (assoc-default column csv-lens-column-state))
-
 (defun csv-lens-column-name (&optional point)
   "Return the column name for the line containing `POINT'.
 If `point' is nil or not provided, use the current point in the
@@ -438,12 +417,6 @@ buffer."
       (setq first-value element))
     (nreverse result)))
 
-
-(defun csv-lens-spark-line-toggle-incremental ()
-  "Toggle between using diff's of values for the sparkle lines"
-  (interactive)
-  (setq csv-lens-spark-line-incremental (not csv-lens-spark-line-incremental))
-  (csv-lens-fill-buffer))
 
 (defun csv-lens-spark-line-for-all-visible-columns ()
   (interactive)

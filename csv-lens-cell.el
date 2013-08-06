@@ -9,8 +9,15 @@
 
 
 
-(defvar csv-lens-cell-column-format-functions nil)
 
+
+;;; Column --
+
+
+
+;;;  String -> Value              :default string->number
+;;;  Value,Value -> Number        :default -
+;;;
 (setq csv-lens-cell-column-format-functions
   `(("StatisticTime" . csv-lens-cell-format-statistictime)
     ("IM_OriginalStatisticTime" . csv-lens-cell-format-statistictime)
@@ -35,11 +42,6 @@
     ("OtherIdentifyingInfo" . csv-lens-cell-format-wwn)
     ("Speed" . csv-lens-cell-format-big-number-of-bytes)))
 
-(defun csv-lens-cell-format-function-for-column (column)
-  "Return the format function for COLUMN."
-  (or
-   (assoc-default column csv-lens-cell-column-format-functions )
-   #'identity))
 
 
 ;;; Default format functions
