@@ -904,7 +904,7 @@ Post conditions:
 "
   (let* ((csv-show--get-columns-cache (csv-show--get-columns)) 
 	 (variable-column-index (csv-show--field-index-for-column column))
-	 (instanceid-index (csv-show--field-index-for-column "InstanceID"))
+	 (instanceid-index csv-show-key-column-field-index)
 	 (current-value (csv-show--get-current-value-for-index variable-column-index))
 	 (current-instanceid (csv-show--get-current-value-for-index instanceid-index)))
     (while (or
