@@ -13,6 +13,8 @@
 
 (setq csv-lens-cell-column-format-functions
   `(("StatisticTime" . csv-lens-cell-format-statistictime)
+    ("PeriodStartTime" . csv-lens-cell-format-statistictime)
+    ("PeriodEndTime" . csv-lens-cell-format-statistictime)
     ("IM_OriginalStatisticTime" . csv-lens-cell-format-statistictime)
     ("UsageRestriction" . csv-lens-cell-format-usagerestriction)
     ("Consumed" . csv-lens-cell-format-huge-number)
