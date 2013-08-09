@@ -57,19 +57,6 @@
 (require 'csv-lens-column)
 (require 'csv-lens-cell)
 
-;; Variables
-(defvar csv-lens-key-column-name nil 
-  "Name of the key column.  
-This is set by the user (or defaults to InstanceID) 
-and is used for the navigation commands to go the next line
-with the same key value.
-Also used when making sparkline graphs to create the sparkline
-for the element indicated by the key column value.")
-
-(defvar csv-lens--key-column-field-index nil
-  "Column number of the csv-lens-key-column-name in the source buffer.
-This should not be set by the user, but the code that updates the 
-`csv-lens-key-column-name' should also update this value.")
 
 (defvar csv-lens-source-line-no)
 (defvar csv-lens-source-marker)
@@ -149,9 +136,7 @@ it should be a CSV file and it will return (point-marker)."
 	(define-key map [C-return] 'csv-lens-select)
 	map))
 
-(defun set-key-column-field-index ()
-  ""
-  (setq-local csv-lens--key-column-field-index (csv-lens--field-index-for-column csv-lens-key-column-name)))
+
 
 ;;;###autoload
 (define-minor-mode csv-lens-mode 
@@ -162,21 +147,19 @@ of the current line as a table.
 
 \\{csv-show-map}"
   nil " csv-lens" csv-lens-map
-  (make-local-variable 'csv-lens-key-column-name)
-  (make-local-variable 'csv-lens--key-column-field-index)
-  (setq-local csv-lens-key-column-name "InstanceID") ;Holds the name of the column that is used as key column.
-  (setq-local csv-lens--key-column-field-index nil)  ;Holds the field index of the column that is used as key column.
-  (set-key-column-field-index))
+  (set-key-column-field-index)) ;; FIXME
 
 (setq csv-lens-detail-map 
       (let ((map (make-sparse-keymap)))
 	(set-keymap-parent map special-mode-map)
 	(define-key map "n" 'csv-lens-next)
-	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-statistictime 1)))
+;	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-statistictime 1)))
+	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-record 1)))
 	(define-key map "." 'csv-lens-current)
 	(define-key map [?\C-.] 'csv-lens-toggle-timer)
 	(define-key map "p" 'csv-lens-prev)
-	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-statistictime -1)))
+;	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-statistictime -1)))
+	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-record -1)))
 	(define-key map "h" 'csv-lens-hide-column)
         (define-key map "c" 'csv-lens-hide-constant-columns)
 	(define-key map "b" 'csv-lens-bold-column)
@@ -218,8 +201,6 @@ the `csv-lens-select' function."
   (make-local-variable 'csv-lens-cells)
   (make-local-variable 'csv-lens-previous-cells)
   (make-local-variable 'csv-lens-previous-line)
-  (setq-local csv-lens-spark-line-incremental nil)
-  (setq-local csv-lens-column-state (list))
   (setq-local csv-lens-column-state-toggle nil)
   (setq-local csv-lens-format-toggle t)
   (setq buffer-read-only t))
@@ -440,7 +421,7 @@ buffer."
     (message (concat "Spark line for " column ))
     (csv-lens--in-source-buffer
 	nil
-     (let ((key-index csv-lens--key-column-field-index)
+     (let ((key-index (car (csv-lens-column-key-indices)))
 	   (value-index (csv-lens--field-index-for-column column))
 	   indices key--index value--index key-value)
 
@@ -775,6 +756,21 @@ identical."
 		   (csv-lens--next/prev-value "StatisticTime" (or dir 1)))
   (csv-lens-fill-buffer))
 
+(defun csv-lens-next/prev-record (&optional dir)
+  "Shows the next or previous record for which the StatisticTime
+field is different than the current, and InstanceID is
+identical."
+  (interactive)
+  (setq csv-lens-previous-cells csv-lens-cells)
+  (setq csv-lens-previous-line csv-lens-source-line-no)
+  (csv-lens--in-source-buffer
+		   ((csv-lens-source-marker (point-marker))
+		    (csv-lens-source-line-no (line-number-at-pos (point)))
+		    (csv-lens-cells (csv-lens--get-cells)))
+		   
+		   (csv-lens--next/prev-record (or dir 1)))
+  (csv-lens-fill-buffer))
+
 
 (defun csv-lens-next/prev-value (&optional dir)
   "Shows the next or previous record for which the value of the
@@ -791,13 +787,13 @@ current column, and InstanceID is identical."
      (csv-lens--next/prev-value variable-column (or dir 1))))
   (csv-lens-fill-buffer))
 
-(defun csv-lens--jump-first/last-line-for-key-value ( key-value first-last )
+(defun csv-lens--jump-first/last-line-for-key-value (key-value first-last)
   ""
   (let ((start-point (point-min))
         (progress-function 'forward-line))
     (if (equal first-last 'last)
         (setq start-point (point-max)
-              progress-function (lambda() (forward-line -1))))
+              progress-function (lambda () (forward-line -1))))
     (goto-char start-point)
   (while (and (funcall progress-function)
               (not (eobp))
@@ -875,6 +871,32 @@ Post conditions:
     (while (or
 	    (not (equal current-instanceid (csv-lens--get-current-value-for-index instanceid-index)))
 	    (equal current-value (csv-lens--get-current-value-for-index variable-column-index)))
+      (beginning-of-line)
+      (unless (equal (forward-line dir) 0)
+	(error "No more records")
+        (setq found nil)))
+    (beginning-of-line)
+    found))
+
+(defun csv-lens--next/prev-record (dir)
+  "Moves up or down in the CSV file (current buffer) until a line is encountered 
+with the same value for the key column.
+
+Pre conditions are:  
+ - point is at the beginning of a line.
+
+Post conditions:
+ - point is at the beginning of the new line.
+"
+  (let* ((csv-lens--get-columns-cache (csv-lens--get-columns)) 
+	 (instanceid-index csv-lens--key-column-field-index)
+	 (current-instanceid (csv-lens--get-current-value-for-index instanceid-index))
+         (found t))
+
+    (unless (equal (forward-line dir) 0)
+      (error "No more records")
+      (setq found nil))
+    (while (not (equal current-instanceid (csv-lens--get-current-value-for-index instanceid-index)))
       (beginning-of-line)
       (unless (equal (forward-line dir) 0)
 	(error "No more records")

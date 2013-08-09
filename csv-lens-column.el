@@ -80,6 +80,7 @@
 ;;; Display state
 
 (defvar csv-lens-column-state)
+(make-variable-buffer-local 'csv-lens-column-state)
 
 
 (defun csv-lens-set-column-state (column state)
@@ -115,6 +116,7 @@ The valid states are
 ;;; sparkline related functions, diff
 
 (defvar csv-lens-spark-line-incremental)
+(make-variable-buffer-local 'csv-lens-spark-line-incremental)
 
 (defun csv-lens-spark-line-toggle-incremental ()
   "Toggle between using diff's of values for the sparkle lines"
@@ -122,6 +124,48 @@ The valid states are
   (setq csv-lens-spark-line-incremental (not csv-lens-spark-line-incremental))
   (csv-lens-fill-buffer))
 
+;;; Key column info
+;;
+;;
+;; Proposed interface:
+;;
+;;   FUNCTION
+;;   -------
+;;   key-column-indices --> Returns a list of key column indices sorted
+;;   key-column-names   --> Returns a list of key column names [MIGHT NOT BE NEEDED]
+;; Variables
 
+(defvar csv-lens-key-column-name "InstanceID"
+  "Name of the key column.  
+This is set by the user (or defaults to InstanceID) 
+and is used for the navigation commands to go the next line
+with the same key value.
+Also used when making sparkline graphs to create the sparkline
+for the element indicated by the key column value.")
+
+(defvar csv-lens--key-column-field-index nil
+  "Column number of the csv-lens-key-column-name in the source buffer.
+This should not be set by the user, but the code that updates the 
+`csv-lens-key-column-name' should also update this value.")
+
+(make-variable-buffer-local 'csv-lens-key-column-name)
+(make-variable-buffer-local 'csv-lens--key-column-field-index)
+
+
+(defun set-key-column-field-index ()
+  "Hack, to update the key column index from the name."
+  (setq csv-lens--key-column-field-index (csv-lens--field-index-for-column csv-lens-key-column-name)))
+
+
+(defun csv-lens-column-key-indices ()
+  "Returns a list of column numbers which are the key columns.
+The list is sorted from low to high."
+  (list csv-lens--key-column-field-index))
+
+(defun csv-lens-column-key-names ()
+  "Returns the list of the key column headers.
+FIXME: THis might not be needed."
+  (list csv-lens-key-column-name))
 (provide 'csv-lens-column)
-;;; csv-lens-column.el ends here
+;;; csv-lens-column.el ends her
+e
