@@ -914,12 +914,10 @@ Post conditions:
 
 (defun csv-lens--indices-of-columns()
   "Returns a list of indices of all the columns."
-  (let ((i 0) 
-        column-indices)
-      (dolist (c (csv-lens--get-columns))
-        (push i column-indices)
-        (setq i (+ i 1)))
-      (nreverse column-indices)))
+  (let (column-indices)
+    (--dotimes (length (csv-lens--get-columns))
+      (!cons it column-indices))
+    (nreverse column-indices)))
 
 (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
