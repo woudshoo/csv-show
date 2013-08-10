@@ -934,17 +934,14 @@ never removed from the result.
 
 The order of the indices in the result is the same as the order in
 input `candidate-constant-columns'."
-  (let ((constant-columns)
-	(safe-length (min (length previous-values) (length current-values))))
-    (dolist (current-column-index candidate-constant-columns)
-      
-      (when (or (equal current-column-index key-column-index)
-		(and (< current-column-index safe-length)
-		     (equal (aref previous-values current-column-index)
-			    (aref current-values current-column-index))))
-	(push current-column-index constant-columns)))
-
-    (nreverse constant-columns)))
+  (let ((safe-length (min (length previous-values) (length current-values))))
+    (nreverse 
+     (--filter 
+      (or (equal it key-column-index)
+          (and (< it safe-length)
+               (equal (aref previous-values it)
+                      (aref current-values it))))
+      candidate-constant-columns))))
 
 
 (defun csv-lens-constant-columns ()
