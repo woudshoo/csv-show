@@ -50,6 +50,7 @@
 (require 'cl-lib)
 (require 's)
 (require 'dash)
+(require 'vl)
 (require 'calc)
 (require 'simple)
 (require 'sparkline)
@@ -922,15 +923,7 @@ Post conditions:
 (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
    corresponding to csv-lens-key-column-field-index."
-  (let (key-value)
-    (while (and (not key-value)
-                column-indices)
-      (let ((column-index (pop column-indices))
-            (value (pop values)))
-        (when (equal column-index csv-lens--key-column-field-index)
-          (setq key-value value))))
-    key-value))
-
+  (-list-item-in-list-where-item-in-other-list values column-indices csv-lens--key-column-field-index))
 
 (defun csv-lens--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
   "Return a list of indices for which `current-values' and `previous-values' are equal 
