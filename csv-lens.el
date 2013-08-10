@@ -14,6 +14,7 @@
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
 ;;                    (dash "1.5.0")
+;;                    (ht "1.3")
 ;;                    (sparkline "0.3")
 ;;                    (vendor-from-wwn "0.1.0"))
 ;;
@@ -51,6 +52,7 @@
 (require 's)
 (require 'dash)
 (require 'vl)
+(require 'ht)
 (require 'calc)
 (require 'simple)
 (require 'sparkline)
@@ -951,7 +953,7 @@ input `candidate-constant-columns'."
          (all-columns-indices constant-columns-indices)
          (line-number 0)
          (reporter (make-progress-reporter "Scanning for constant columns..." 0 (count-lines (point-min) (point-max))))
-         previous-cells)
+         (previous-cells (ht-create)))
 
     (goto-char (point-min))
 
@@ -963,21 +965,20 @@ input `candidate-constant-columns'."
       ;; Processing new line
       (let* ((current-values (csv-lens--get-cells-vec all-columns-indices))
 	     (key (aref current-values csv-lens--key-column-field-index))
-	     (previous-assoc (assoc key previous-cells)))
-	(if (not previous-assoc)
-	    (push (cons key current-values) previous-cells)
+	     (previous (ht-get previous-cells key)))
+        (ht-set previous-cells key current-values)
+	(when previous
           (let ((previous-number-of-constant-columns (length constant-columns-indices)))
             (setq constant-columns-indices 
                   (csv-lens--constant-columns constant-columns-indices 
                                               csv-lens--key-column-field-index
-                                              current-values 
-                                              (cdr previous-assoc)))
+                                              current-values
+                                              previous))
             (when (not (equal previous-number-of-constant-columns (length constant-columns-indices)))
               (progress-reporter-force-update
                reporter
                line-number
-               (format "%d possible constant columns left... " (- (length constant-columns-indices) 1)))))
-	  (setcdr previous-assoc current-values))))
+               (format "%d possible constant columns left... " (- (length constant-columns-indices) 1))))))))
 
     ;; Remove key column from constant list
     (setq constant-columns-indices (delete csv-lens--key-column-field-index 
