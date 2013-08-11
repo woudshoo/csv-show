@@ -1,7 +1,5 @@
 ;;; csv-lens-column.el --- Data structure to store column information
 
-
-
 ;;;
 ;;;
 ;;;  Column --->   Formatter        = function
@@ -168,4 +166,4 @@ FIXME: THis might not be needed."
   (list csv-lens-key-column-name))
 (provide 'csv-lens-column)
 ;;; csv-lens-column.el ends her
-e
+
