@@ -893,14 +893,14 @@ source file that has the same value for `csv-lens-key-column' as the current lin
   (csv-lens-jump-first/last-line-for-key-value 'last))
 
 (defun csv-lens--all-key-values ()
-  "Returns a list of all values for the `csv-lens-key-column'."
+  "Return a list of all values for the `csv-lens-key-column'."
   (let ((key-values (ht-create)))
     (csv-lens--in-source-buffer nil
      (goto-char (point-min))
      (while (and (forward-line)
                  (not (eobp)))
        (let ((current-key-value (car (csv-lens--get-cells-fast (list csv-lens--key-column-field-index)))))
-         (ht-set key-values current-key-value))))
+         (ht-set key-values current-key-value 1))))
     (ht-keys key-values)))
 
 (defun csv-lens-next-value ()
