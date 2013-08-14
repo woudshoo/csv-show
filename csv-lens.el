@@ -704,7 +704,20 @@ Think of it as num1 - num2."
 	(move-to-column (+ 4 width cell-width 1 cell-width 1 cell-width 1) t))))
   (insert " \n"))
 
-; TODO: Take formatting into account when determining widths
+(defun csv-lens-fill-buffer-cell-width ()
+  "Calculate the maximum width of csv-lens-cells, taking formatting into account."
+  (if csv-lens-format-toggle
+      (let ((columns csv-lens-columns)
+            (cells csv-lens-cells)
+            widths)
+        (while columns
+          (let ((column (pop columns))
+                (cell (pop cells)))
+            (push (length (funcall (csv-lens-cell-format-function-for-column column) cell))
+                  widths)))
+        (reduce 'max widths))
+    (reduce 'max csv-lens-cells :key 'length)))
+
 (defun csv-lens-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((current-position (csv-lens--line-col-position))
@@ -718,7 +731,7 @@ Think of it as num1 - num2."
 	      "\n\n")
       
       (let ((width (reduce 'max csv-lens-columns :key 'length))
-            (cell-width (reduce 'max csv-lens-cells :key 'length))
+            (cell-width (csv-lens-fill-buffer-cell-width))
             (display-columns (-flatten (list "Line" csv-lens-columns)))
             (display-cells (-flatten (list (format "%d" csv-lens-source-line-no) csv-lens-cells))))
 	(if csv-lens-previous-cells
