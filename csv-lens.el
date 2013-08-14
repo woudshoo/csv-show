@@ -704,7 +704,7 @@ Think of it as num1 - num2."
 	(move-to-column (+ 4 width cell-width 1 cell-width 1 cell-width 1) t))))
   (insert " \n"))
 
-; TODO: Make LINE: a field
+; TODO: Take formatting into account when determining widths
 (defun csv-lens-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((current-position (csv-lens--line-col-position))
