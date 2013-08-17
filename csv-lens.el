@@ -49,6 +49,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'f)
 (require 's)
 (require 'dash)
 (require 'vl)
@@ -149,8 +150,7 @@ This is a minor mode to show in a separate buffer the content
 of the current line as a table.
 
 \\{csv-show-map}"
-  nil " csv-lens" csv-lens-map
-  (set-key-column-field-index)) ;; FIXME
+  nil " csv-lens" csv-lens-map) ;; FIXME
 
 (setq csv-lens-detail-map 
       (let ((map (make-sparse-keymap)))
@@ -166,9 +166,9 @@ of the current line as a table.
 	(define-key map "h" 'csv-lens-hide-column)
         (define-key map "c" 'csv-lens-hide-constant-columns)
 	(define-key map "b" 'csv-lens-bold-column)
-	(define-key map "u" 'csv-lens-normal-column)
+;	(define-key map "u" 'csv-lens-normal-column)
 	(define-key map "U" 'csv-lens-normal-all)
-	(define-key map "s" 'csv-lens-column-state-toggle)
+	(define-key map "s" 'csv-lens-column-ignore-state-toggle)
 	(define-key map "S" 'csv-lens-spark-line)
         (define-key map "Z" 'csv-lens-spark-line-for-all-visible-columns)
 	(define-key map "I" 'csv-lens-spark-line-toggle-incremental)
@@ -229,7 +229,7 @@ the `csv-lens-select' function."
 
 (defun csv-lens--field-index-for-column (column)
   "Return the index of COLUMN."
-  (position column (csv-lens--get-columns) :test #'equal))
+  (position column csv-lens-columns :test #'equal))
     
 
 (defun csv-lens-parse-line (&optional indices)
@@ -399,7 +399,7 @@ buffer."
     (beginning-of-line)
     (when (get-text-property (point) 'invisible)
       (goto-char (next-single-property-change (point) 'invisible)))
-    (buffer-substring-no-properties (point)
+    (buffer-substring-no-properties (+ (point) 2)
 				    (1- (search-forward ":")))))
 
 (defun csv-lens-hide-constant-columns ()
@@ -409,7 +409,7 @@ buffer."
     (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns))))
     (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
-      (csv-lens-set-column-state column 'constant)))
+      (csv-lens-set-column-state column 'constant t)))
   (csv-lens-fontify-detail-buffer))
 
 (defadvice csv-lens-hide-constant-columns (around time-csv-show-hide-constant-columns)
@@ -438,7 +438,7 @@ buffer."
     (let ((list-of-non-sparkling-column-names (list "InstanceID" "StatisticTime" "ElementType")))
       (while (thing-at-point 'symbol t)
         (let ((column-name (thing-at-point 'symbol t)))
-          (if (and (not (equal (csv-lens-column-state column-name) 'hidden))
+          (if (and (not (csv-lens-column-state column-name 'hidden))
                    (not (-contains? list-of-non-sparkling-column-names column-name)))
             (csv-lens-spark-line)
             (forward-line)))))))
@@ -447,15 +447,14 @@ buffer."
 (defun csv-lens-spark-line ()
   (interactive)
 
-  (let ((column (csv-lens-column-name))
+  (let* ((column (csv-lens-column-name))
+	(key-index (car (csv-lens-column-key-indices)))
+	(value-index (csv-lens--field-index-for-column column))
 	(result (list)))
     (message (concat "Spark line for " column ))
     (csv-lens--in-source-buffer
 	nil
-     (let ((key-index (car (csv-lens-column-key-indices)))
-	   (value-index (csv-lens--field-index-for-column column))
-	   indices key--index value--index key-value)
-
+     (let (indices key--index value--index key-value)
        (if key-index
 	   (if (> value-index key-index)
 	       (progn 
@@ -494,7 +493,7 @@ buffer."
     (setq result (nreverse result))
     (when csv-lens-spark-line-incremental
       (setq result (csv-lens-diff-values result)))
-    (csv-lens-set-column-state column (sparkline-make-sparkline 80 11 result))
+    (csv-lens-set-column-state column 'sparkline (sparkline-make-sparkline 80 11 result))
     (csv-lens-fontify-detail-buffer)
     (next-line)))
 
@@ -502,10 +501,7 @@ buffer."
   "Will mark the column as Key column."
   (interactive)
   (let ((column (csv-lens-column-name)))
-    (csv-lens--in-source-buffer 
-	nil 
-     (setq csv-lens-key-column-name column)
-     (set-key-column-field-index))))
+    (csv-lens-set-column-state column 'key t)))
 
 (defun csv-lens-hide-column ()
   "Will mark the column on the current row for hiding. 
@@ -517,20 +513,18 @@ unhide the column.
 
 See also `csv-lens-column-state-toggle'"
   (interactive)
-  (let ((column (csv-lens-column-name)))
-    (case (csv-lens-column-state column)
-      ('hidden (csv-lens-set-column-state column 'normal))
-      (t (csv-lens-set-column-state column 'hidden))))
+  (csv-lens-column-state-toggle (csv-lens-column-name) 'hidden)
   (csv-lens-fontify-detail-buffer)
   (when csv-lens-column-state-toggle
     (next-line)))
 
-(defun csv-lens-normal-column ()
-  "Remove all state: bold, hidden, sparkline etc.  from the current column."
-  (interactive)
-  (csv-lens-set-column-state (csv-lens-column-name) 'normal)
-  (csv-lens-fontify-detail-buffer)
-  (next-line))
+
+;; (defun csv-lens-normal-column ()
+;;   "Remove all state: bold, hidden, sparkline etc.  from the current column."
+;;   (interactive)
+;;   (csv-lens-set-column-state (csv-lens-column-name) 'normal t)
+;;   (csv-lens-fontify-detail-buffer)
+;;   (next-line))
 
 (defun csv-lens-normal-all ()
   "Remove all states from all columns."
@@ -543,14 +537,11 @@ See also `csv-lens-column-state-toggle'"
 
 See also `csv-lens-column-state-toggle'"
   (interactive)
-  (let ((column (csv-lens-column-name)))
-    (case (csv-lens-column-state column)
-      ('bold (csv-lens-set-column-state column 'normal))
-      (t (csv-lens-set-column-state column 'bold))))
+  (csv-lens-column-state-toggle (csv-lens-column-name) 'bold)
   (csv-lens-fontify-detail-buffer)
   (next-line))
 
-(defun csv-lens-column-state-toggle ()
+(defun csv-lens-column-ignore-state-toggle ()
   "Toggles between showing all columns and hiding the columns that
 are marked for hiding.  See also `csv-lens-hide-column'"
   (interactive)
@@ -563,7 +554,7 @@ are marked for hiding.  See also `csv-lens-hide-column'"
   (setq csv-lens-format-toggle (not csv-lens-format-toggle))
   (csv-lens-fill-buffer))
 
-(defun csv-lens--insert-cell ( column cell )
+(defun csv-lens--insert-cell (column cell)
   ""
   (if csv-lens-format-toggle
       (insert (funcall (csv-lens-cell-format-function-for-column column) cell))
@@ -644,9 +635,15 @@ Think of it as num1 - num2."
   (forward-line (1- (car line-col)))
   (move-to-column (cdr line-col)))
 
-(defun csv-lens--fill-line (column width cell cell-width previous-cell)
+(defun csv-lens--insert-column-header (column width)
+  "Insert the column header without markup."
+  (insert (csv-lens-column-state-indicator column) " ")
   (insert column ":")
-  (move-to-column (+ 4 width) t)
+  (move-to-column (+ 4 width) t))
+
+(defun csv-lens--fill-line (column width cell cell-width previous-cell)
+  
+  (csv-lens--insert-column-header column width)
   (csv-lens--insert-cell column cell)
   (move-to-column (+ 4 width cell-width 1) t)
   (when previous-cell
@@ -686,10 +683,10 @@ Think of it as num1 - num2."
       
       (let ((width (reduce 'max csv-lens-columns :key 'length))
             (cell-width (csv-lens-fill-buffer-cell-width))
-            (display-columns (-flatten (list "Line" csv-lens-columns)))
-            (display-cells (-flatten (list (format "%d" csv-lens-source-line-no) csv-lens-cells))))
+            (display-columns (cons "Line" csv-lens-columns))
+            (display-cells (cons (format "%d" csv-lens-source-line-no) csv-lens-cells)))
 	(if csv-lens-previous-cells
-            (let ((display-previous-cells (-flatten (list (format "%d" csv-lens-previous-line) csv-lens-previous-cells))))
+            (let ((display-previous-cells (cons (format "%d" csv-lens-previous-line) csv-lens-previous-cells)))
               (cl-mapcar (lambda (column cell previous-cell)
                            (csv-lens--fill-line column width cell cell-width previous-cell))
                          display-columns display-cells display-previous-cells))
@@ -708,22 +705,28 @@ Think of it as num1 - num2."
       (forward-line 2)
       (while (not (eobp))
 	(let ((column (csv-lens-column-name))
-	      (start (point)))
-	  (case (csv-lens-column-state column)
-	    ((hidden constant)
-	     (forward-line)
-	     (if csv-lens-column-state-toggle
-		 (put-text-property start (point) 'face 'highlight)
-	       (put-text-property start (point) 'invisible t)))
-	    (bold
-	     (forward-line)
-	     (put-text-property start (point) 'face '(:weight bold)))
-	    (t
-	     (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face)
-	     (when (and (consp (csv-lens-column-state column)))
-	       (end-of-line)
-	       (put-text-property (- (point) 1) (point) 'display (csv-lens-column-state column)))
-	     (forward-line))))))))
+	      (start (point))
+	      (end (progn (forward-line) (point))))
+
+	  (when (csv-lens-column-state column 'hidden)
+	    (if csv-lens-column-state-toggle
+	       (put-text-property start end 'face 'highlight)
+	      (put-text-property start end 'invisible t)))
+	  
+	  (when (csv-lens-column-state column 'bold)
+	    (put-text-property start end 'face '(:weight bold)))
+
+	  (when (csv-lens-column-state column 'constant)
+	    (put-text-property start end 'face '(:weight bold)))
+	  
+	  (when (csv-lens-column-state column 'sparkline)
+	    (put-text-property (- end 2) (- end 1) 'display (csv-lens-column-state column 'sparkline)))
+	  
+	  (progn
+	    (goto-char start)
+	    (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face))
+	  (goto-char end))))))
+
 
 (defun csv-lens--mark-forward/backward (dir &optional do-not-parse-headers)
   "Move the selection to the next or previous record.
@@ -1031,8 +1034,7 @@ input `candidate-constant-columns'."
   (interactive)
   (let ((source (marker-buffer csv-lens-source-marker)))
     (kill-buffer)
-    (pop-to-buffer source))
-)
+    (pop-to-buffer source)))
 
 (defun csv-lens-kill-both-buffers ()
   "Expected to be performed from the detail buffer."

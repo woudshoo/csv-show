@@ -81,26 +81,41 @@
 (make-variable-buffer-local 'csv-lens-column-state)
 
 
-(defun csv-lens-set-column-state (column state)
+(defun csv-lens-set-column-state (column state &optional value)
   "Sets the state of `column' to `state'.  
+Optionally the state can have a value.
 See also `csv-lens-column-state'"
   (let ((assoc-pair (assoc column csv-lens-column-state)))
     (if assoc-pair
-	(setcdr assoc-pair csv-lens-column-state))
-    (push (cons column state) csv-lens-column-state)))
+	(let ((value-pair (assoc state (cdr assoc-pair))))
+	  (if value-pair
+	      (setcdr value-pair value)
+	    (push (cons state value) (cdr assoc-pair))))
+      (push (cons column (list (cons state value))) csv-lens-column-state))))
 
 
-(defun csv-lens-column-state (column)
-  "Return the state of the `COLUMN'.
-The valid states are 
+(defun csv-lens-column-state (column &optional key)
+  "Return the state of the COLUMN.
+The return value is eithe an alist of keys to values,
+or the value of KEY."
+  (let ((all-keys (assoc-default column csv-lens-column-state)))
+    (if key
+      (assoc-default key all-keys)
+      all-keys)))
 
-  - nil    -- meaning the state is never set.
-  - normal -- should have the same meaning as nil.
-  - hidden -- hides the column in CSV Detail buffer, 
-              but see also `csv-lens-column-state-toggle'
-  - constant -- hides the column in CSV Detail buffer"
-  (assoc-default column csv-lens-column-state))
+(defun csv-lens-column-state-toggle (column key)
+  "Toggle for COLUMN the value of KEY.
+Assumes we are only interested in generalized boolean value of the key."
+  (csv-lens-set-column-state column key
+			     (not (csv-lens-column-state column key))))
 
+(defun csv-lens-column-state-indicator (column)
+  "Return a string indicating the COLUMN state."
+  (cond 
+   ((csv-lens-column-state column 'key) "K")
+   ((csv-lens-column-state column 'hidden) "H")
+   ((csv-lens-column-state column 'constant) "C")
+   (t " ")))
 
 ;;;; Format functions
 (defvar csv-lens-cell-column-format-functions nil)
@@ -152,18 +167,24 @@ This should not be set by the user, but the code that updates the
 
 (defun set-key-column-field-index ()
   "Hack, to update the key column index from the name."
-  (setq csv-lens--key-column-field-index (csv-lens--field-index-for-column csv-lens-key-column-name)))
+  (setq csv-lens--key-column-field-index 
+	(csv-lens--field-index-for-column csv-lens-key-column-name)))
 
 
 (defun csv-lens-column-key-indices ()
   "Returns a list of column numbers which are the key columns.
 The list is sorted from low to high."
-  (list csv-lens--key-column-field-index))
+  (let ((result nil)
+	(columns csv-lens-columns)
+	(index 0))
+    (while columns
+      (when (csv-lens-column-state (car columns) 'key)
+	(push index result))
+      (pop columns)
+      (setq index (+ 1 index)))
+    (nreverse result)))
 
-(defun csv-lens-column-key-names ()
-  "Returns the list of the key column headers.
-FIXME: THis might not be needed."
-  (list csv-lens-key-column-name))
+
 (provide 'csv-lens-column)
 ;;; csv-lens-column.el ends her
 
