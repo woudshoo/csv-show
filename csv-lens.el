@@ -14,6 +14,7 @@
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
 ;;                    (dash "1.5.0")
+;;                    (ht "1.3")
 ;;                    (sparkline "0.3")
 ;;                    (vendor-from-wwn "0.1.0"))
 ;;
@@ -50,6 +51,8 @@
 (require 'cl-lib)
 (require 's)
 (require 'dash)
+(require 'vl)
+(require 'ht)
 (require 'calc)
 (require 'simple)
 (require 'sparkline)
@@ -74,7 +77,7 @@
 (defvar csv-lens-map)
 
 (defvar csv-lens-update-timer nil
-  "Holds the timer used to keep the *CSV Detail* buffer in sync
+  "Holds the timer used to keep the *CSV Lens* buffer in sync
 with the underlying CSV buffer.
 
 If nil the timer is not active.")
@@ -289,10 +292,6 @@ When  INDICES is specified, returns a list with values on those INDICES."
   (save-excursion
     (csv-lens-parse-line indices)))
 
-(defun csv-lens--get-cells-vec (indices)
-  ""
-  (vconcat (csv-lens--get-cells-fast indices)))
-
 (defun csv-lens--get-cells-fast (indices)
   "Return a list of values at the current line indicated by the INDICES.
 
@@ -320,20 +319,52 @@ The assumption is that indices is sorted from low to high!"
 	(push (buffer-substring-no-properties old-pos new-pos) result)))
     (nreverse result)))
 
+(defun csv-lens--get-cells-ht (indices)
+  "Return a list of values at the current line indicated by the INDICES.
+
+The resulting list is of the same length as `indices'.
+If an index, the corresponding value will be nil.
+
+The assumption is that indices is sorted from low to high!"
+  (let ((end (progn (end-of-line) (+ (point) 1)))
+        (column-pos 0)
+        index
+        i
+        old-pos
+        new-pos
+        (result (ht-create)))
+    (beginning-of-line)
+    (setq new-pos (point))
+    (while (and new-pos
+                (setq i (car indices))
+	    (setq index (pop indices)))
+      (setq index (- index column-pos))
+      (when (> index 0)
+	(setq new-pos (search-forward "," end t index)))
+      (setq old-pos (point))
+      (setq column-pos (+ column-pos index 1))
+      (when new-pos
+	(setq new-pos (- (or (search-forward "," end t) end) 1))
+        (ht-set result i (buffer-substring-no-properties old-pos new-pos))))
+    result))
+
+(defun csv-lens-buffer-name-for-lens-buffer ( csv-buffer )
+  ""
+  (concat "*CSV Lens " (f-filename (buffer-file-name csv-buffer)) "*" ))
+
 (defun csv-lens-select ()
   "Show the current row."
   (interactive)
   (let ((current-buffer-v (current-buffer))
 	(start (point-marker)))
-    (pop-to-buffer (get-buffer-create (concat "*CSV Detail " (buffer-file-name current-buffer-v) "*" )))
+    (pop-to-buffer (get-buffer-create (csv-lens-buffer-name-for-lens-buffer current-buffer-v)))
     (csv-lens-detail-mode)
     (setq csv-lens-source-marker start)
     (csv-lens-current)))
 
 
-
 (defun csv-lens-toggle-timer ()
-  "When enabled, the *CSV Detail* buffer tracks the cursor in the
+  "When enabled, the *CSV Lens* buffer tracks the cursor in the
 underlying CSV buffer.  This function toggles this
 functionality."
   (interactive)
@@ -347,12 +378,12 @@ functionality."
 
 
 (defun csv-lens-update-detail-buffer ()
-  "Updates the *CSV Detail* buffer with the content of the line
+  "Updates the *CSV Lens* buffer with the content of the line
 containing point in the underlying CSV buffer.  It is similar to the 
-`csv-lens-select', except that it does not create a *CSV Detail* buffer
+`csv-lens-select', except that it does not create a *CSV Lens* buffer
 if it exists."
   (interactive)
-  (let ((detail-buffer (get-buffer "*CSV Detail*")))
+  (let ((detail-buffer (csv-lens-buffer-name-for-lens-buffer current-buffer-v)))
     (when detail-buffer
       (save-match-data
 	(with-current-buffer detail-buffer
@@ -627,7 +658,20 @@ Think of it as num1 - num2."
 	(move-to-column (+ 4 width cell-width 1 cell-width 1 cell-width 1) t))))
   (insert " \n"))
 
-; TODO: Make LINE: a field
+(defun csv-lens-fill-buffer-cell-width ()
+  "Calculate the maximum width of csv-lens-cells, taking formatting into account."
+  (if csv-lens-format-toggle
+      (let ((columns csv-lens-columns)
+            (cells csv-lens-cells)
+            widths)
+        (while columns
+          (let ((column (pop columns))
+                (cell (pop cells)))
+            (push (length (funcall (csv-lens-cell-format-function-for-column column) cell))
+                  widths)))
+        (reduce 'max widths))
+    (reduce 'max csv-lens-cells :key 'length)))
+
 (defun csv-lens-fill-buffer ()
   "Fills the buffer with the content of the cells."
     (let ((current-position (csv-lens--line-col-position))
@@ -641,7 +685,7 @@ Think of it as num1 - num2."
 	      "\n\n")
       
       (let ((width (reduce 'max csv-lens-columns :key 'length))
-            (cell-width (reduce 'max csv-lens-cells :key 'length))
+            (cell-width (csv-lens-fill-buffer-cell-width))
             (display-columns (-flatten (list "Line" csv-lens-columns)))
             (display-cells (-flatten (list (format "%d" csv-lens-source-line-no) csv-lens-cells))))
 	(if csv-lens-previous-cells
@@ -831,15 +875,15 @@ source file that has the same value for `csv-lens-key-column' as the current lin
   (csv-lens-jump-first/last-line-for-key-value 'last))
 
 (defun csv-lens--all-key-values ()
-  "Returns a list of all values for the `csv-lens-key-column'."
-  (let ((key-values (list)))
+  "Return a list of all values for the `csv-lens-key-column'."
+  (let ((key-values (ht-create)))
     (csv-lens--in-source-buffer nil
      (goto-char (point-min))
      (while (and (forward-line)
                  (not (eobp)))
-       (let ((current-key-value (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))
-         (add-to-list 'key-values current-key-value t))))
-    key-values))
+       (let ((current-key-value (car (csv-lens--get-cells-fast (list csv-lens--key-column-field-index)))))
+         (ht-set key-values current-key-value 1))))
+    (ht-keys key-values)))
 
 (defun csv-lens-next-value ()
   "Show next record for which the current field is different, see `csv-lens-next/prev-value'"
@@ -906,25 +950,15 @@ Post conditions:
 
 (defun csv-lens--indices-of-columns()
   "Returns a list of indices of all the columns."
-  (let ((i 0) 
-        column-indices)
-      (dolist (c (csv-lens--get-columns))
-        (push i column-indices)
-        (setq i (+ i 1)))
-      (nreverse column-indices)))
+  (let (column-indices)
+    (--dotimes (length (csv-lens--get-columns))
+      (!cons it column-indices))
+    (nreverse column-indices)))
 
 (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
    corresponding to csv-lens-key-column-field-index."
-  (let (key-value)
-    (while (and (not key-value)
-                column-indices)
-      (let ((column-index (pop column-indices))
-            (value (pop values)))
-        (when (equal column-index csv-lens--key-column-field-index)
-          (setq key-value value))))
-    key-value))
-
+  (-list-item-in-list-where-item-in-other-list values column-indices csv-lens--key-column-field-index))
 
 (defun csv-lens--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
   "Return a list of indices for which `current-values' and `previous-values' are equal 
@@ -935,17 +969,11 @@ never removed from the result.
 
 The order of the indices in the result is the same as the order in
 input `candidate-constant-columns'."
-  (let ((constant-columns)
-	(safe-length (min (length previous-values) (length current-values))))
-    (dolist (current-column-index candidate-constant-columns)
-      
-      (when (or (equal current-column-index key-column-index)
-		(and (< current-column-index safe-length)
-		     (equal (aref previous-values current-column-index)
-			    (aref current-values current-column-index))))
-	(push current-column-index constant-columns)))
-
-    (nreverse constant-columns)))
+  (--filter 
+   (or (equal it key-column-index)
+       (equal (ht-get previous-values it)
+              (ht-get current-values it)))
+   candidate-constant-columns))
 
 
 (defun csv-lens-constant-columns ()
@@ -954,40 +982,41 @@ input `candidate-constant-columns'."
   (let* ((constant-columns-indices (csv-lens--indices-of-columns))
          (all-columns-indices constant-columns-indices)
          (line-number 0)
-         (number-of-lines (count-lines (point-min) (point-max)))
-         previous-cells)
+         (reporter (make-progress-reporter "Scanning for constant columns..." 0 (count-lines (point-min) (point-max))))
+         (previous-cells (ht-create)))
 
     (goto-char (point-min))
 
     (while (and (cdr constant-columns-indices)
 		(forward-line) 
 		(not (eobp)))
-      ;; Progress Reporting
-      (incf line-number)
-      (when (= (% line-number 1000) 0)
-	(message "%d%%: %d possible constant columns left." 
-		 (/ (* line-number 100) number-of-lines) 
-		 (- (length constant-columns-indices) 1)))
+      (progress-reporter-update reporter (incf line-number))
 
       ;; Processing new line
-      (let* ((current-values (csv-lens--get-cells-vec all-columns-indices))
-	     (key (aref current-values csv-lens--key-column-field-index))
-	     (previous-assoc (assoc key previous-cells)))
-	(if (not previous-assoc)
-	    (push (cons key current-values) previous-cells)
-	  (setq constant-columns-indices 
-		(csv-lens--constant-columns constant-columns-indices 
-					    csv-lens--key-column-field-index
-					    current-values 
-					    (cdr previous-assoc)))
-	  (setcdr previous-assoc current-values)))) 
+      (let* ((current-values-ht (csv-lens--get-cells-ht constant-columns-indices))
+             (key-value (ht-get current-values-ht csv-lens--key-column-field-index))
+	     (previous (ht-get previous-cells key-value)))
+        (ht-set previous-cells key-value current-values-ht)
+        (when previous
+          (let ((previous-number-of-constant-columns (length constant-columns-indices)))
+            (setq constant-columns-indices 
+                  (csv-lens--constant-columns constant-columns-indices 
+                                              csv-lens--key-column-field-index
+                                              current-values-ht
+                                              previous))
+            (when (not (equal previous-number-of-constant-columns (length constant-columns-indices)))
+              (progress-reporter-force-update
+               reporter
+               line-number
+               (format "%d possible constant columns left... " (- (length constant-columns-indices) 1))))))))
 
-    ;; Remove key column from constant list
-    (setq constant-columns-indices (delete csv-lens--key-column-field-index 
-					   constant-columns-indices))
-    
-    (goto-char (point-min))
-    (when constant-columns-indices
+      ;; Remove key column from constant list
+      (setq constant-columns-indices (delete csv-lens--key-column-field-index 
+                                             constant-columns-indices))
+
+      (progress-reporter-done reporter)
+      (goto-char (point-min))
+      (when constant-columns-indices
         (csv-lens--get-cells constant-columns-indices))))
 
 (defun csv-lens-switch-to-source-buffer ()
@@ -995,7 +1024,7 @@ input `candidate-constant-columns'."
   (interactive)
   (let ((line-no csv-lens-source-line-no))
     (pop-to-buffer (marker-buffer csv-lens-source-marker))
-    (goto-line line-no)))
+      (goto-line line-no)))
 
 (defun csv-lens-kill-detail-buffer ()
   "Expected to be performed from the detail buffer."
