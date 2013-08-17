@@ -148,6 +148,8 @@ Assumes we are only interested in generalized boolean value of the key."
 ;;   key-column-names   --> Returns a list of key column names [MIGHT NOT BE NEEDED]
 ;; Variables
 
+
+;;; TODO make this customizable
 (defvar csv-lens-key-column-name "InstanceID"
   "Name of the key column.  
 This is set by the user (or defaults to InstanceID) 
@@ -184,6 +186,12 @@ The list is sorted from low to high."
       (setq index (+ 1 index)))
     (nreverse result)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun csv-lens--field-index-for-column (column)
+  "Return the index of COLUMN."
+  (position column csv-lens-columns :test #'equal))
 
 (provide 'csv-lens-column)
 ;;; csv-lens-column.el ends her
