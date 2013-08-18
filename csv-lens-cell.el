@@ -18,40 +18,10 @@
 ;;;  String -> Value              :default string->number
 ;;;  Value,Value -> Number        :default -
 ;;;
-(setq csv-lens-cell-column-format-functions
-  `(("StatisticTime" . csv-lens-cell-format-statistictime)
-    ("PeriodStartTime" . csv-lens-cell-format-statistictime)
-    ("PeriodEndTime" . csv-lens-cell-format-statistictime)
-    ("IM_OriginalStatisticTime" . csv-lens-cell-format-statistictime)
-    ("UsageRestriction" . csv-lens-cell-format-usagerestriction)
-    ("Consumed" . csv-lens-cell-format-huge-number)
-    ("ConsumableBlocks" . csv-lens-cell-format-big-number-of-blocks)
-    ("NumberOfBlocks" . csv-lens-cell-format-big-number-of-blocks)
-    ("KBytesRead" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("KBytesTransferred" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("KBytesWritten" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("MaxSpeed" . csv-lens-cell-format-big-number-of-bytes)
-    ("RequestedSpeed" . csv-lens-cell-format-big-number-of-bytes)
-    ("EMCKBytesSPARead" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("EMCKBytesSPBRead" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("EMCKBytesSPAWritten" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("EMCKBytesSPBWritten" . csv-lens-cell-format-big-number-of-kilobytes)
-    ("PermanentAddress" . csv-lens-cell-format-wwn)
-    ("SwitchWWPN" . csv-lens-cell-format-wwn)
-    ("DeviceID" . csv-lens-cell-format-wwn)
-    ("ElementName" . csv-lens-cell-format-wwn)
-    ("DependentElementWWN" . csv-lens-cell-format-wwn)
-    ("DependentFCPortWWN" . csv-lens-cell-format-wwn)
-    ("AntecedentElementWWN" . csv-lens-cell-format-wwn)
-    ("AntecedentFCPortWWN" . csv-lens-cell-format-wwn)
-    ("EMCWWN" . csv-lens-cell-format-wwn)
-    ("OtherIdentifyingInfo" . csv-lens-cell-format-wwn)
-    ("Speed" . csv-lens-cell-format-big-number-of-bytes)))
 
 
-
+
 ;;; Default format functions
-
 
 (defun csv-lens-cell-format-wwn (wwn)
   "Returns a nicely formatted WWN."
@@ -121,6 +91,12 @@
 	      offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
 	(concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" ))
     statistictime))
+
+
+
+;;; Diff functions
+
+
 
 (provide 'csv-lens-cell)
 ;;; csv-lens-cell.el ends here

@@ -77,12 +77,6 @@
 
 (defvar csv-lens-map)
 
-;; (defvar csv-lens-update-timer nil
-;;   "Holds the timer used to keep the *CSV Lens* buffer in sync
-;; with the underlying CSV buffer.
-
-;; If nil the timer is not active.")
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Macros to transition between buffers
@@ -140,7 +134,6 @@ it should be a CSV file and it will return (point-marker)."
 
 (setq csv-lens-map
       (let ((map (make-sparse-keymap)))
-	;(define-key map [?\C-.] 'csv-lens-toggle-timer)
 	(define-key map [C-return] 'csv-lens-select)
 	map))
 
@@ -167,7 +160,6 @@ of the current line as a table.
 ;	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-statistictime 1)))
 	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-record 1)))
 	(define-key map "." 'csv-lens-current)
-	(define-key map [?\C-.] 'csv-lens-toggle-timer)
 	(define-key map "p" 'csv-lens-prev)
 ;	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-statistictime -1)))
 	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-record -1)))
@@ -214,7 +206,8 @@ the `csv-lens-select' function."
   (make-local-variable 'csv-lens-previous-line)
   (setq-local csv-lens-column-state-toggle nil)
   (setq-local csv-lens-format-toggle t)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t)
+  (csv-lens-column-initialize-defaults))
 
 (defvar csv-lens-syntax-table
   (let ((table (make-syntax-table)))
@@ -373,35 +366,6 @@ The assumption is that indices is sorted from low to high!"
     (csv-lens-current)))
 
 
-;; (defun csv-lens-toggle-timer ()
-;;   "When enabled, the *CSV Lens* buffer tracks the cursor in the
-;; underlying CSV buffer.  This function toggles this
-;; functionality."
-;;   (interactive)
-;;   (if csv-lens-update-timer 
-;;       (progn
-;; 	(cancel-timer csv-lens-update-timer)
-;; 	(setq csv-lens-update-timer nil))
-;;     (setq csv-lens-update-timer 
-;; 	  (run-with-idle-timer 0.1 t 'csv-lens-update-detail-buffer))))
-
-
-
-;; (defun csv-lens-update-detail-buffer ()
-;;   "Updates the *CSV Lens* buffer with the content of the line
-;; containing point in the underlying CSV buffer.  It is similar to the 
-;; `csv-lens-select', except that it does not create a *CSV Lens* buffer
-;; if it exists."
-;;   (interactive)
-;;   (let ((detail-buffer (csv-lens-buffer-name-for-lens-buffer (current-buffer))))
-;;     (when detail-buffer
-;;       (save-match-data
-;; 	(with-current-buffer detail-buffer
-;; 	  (csv-lens-current t))))))
-
-
-
-
 (defun csv-lens-column-name (&optional point)
   "Return the column name for the line containing POINT.
 If POINT is nil or not provided, use the current point in the
@@ -424,27 +388,15 @@ buffer."
     (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns))))
     (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
-      (csv-lens-set-column-state column 'constant t)
-      (csv-lens-set-column-state column 'hidden t)))
+      (csv-lens-set-column-state column :constant t)
+      (csv-lens-set-column-state column :hidden t)))
   (csv-lens-fontify-detail-buffer))
-
-
-;; (defadvice csv-lens-hide-constant-columns (around time-csv-show-hide-constant-columns)
-;;   ""
-;;   (interactive)
-;;   (let ((c-s-s (current-time)))
-;;     ad-do-it
-;;     (let ((elapsed (float-time (time-subtract (current-time) c-s-s))))
-;;       (message "Hiding constant columns took %.3fs" elapsed))))
-
-;; (ad-activate 'csv-lens-hide-constant-columns)
-
 
 
 (defun csv-lens-toggle-key-column ()
   "Will mark the column as Key column."
   (interactive)
-  (csv-lens-column-state-toggle (csv-lens-column-name) 'key)
+  (csv-lens-column-state-toggle (csv-lens-column-name) :key)
   (csv-lens-fontify-detail-buffer))
 
 (defun csv-lens-hide-column ()
@@ -457,18 +409,11 @@ unhide the column.
 
 See also `csv-lens-column-state-toggle'"
   (interactive)
-  (csv-lens-column-state-toggle (csv-lens-column-name) 'hidden)
+  (csv-lens-column-state-toggle (csv-lens-column-name) :hidden)
   (csv-lens-fontify-detail-buffer)
   (when csv-lens-column-state-toggle
     (next-line)))
 
-
-;; (defun csv-lens-normal-column ()
-;;   "Remove all state: bold, hidden, sparkline etc.  from the current column."
-;;   (interactive)
-;;   (csv-lens-set-column-state (csv-lens-column-name) 'normal t)
-;;   (csv-lens-fontify-detail-buffer)
-;;   (next-line))
 
 (defun csv-lens-normal-all ()
   "Remove all states from all columns."
@@ -481,7 +426,7 @@ See also `csv-lens-column-state-toggle'"
 
 See also `csv-lens-column-state-toggle'"
   (interactive)
-  (csv-lens-column-state-toggle (csv-lens-column-name) 'bold)
+  (csv-lens-column-state-toggle (csv-lens-column-name) :bold)
   (csv-lens-fontify-detail-buffer)
   (next-line))
 
@@ -504,77 +449,18 @@ See also `csv-lens-hide-column'"
       (insert (funcall (csv-lens-cell-format-function-for-column column) cell))
     (insert cell)))
 
-(defun smis-time-to-time-string ( smis-time )
-  (format "%s-%s-%s %s:%s:%s"
-          (substring smis-time 0 4)
-          (substring smis-time 4 6)
-          (substring smis-time 6 8)
-          (substring smis-time 8 10)
-          (substring smis-time 10 12) 
-          (substring smis-time 12 14)))
+(defun csv-lens--diff-cells (column cell1 cell2)
+  "Given COLUMN, CELL1 and CELL2, return an appropriate diff.
+Think of it as CELL1 - CELL2."
 
-(defun parse-smis-time-string ( smis-time )
-  "Convert SMIS-TIME to a time."
-  (date-to-time (smis-time-to-time-string smis-time)))
-
-(defun float-smis-time ( smis-time )
-  "Return a float representing the epoch for SMIS-TIME."
-  (float-time (parse-smis-time-string smis-time)))
-
-(defun diff-smis-times ( smis-time1 smis-time2 )
-  "Return the difference in seconds of SMIS-TIME1 - SMIS-TIME2."
-  (- (float-smis-time smis-time1) (float-smis-time smis-time2)))
-
-(defun seconds-to-string (seconds)
-  "Convert SECONDS to a nicely formatted string with hours, minutes and seconds."
-  (let (result)
-    (dolist (divider (list (cons 3600 nil) (cons 60 ":") (cons 1 "'")))
-      (let ((amount (truncate (/ seconds (car divider)))))
-          (setq result (concat result (cdr divider) (format "%02d" amount))
-                seconds (- seconds (* amount (car divider))))))
-    result))
-
-(defun csv-lens--diff-statistictime ( time1 time2 )
-  "Return a nice string representation of TIME1 - TIME2."
-  (seconds-to-string (diff-smis-times time1 time2)))
-
-(defun csv-lens--make-sure-string-doesnt-start-with ( prefix s )
-  "Remove as much instances of PREFIX from the start of S so that it doesn't start with PREFIX anymore.
-However, if S has a length greater than 0 to begin with, it never leaves S at length 0."
-  (if (= (length prefix) 0)
-      s
-    (progn
-      (while (and (s-starts-with? prefix s)
-                  (> (length s) (length prefix)))
-        (setq s (substring s (length prefix))))
-      s)))
-
-
-(defun csv-lens--diff-number (num1 num2)
-  "Given two strings num1 and num2 containing arbitrary numbers,
-returns a string representing the difference.
-Think of it as num1 - num2."
-  (let ((num1 (math-read-number num1))
-	(num2 (math-read-number num2)))
-    (if (and num1 num2)
-	(math-format-number (math-sub num1 num2))
-      "")))
-
-
-(defun csv-lens--diff-cells ( column cell1 cell2 )
-  "Given CELL1 and CELL2 and their COLUMN, returns an appropriate diff between them. Think of it as CELL1 - CELL2."
-  (cond ((member column '("InstanceID" "ElementType"))
-                 nil)
-         ((equal column "StatisticTime")
-          (csv-lens--diff-statistictime cell1 cell2))
-         (t (csv-lens--diff-number cell1 cell2))))
+  (funcall (csv-lens-cell-diff-function-for-column column) cell1 cell2))
 
 (defun csv-lens--line-col-position ()
-  "Returns the position of point as a line number, column number combination"
+  "Return the position of point as a line number, column number combination."
   (cons (line-number-at-pos) (current-column)))
 
 (defun csv-lens--restore-line-col-position (line-col)
-  "Move point to the `LINE-COL' position, see `csv-lens--line-col-position'."
+  "Move point to the LINE-COL position, see `csv-lens--line-col-position'."
   (goto-char (point-min))
   (forward-line (1- (car line-col)))
   (move-to-column (cdr line-col)))
@@ -666,17 +552,17 @@ The maximum width of all columns is WIDTH."
 	    (goto-char start)
 	    (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face))
 
-	  (when (csv-lens-column-state column 'hidden)
+	  (when (csv-lens-column-state column :hidden)
 	    (if csv-lens-column-state-toggle
 	       (put-text-property start end 'face 'highlight)
 	      (put-text-property start end 'invisible t)))
 	  
-	  (when (csv-lens-column-state column 'bold)
+	  (when (csv-lens-column-state column :bold)
 	    (add-face-text-property start end '(:weight bold))
 	    (add-face-text-property start end '(:background "yellow")))
-	  (when (csv-lens-column-state column 'key)
+	  (when (csv-lens-column-state column :key)
 	    (add-face-text-property start end 'underline))
-	  (when (csv-lens-column-state column 'constant)
+	  (when (csv-lens-column-state column :constant)
 	    (add-face-text-property start end 'italic))
 	  
 	  (when (csv-lens-column-state column 'sparkline)
@@ -796,6 +682,8 @@ current column, and InstanceID is identical."
      (csv-lens--next/prev-value (or dir 1) key-indices variable-column)))
   (csv-lens-fill-buffer))
 
+
+;;; FIXME, no more key index etc.
 (defun csv-lens--jump-first/last-line-for-key-value (key-value first-last)
   ""
   (let ((start-point (point-min))
@@ -810,6 +698,8 @@ current column, and InstanceID is identical."
                     key-value
                     (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))))))
   
+
+;;; FIXME, no more key index etc.
 (defun csv-lens-jump-first/last-line-for-key-value ( first-last )
   "Expected to be performed in the detail buffer. Jumps to the first or last line in the
 source file that has the same value for `csv-lens-key-column' as the current line. When FIRST-LAST
@@ -839,6 +729,7 @@ source file that has the same value for `csv-lens-key-column' as the current lin
   (interactive)
   (csv-lens-jump-first/last-line-for-key-value 'last))
 
+;;; FIXME, no more key index etc.
 (defun csv-lens--all-key-values ()
   "Return a list of all values for the `csv-lens-key-column'."
   (let ((key-values (ht-create)))
@@ -851,12 +742,14 @@ source file that has the same value for `csv-lens-key-column' as the current lin
     (ht-keys key-values)))
 
 (defun csv-lens-next-value ()
-  "Show next record for which the current field is different, see `csv-lens-next/prev-value'"
+  "Show next record for which the current field is different.
+See `csv-lens-next/prev-value'"
   (interactive)
   (csv-lens-next/prev-value 1))
 
 (defun csv-lens-prev-value ()
-  "Show previous record for which the current field is different, see `csv-lens-next/prev-value'"
+  "Show previous record for which the current field is different.
+See `csv-lens-next/prev-value'"
   (interactive)
   (csv-lens-next/prev-value -1))
 
@@ -868,8 +761,7 @@ Pre conditions are:
  - point is at the beginning of a line.
 
 Post conditions:
- - point is at the beginning of the new line.
-"
+ - point is at the beginning of the new line."
   (let* ((current-value (csv-lens--get-current-value-for-index column-index)))
     (beginning-of-line)
     (while (and (csv-lens--next/prev-record dir key-indices)
@@ -885,8 +777,7 @@ Pre conditions are:
  - point is at the beginning of a line.
 
 Post conditions:
- - point is at the beginning of the new line.
-"
+ - point is at the beginning of the new line."
   (let* ((current-key-values (csv-lens--get-cells key-indices))
          (found t))
 
@@ -908,6 +799,7 @@ Post conditions:
       (!cons it column-indices))
     (nreverse column-indices)))
 
+;;; FIXME, no more key index etc.
 (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
    corresponding to csv-lens-key-column-field-index."
@@ -929,6 +821,7 @@ input `candidate-constant-columns'."
    candidate-constant-columns))
 
 
+;;; FIXME, no more key index etc.
 (defun csv-lens-constant-columns ()
   "Analyzes a csv buffer and returns a list of the column names that contain constant values."
   (interactive)

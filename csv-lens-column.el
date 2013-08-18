@@ -81,6 +81,51 @@
 (make-variable-buffer-local 'csv-lens-column-state)
 
 
+(defvar csv-lens-default-column-state
+  `(("InstanceID" :key t :diff-function csv-lens-diff-always-nil)
+    ("ElementType" :diff-function csv-lens-diff-always-nil)
+
+    ("StatisticTime" :diff-function csv-lens-diff-statistictime)
+    (("StatisticTime" "PeriodStartTime" "PeriodEndTime" "IM_OriginalStatisticTime") 
+     :format-function csv-lens-cell-format-statistictime)
+    
+    ("UsageRestriction" :format-function csv-lens-cell-format-usagerestriction)
+
+    ("Consumed" :format-function csv-lens-cell-format-huge-number)
+
+    (("NumberOfBlocks" "ConsumableBlocks") 
+     :format-function csv-lens-cell-format-big-number-of-blocks)
+
+    (("EMCKBytesSPBWritten" "EMCKBytesSPAWritten" 
+      "EMCKBytesSPBRead" "EMCKBytesSPARead" 
+      "KBytesWritten" "KBytesTransferred" "KBytesRead") 
+     :format-function csv-lens-cell-format-big-number-of-kilobytes)
+
+    (("RequestedSpeed" "Speed" "MaxSpeed") 
+     :format-function csv-lens-cell-format-big-number-of-bytes)
+
+    (("OtherIdentifyingInfo" "EMCWWN" 
+      "AntecedentFCPortWWN" "AntecedentElementWWN" 
+      "DependentFCPortWWN" "DependentElementWWN" 
+      "ElementName" "DeviceID" 
+      "SwitchWWPN" "PermanentAddress") 
+     :format-function csv-lens-cell-format-wwn)))
+
+
+;;;; Initialization code
+
+(defun csv-lens-column-initialize-defaults ()
+  (dolist (format-pair  csv-lens-default-column-state)
+    (dolist (key (-list-guaranteed (car format-pair)))
+      (let ((values (cdr format-pair)))
+	(while values
+	  (csv-lens-set-column-state key (car values) (cadr values))
+	  (setq values (cddr values)))))))
+
+
+
+
+;;;; Manipulation functions
 (defun csv-lens-set-column-state (column state &optional value)
   "Sets the state of `column' to `state'.  
 Optionally the state can have a value.
@@ -112,21 +157,76 @@ Assumes we are only interested in generalized boolean value of the key."
 (defun csv-lens-column-state-indicator (column)
   "Return a string indicating the COLUMN state."
   (cond 
-   ((csv-lens-column-state column 'key) "K")
-   ((csv-lens-column-state column 'hidden) "H")
-   ((csv-lens-column-state column 'constant) "C")
+   ((csv-lens-column-state column :key) "K")
+   ((csv-lens-column-state column :hidden) "H")
+   ((csv-lens-column-state column :constant) "C")
    (t " ")))
 
+
 ;;;; Format functions
-(defvar csv-lens-cell-column-format-functions nil)
 
 (defun csv-lens-cell-format-function-for-column (column)
   "Return the format function for COLUMN."
   (or
-   (assoc-default column csv-lens-cell-column-format-functions )
+   (csv-lens-column-state column :format-function)
    #'identity))
 
+
 ;;; sparkline related functions, diff
+
+(defun smis-time-to-time-string ( smis-time )
+  (format "%s-%s-%s %s:%s:%s"
+          (substring smis-time 0 4)
+          (substring smis-time 4 6)
+          (substring smis-time 6 8)
+          (substring smis-time 8 10)
+          (substring smis-time 10 12) 
+          (substring smis-time 12 14)))
+
+(defun parse-smis-time-string ( smis-time )
+  "Convert SMIS-TIME to a time."
+  (date-to-time (smis-time-to-time-string smis-time)))
+
+(defun float-smis-time ( smis-time )
+  "Return a float representing the epoch for SMIS-TIME."
+  (float-time (parse-smis-time-string smis-time)))
+
+
+(defun diff-smis-times (smis-time1 smis-time2)
+  "Return the difference in seconds of SMIS-TIME1 - SMIS-TIME2."
+  (- (float-smis-time smis-time1) (float-smis-time smis-time2)))
+
+(defun seconds-to-string (seconds)
+  "Convert SECONDS to a nicely formatted string with hours, minutes and seconds."
+  (let (result)
+    (dolist (divider (list (cons 3600 nil) (cons 60 ":") (cons 1 "'")))
+      (let ((amount (truncate (/ seconds (car divider)))))
+          (setq result (concat result (cdr divider) (format "%02d" amount))
+                seconds (- seconds (* amount (car divider))))))
+    result))
+
+(defun csv-lens-diff-statistictime (time1 time2)
+  "Return a nice string representation of TIME1 - TIME2."
+  (seconds-to-string (diff-smis-times time1 time2)))
+
+(defun csv-lens-diff-number (num1 num2)
+  "Given two strings num1 and num2 containing arbitrary numbers,
+returns a string representing the difference.
+Think of it as num1 - num2."
+  (let ((num1 (math-read-number num1))
+	(num2 (math-read-number num2)))
+    (if (and num1 num2)
+	(math-format-number (math-sub num1 num2))
+      "")))
+
+
+(defun csv-lens-diff-always-nil (a b)
+  nil)
+
+(defun csv-lens-cell-diff-function-for-column (column)
+  (or 
+   (csv-lens-column-state column :diff-function) 
+   #'csv-lens-diff-number))
 
 (defvar csv-lens-spark-line-incremental)
 (make-variable-buffer-local 'csv-lens-spark-line-incremental)
@@ -167,11 +267,6 @@ This should not be set by the user, but the code that updates the
 (make-variable-buffer-local 'csv-lens--key-column-field-index)
 
 
-(defun set-key-column-field-index ()
-  "Hack, to update the key column index from the name."
-  (setq csv-lens--key-column-field-index 
-	(csv-lens--field-index-for-column csv-lens-key-column-name)))
-
 
 (defun csv-lens-column-key-indices ()
   "Returns a list of column numbers which are the key columns.
@@ -180,7 +275,7 @@ The list is sorted from low to high."
 	(columns csv-lens-columns)
 	(index 0))
     (while columns
-      (when (csv-lens-column-state (car columns) 'key)
+      (when (csv-lens-column-state (car columns) :key)
 	(push index result))
       (pop columns)
       (setq index (+ 1 index)))
@@ -194,5 +289,4 @@ The list is sorted from low to high."
   (position column csv-lens-columns :test #'equal))
 
 (provide 'csv-lens-column)
-;;; csv-lens-column.el ends her
-
+;;; csv-lens-column.el ends here

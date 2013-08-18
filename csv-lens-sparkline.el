@@ -48,7 +48,7 @@
     (let ((list-of-non-sparkling-column-names (list "InstanceID" "StatisticTime" "ElementType")))
       (while (csv-lens-column-name)
         (let ((column-name (csv-lens-column-name)))
-          (when (and (not (csv-lens-column-state column-name 'hidden))
+          (when (and (not (csv-lens-column-state column-name :hidden))
 		     (not (-contains? list-of-non-sparkling-column-names column-name)))
 	      (csv-lens-spark-line))
 	  (forward-line))))))

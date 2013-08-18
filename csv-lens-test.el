@@ -12,12 +12,12 @@
   (should (equal '(1 1 1) (csv-lens-diff-values '(10 11 12 13)))))
 
 
-(ert-deftest csv-lens--make-sure-string-doesnt-start-with-test ()
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000123") "123"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "") ""))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000000") "0"))
-  (should (equal (csv-lens--make-sure-string-doesnt-start-with " " "       ") " ")))
+;; (ert-deftest csv-lens--make-sure-string-doesnt-start-with-test ()
+;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000123") "123"))
+;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "") ""))
+;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
+;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000000") "0"))
+;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with " " "       ") " ")))
 
 (ert-deftest csv-lens--diff-number-test ()
   (should (equal (csv-lens--diff-number "5" "3") "2"))
@@ -30,21 +30,21 @@
 
 (ert-deftest csv-lens--column-state-test ()
   (let ((csv-lens-column-state nil))
-    (csv-lens-set-column-state "hallo" 'hidden)
+    (csv-lens-set-column-state "hallo" :hidden)
     (should (equal (csv-lens-column-state "hallo")
     		   '((hidden))))
-    (csv-lens-set-column-state "hallo" 'hidden t)
-    (should (equal (csv-lens-column-state "hallo" 'hidden) t))
-    (should (equal (csv-lens-column-state "unknown" 'hidden) nil))
+    (csv-lens-set-column-state "hallo" :hidden t)
+    (should (equal (csv-lens-column-state "hallo" :hidden) t))
+    (should (equal (csv-lens-column-state "unknown" :hidden) nil))
     (csv-lens-set-column-state "hallo" 'image '(+ 1 2))
-    (should (equal (csv-lens-column-state "hallo" 'hidden) t))
+    (should (equal (csv-lens-column-state "hallo" :hidden) t))
     (should (equal (csv-lens-column-state "hallo" 'image) '(+ 1 2)))))
 
 
 (ert-deftest csv-lens--column-state-test-2 ()
   (let ((csv-lens-column-state nil))
     (should (equal csv-lens-column-state nil))
-    (csv-lens-set-column-state "hallo" 'hidden t)
+    (csv-lens-set-column-state "hallo" :hidden t)
     (csv-lens-set-column-state "hallo" 'xx t)
     (should (equal csv-lens-column-state
 		   '(("hallo" (xx . t) (hidden . t)))))))
