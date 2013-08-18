@@ -77,11 +77,11 @@
 
 (defvar csv-lens-map)
 
-(defvar csv-lens-update-timer nil
-  "Holds the timer used to keep the *CSV Lens* buffer in sync
-with the underlying CSV buffer.
+;; (defvar csv-lens-update-timer nil
+;;   "Holds the timer used to keep the *CSV Lens* buffer in sync
+;; with the underlying CSV buffer.
 
-If nil the timer is not active.")
+;; If nil the timer is not active.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -89,7 +89,7 @@ If nil the timer is not active.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro in-other-buffer (marker bindings &rest body)
-  "Executes BODY in the buffer indicated by MARKER.  
+  "Execute BODY in the buffer indicated by MARKER.  
 The point in the buffer is set to the point of the MARKER.
 
 The BINDINGS are a list of bindings of the form (var expr).
@@ -126,8 +126,8 @@ to buffer-local-var in the current buffer."
 	    ,@body))))))
 
 (defun csv-lens--marker-for-source-buffer ()
-  "Returns a marker for the source buffer location which is used 
-in the Detail buffer.  If the current buffer is not a detail buffer
+  "Get a marker for the source buffer location which is used in the Lens buffer.
+If the current buffer is not a detail buffer
 it should be a CSV file and it will return (point-marker)."
   (if (boundp 'csv-lens-source-marker)
       csv-lens-source-marker
@@ -140,7 +140,7 @@ it should be a CSV file and it will return (point-marker)."
 
 (setq csv-lens-map
       (let ((map (make-sparse-keymap)))
-	(define-key map [?\C-.] 'csv-lens-toggle-timer)
+	;(define-key map [?\C-.] 'csv-lens-toggle-timer)
 	(define-key map [C-return] 'csv-lens-select)
 	map))
 
@@ -293,6 +293,8 @@ When  INDICES is specified, returns a list with values on those INDICES."
         (csv-lens-parse-line))))
 
 (defun csv-lens--get-cells (&optional indices)
+  "Return the values given by INDICES for the current line.
+If indices is nil, return all the values."
   (save-excursion
     (csv-lens-parse-line indices)))
 
@@ -357,7 +359,7 @@ The assumption is that indices is sorted from low to high!"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun csv-lens-buffer-name-for-lens-buffer (csv-buffer)
-  ""
+  "Return a suggested name for the Lens buffer based upon CSV-BUFFER."
   (concat "*CSV Lens " (f-filename (buffer-file-name csv-buffer)) "*" ))
 
 (defun csv-lens-select ()
@@ -371,38 +373,38 @@ The assumption is that indices is sorted from low to high!"
     (csv-lens-current)))
 
 
-(defun csv-lens-toggle-timer ()
-  "When enabled, the *CSV Lens* buffer tracks the cursor in the
-underlying CSV buffer.  This function toggles this
-functionality."
-  (interactive)
-  (if csv-lens-update-timer 
-      (progn
-	(cancel-timer csv-lens-update-timer)
-	(setq csv-lens-update-timer nil))
-    (setq csv-lens-update-timer 
-	  (run-with-idle-timer 0.1 t 'csv-lens-update-detail-buffer))))
+;; (defun csv-lens-toggle-timer ()
+;;   "When enabled, the *CSV Lens* buffer tracks the cursor in the
+;; underlying CSV buffer.  This function toggles this
+;; functionality."
+;;   (interactive)
+;;   (if csv-lens-update-timer 
+;;       (progn
+;; 	(cancel-timer csv-lens-update-timer)
+;; 	(setq csv-lens-update-timer nil))
+;;     (setq csv-lens-update-timer 
+;; 	  (run-with-idle-timer 0.1 t 'csv-lens-update-detail-buffer))))
 
 
 
-(defun csv-lens-update-detail-buffer ()
-  "Updates the *CSV Lens* buffer with the content of the line
-containing point in the underlying CSV buffer.  It is similar to the 
-`csv-lens-select', except that it does not create a *CSV Lens* buffer
-if it exists."
-  (interactive)
-  (let ((detail-buffer (csv-lens-buffer-name-for-lens-buffer current-buffer-v)))
-    (when detail-buffer
-      (save-match-data
-	(with-current-buffer detail-buffer
-	  (csv-lens-current t))))))
+;; (defun csv-lens-update-detail-buffer ()
+;;   "Updates the *CSV Lens* buffer with the content of the line
+;; containing point in the underlying CSV buffer.  It is similar to the 
+;; `csv-lens-select', except that it does not create a *CSV Lens* buffer
+;; if it exists."
+;;   (interactive)
+;;   (let ((detail-buffer (csv-lens-buffer-name-for-lens-buffer (current-buffer))))
+;;     (when detail-buffer
+;;       (save-match-data
+;; 	(with-current-buffer detail-buffer
+;; 	  (csv-lens-current t))))))
 
 
 
 
 (defun csv-lens-column-name (&optional point)
-  "Return the column name for the line containing `POINT'.
-If `point' is nil or not provided, use the current point in the
+  "Return the column name for the line containing POINT.
+If POINT is nil or not provided, use the current point in the
 buffer."
   (save-excursion
     (when point (goto-char point))
@@ -422,7 +424,8 @@ buffer."
     (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns))))
     (message "%d constant columns hidden." (length constant-columns))
     (dolist (column constant-columns)
-      (csv-lens-set-column-state column 'constant t)))
+      (csv-lens-set-column-state column 'constant t)
+      (csv-lens-set-column-state column 'hidden t)))
   (csv-lens-fontify-detail-buffer))
 
 
@@ -483,8 +486,8 @@ See also `csv-lens-column-state-toggle'"
   (next-line))
 
 (defun csv-lens-column-ignore-state-toggle ()
-  "Toggles between showing all columns and hiding the columns that
-are marked for hiding.  See also `csv-lens-hide-column'"
+  "Toggle between showing or hiding the columns marked for hiding.
+See also `csv-lens-hide-column'"
   (interactive)
   (setq csv-lens-column-state-toggle (not csv-lens-column-state-toggle))
   (csv-lens-fontify-detail-buffer))
@@ -578,12 +581,13 @@ Think of it as num1 - num2."
 
 
 (defun csv-lens--insert-column-header-prefix (column)
-  "Inserts the prefix for the column at point.
+  "Insert the prefix for the COLUMN at point.
 Containing state indication e.g. constant, hidden, marked etc."
   (insert (csv-lens-column-state-indicator column) " "))
 
 (defun csv-lens--insert-column-header (column width)
-  "Insert the column header without markup."
+  "Insert the column header of COLUMN without markup.
+The maximum width of all columns is WIDTH."
   (csv-lens--insert-column-header-prefix column)
   (insert column ":")
   (move-to-column (+ 4 width) t))
@@ -668,7 +672,8 @@ Containing state indication e.g. constant, hidden, marked etc."
 	      (put-text-property start end 'invisible t)))
 	  
 	  (when (csv-lens-column-state column 'bold)
-	    (add-face-text-property start end '(:weight bold)))
+	    (add-face-text-property start end '(:weight bold))
+	    (add-face-text-property start end '(:background "yellow")))
 	  (when (csv-lens-column-state column 'key)
 	    (add-face-text-property start end 'underline))
 	  (when (csv-lens-column-state column 'constant)
