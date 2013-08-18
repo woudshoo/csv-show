@@ -183,7 +183,7 @@ of the current line as a table.
         (define-key map "o" 'csv-lens-switch-to-source-buffer)
         (define-key map "j" 'csv-lens-next-value)
         (define-key map "k" 'csv-lens-prev-value)
-	(define-key map "K" 'csv-lens-set-key-column)
+	(define-key map "K" 'csv-lens-toggle-key-column)
         (define-key map "Q" 'csv-lens-kill-detail-buffer)
         (define-key map [C-return] 'csv-lens-switch-to-source-buffer)
         (define-key map "f" 'csv-lens-format-toggle)
@@ -438,10 +438,11 @@ buffer."
 
 
 
-(defun csv-lens-set-key-column ()
+(defun csv-lens-toggle-key-column ()
   "Will mark the column as Key column."
   (interactive)
-  (csv-lens-set-column-state (csv-lens-column-name) 'key t))
+  (csv-lens-column-state-toggle (csv-lens-column-name) 'key)
+  (csv-lens-fontify-detail-buffer))
 
 (defun csv-lens-hide-column ()
   "Will mark the column on the current row for hiding. 
@@ -575,9 +576,15 @@ Think of it as num1 - num2."
   (forward-line (1- (car line-col)))
   (move-to-column (cdr line-col)))
 
+
+(defun csv-lens--insert-column-header-prefix (column)
+  "Inserts the prefix for the column at point.
+Containing state indication e.g. constant, hidden, marked etc."
+  (insert (csv-lens-column-state-indicator column) " "))
+
 (defun csv-lens--insert-column-header (column width)
   "Insert the column header without markup."
-  (insert (csv-lens-column-state-indicator column) " ")
+  (csv-lens--insert-column-header-prefix column)
   (insert column ":")
   (move-to-column (+ 4 width) t))
 
@@ -647,6 +654,13 @@ Think of it as num1 - num2."
 	(let ((column (csv-lens-column-name))
 	      (start (point))
 	      (end (progn (forward-line) (point))))
+	  (goto-char start)
+	  (delete-char 2)
+	  (csv-lens--insert-column-header-prefix column)
+
+	  (progn
+	    (goto-char start)
+	    (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face))
 
 	  (when (csv-lens-column-state column 'hidden)
 	    (if csv-lens-column-state-toggle
@@ -654,17 +668,16 @@ Think of it as num1 - num2."
 	      (put-text-property start end 'invisible t)))
 	  
 	  (when (csv-lens-column-state column 'bold)
-	    (put-text-property start end 'face '(:weight bold)))
-
+	    (add-face-text-property start end '(:weight bold)))
+	  (when (csv-lens-column-state column 'key)
+	    (add-face-text-property start end 'underline))
 	  (when (csv-lens-column-state column 'constant)
-	    (put-text-property start end 'face '(:weight bold)))
+	    (add-face-text-property start end 'italic))
 	  
 	  (when (csv-lens-column-state column 'sparkline)
 	    (put-text-property (- end 2) (- end 1) 'display (csv-lens-column-state column 'sparkline)))
 	  
-	  (progn
-	    (goto-char start)
-	    (put-text-property start (search-forward ":") 'face 'font-lock-keyword-face))
+
 	  (goto-char end))))))
 
 
