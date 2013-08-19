@@ -64,14 +64,16 @@
 
 (defvar csv-lens-source-line-no)
 (defvar csv-lens-source-marker)
+(defvar csv-lens-cells)
+
+(defvar csv-lens-previous-line)
 (defvar csv-lens-previous-cells)
+
 (defvar csv-lens-detail-map)
 (defvar csv-lens-column-state-toggle)
 (defvar csv-lens-format-toggle)
 (defvar csv-lens-columns)
-(defvar csv-lens-cells)
-(defvar csv-lens-previous-line)
-(defvar csv-lens-previous-cells)
+
 
 (defvar csv-lens--get-columns-cache nil)
 
@@ -131,6 +133,16 @@ it should be a CSV file and it will return (point-marker)."
   (declare (indent 1))
   `(in-other-buffer (csv-lens--marker-for-source-buffer) ,bindings ,@body))
 
+(defmacro csv-lens--in-source-buffer-and-update (additional-bindings &rest body)
+  "Execute BODY in the source buffer and afterwards update the state."
+  (declare (indent 1))
+  `(csv-lens--in-source-buffer ,(append 
+				 '((csv-lens-source-marker (point-marker))
+				  (csv-lens-source-line-no (line-number-at-pos (point)))
+				  (csv-lens-cells (csv-lens--get-cells)))
+				 additional-bindings)
+     ,@body
+     (beginning-of-line)))
 
 (setq csv-lens-map
       (let ((map (make-sparse-keymap)))
@@ -588,15 +600,9 @@ For updating the content see the function `csv-lens-fill-buffer'."
   (let (new-show-columns)
     (setq csv-lens-previous-cells nil)
     (setq csv-lens-previous-line nil)
-    (csv-lens--in-source-buffer
-	((csv-lens-source-marker (point-marker))
-	 (csv-lens-source-line-no (line-number-at-pos (point)))
-	 (csv-lens-cells (csv-lens--get-cells))
-	 (new-show-columns (unless do-not-parse-headers
-			     (csv-lens--get-columns))))
-      
-      (forward-line (or dir 1))
-      (beginning-of-line))
+    (csv-lens--in-source-buffer-and-update
+	((new-show-columns (unless do-not-parse-headers (csv-lens--get-columns))))
+      (forward-line (or dir 1)))
     (unless do-not-parse-headers
       (setq csv-lens-columns new-show-columns))))
 
@@ -659,11 +665,7 @@ identical."
   (setq csv-lens-previous-cells csv-lens-cells)
   (setq csv-lens-previous-line csv-lens-source-line-no)
   (let ((key-indices (csv-lens-column-key-indices)))
-    (csv-lens--in-source-buffer
-	((csv-lens-source-marker (point-marker))
-	 (csv-lens-source-line-no (line-number-at-pos (point)))
-	 (csv-lens-cells (csv-lens--get-cells)))
-      
+    (csv-lens--in-source-buffer-and-update nil
       (csv-lens--next/prev-record (or dir 1) key-indices)))
   (csv-lens-fill-buffer))
 
@@ -676,12 +678,8 @@ current column, and InstanceID is identical."
   (setq csv-lens-previous-cells csv-lens-cells)
   (setq csv-lens-previous-line csv-lens-source-line-no)
   (let ((key-indices (csv-lens-column-key-indices))
-	(variable-column (csv-lens--field-index-for-column 
-			  (csv-lens-column-name))))
-    (csv-lens--in-source-buffer
-     ((csv-lens-source-marker (point-marker))
-      (csv-lens-source-line-no (line-number-at-pos (point)))
-      (csv-lens-cells (csv-lens--get-cells)))
+	(variable-column (csv-lens--field-index-for-column (csv-lens-column-name))))
+    (csv-lens--in-source-buffer-and-update nil
      (csv-lens--next/prev-value (or dir 1) key-indices variable-column)))
   (csv-lens-fill-buffer))
 
@@ -694,11 +692,12 @@ FIRST-OR-LAST should be either 'first or 'last."
     (if (equal first-or-last 'first)
 	(goto-char (point-min))
       (goto-char (point-max)))
-    (while (and (forward-line progress-dir)
+    (while (and (equal (forward-line progress-dir) 0)
 		(not (eobp))
 		(not (equal 
 		      key-values
-		      (csv-lens-parse-line key-indices)))))))
+		      (csv-lens-parse-line key-indices)))))
+    (beginning-of-line)))
   
 
 (defun csv-lens-jump-first/last-line-for-key-value (first-or-last)
@@ -709,12 +708,11 @@ the last."
   (interactive)
   (setq csv-lens-previous-cells nil)
   (setq csv-lens-previous-line nil)
-  (let* ((key-indices (csv-lens-column-key-indices))
-	 (key-values (csv-lens--get-cells key-indices)))
-    (csv-lens--in-source-buffer ((csv-lens-source-marker (point-marker))
-				 (csv-lens-source-line-no (line-number-at-pos (point)))
-				 (csv-lens-cells (csv-lens--get-cells)))
-      (csv-lens--jump-first/last-line-for-key-value first-or-last key-indices key-values)))
+  (let* ((key-indices (csv-lens-column-key-indices)))
+    (csv-lens--in-source-buffer-and-update nil
+      (csv-lens--jump-first/last-line-for-key-value first-or-last 
+						    key-indices 
+						    (csv-lens--get-cells key-indices))))
   (csv-lens-fill-buffer))
 
 (defun csv-lens-jump-first-line-for-key-value ()
