@@ -270,7 +270,8 @@ This should not be set by the user, but the code that updates the
 
 (defun csv-lens-column-key-indices ()
   "Returns a list of column numbers which are the key columns.
-The list is sorted from low to high."
+The list is sorted from low to high.
+Assumed to be called in the Lens buffer."
   (let ((result nil)
 	(columns csv-lens-columns)
 	(index 0))

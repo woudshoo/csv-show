@@ -384,9 +384,12 @@ buffer."
 (defun csv-lens-hide-constant-columns ()
   "Hides all columns that have constant value."
   (interactive)
-  (let (constant-columns)
-    (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns))))
+  (let ((key-indices (csv-lens-column-key-indices))
+	constant-columns)
+    (csv-lens--in-source-buffer ((constant-columns (csv-lens-constant-columns key-indices))))
     (message "%d constant columns hidden." (length constant-columns))
+    (dolist (column csv-lens-columns)
+      (csv-lens-set-column-state column :constant nil))
     (dolist (column constant-columns)
       (csv-lens-set-column-state column :constant t)
       (csv-lens-set-column-state column :hidden t)))
@@ -683,38 +686,35 @@ current column, and InstanceID is identical."
   (csv-lens-fill-buffer))
 
 
-;;; FIXME, no more key index etc.
-(defun csv-lens--jump-first/last-line-for-key-value (key-value first-last)
-  ""
-  (let ((start-point (point-min))
-        (progress-function 'forward-line))
-    (if (equal first-last 'last)
-        (setq start-point (point-max)
-              progress-function (lambda () (forward-line -1))))
-    (goto-char start-point)
-  (while (and (funcall progress-function)
-              (not (eobp))
-              (not (equal 
-                    key-value
-                    (car (csv-lens-parse-line (list csv-lens--key-column-field-index)))))))))
+(defun csv-lens--jump-first/last-line-for-key-value (first-or-last key-indices key-values)
+  "Go to the FIRST-OR-LAST line with values at KEY-INDICES equal to KEY-VALUES.
+This function should be called in the CSV buffer.
+FIRST-OR-LAST should be either 'first or 'last."
+  (let ((progress-dir (if (equal first-or-last 'first) 1 -1)))
+    (if (equal first-or-last 'first)
+	(goto-char (point-min))
+      (goto-char (point-max)))
+    (while (and (forward-line progress-dir)
+		(not (eobp))
+		(not (equal 
+		      key-values
+		      (csv-lens-parse-line key-indices)))))))
   
 
-;;; FIXME, no more key index etc.
-(defun csv-lens-jump-first/last-line-for-key-value ( first-last )
-  "Expected to be performed in the detail buffer. Jumps to the first or last line in the
-source file that has the same value for `csv-lens-key-column' as the current line. When FIRST-LAST
-is 'first, jumps to the first, when FIRST-LAST is 'last, jumps to the last."
+(defun csv-lens-jump-first/last-line-for-key-value (first-or-last)
+  "Jump to the FIRST-OR-LAST record with the same keys as the current line.
+Expected to be performed in the detail buffer.  When FIRST-LAST
+is 'first, jumps to the first, when FIRST-LAST is 'last, jumps to
+the last."
   (interactive)
   (setq csv-lens-previous-cells nil)
   (setq csv-lens-previous-line nil)
-  (let (key-index indices)
-    (csv-lens--in-source-buffer ((key-index csv-lens--key-column-field-index)
-                                 (indices (csv-lens--indices-of-columns))))
-    (let ((key-value (nth key-index csv-lens-cells)))
-      (csv-lens--in-source-buffer ((csv-lens-source-marker (point-marker))
-                                   (csv-lens-source-line-no (line-number-at-pos (point)))
-                                   (csv-lens-cells (csv-lens--get-cells-fast indices)))
-                                  (csv-lens--jump-first/last-line-for-key-value key-value first-last))))
+  (let* ((key-indices (csv-lens-column-key-indices))
+	 (key-values (csv-lens--get-cells key-indices)))
+    (csv-lens--in-source-buffer ((csv-lens-source-marker (point-marker))
+				 (csv-lens-source-line-no (line-number-at-pos (point)))
+				 (csv-lens-cells (csv-lens--get-cells)))
+      (csv-lens--jump-first/last-line-for-key-value first-or-last key-indices key-values)))
   (csv-lens-fill-buffer))
 
 (defun csv-lens-jump-first-line-for-key-value ()
@@ -729,17 +729,17 @@ source file that has the same value for `csv-lens-key-column' as the current lin
   (interactive)
   (csv-lens-jump-first/last-line-for-key-value 'last))
 
-;;; FIXME, no more key index etc.
-(defun csv-lens--all-key-values ()
-  "Return a list of all values for the `csv-lens-key-column'."
-  (let ((key-values (ht-create)))
-    (csv-lens--in-source-buffer nil
-     (goto-char (point-min))
-     (while (and (forward-line)
-                 (not (eobp)))
-       (let ((current-key-value (car (csv-lens--get-cells-fast (list csv-lens--key-column-field-index)))))
-         (ht-set key-values current-key-value 1))))
-    (ht-keys key-values)))
+;; ;;; FIXME, no more key index etc.
+;; (defun csv-lens--all-key-values ()
+;;   "Return a list of all values for the `csv-lens-key-column'."
+;;   (let ((key-values (ht-create)))
+;;     (csv-lens--in-source-buffer nil
+;;      (goto-char (point-min))
+;;      (while (and (forward-line)
+;;                  (not (eobp)))
+;;        (let ((current-key-value (car (csv-lens--get-cells-fast (list csv-lens--key-column-field-index)))))
+;;          (ht-set key-values current-key-value 1))))
+;;     (ht-keys key-values)))
 
 (defun csv-lens-next-value ()
   "Show next record for which the current field is different.
@@ -800,30 +800,27 @@ Post conditions:
     (nreverse column-indices)))
 
 ;;; FIXME, no more key index etc.
-(defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
-  "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
-   corresponding to csv-lens-key-column-field-index."
-  (-list-item-in-list-where-item-in-other-list values column-indices csv-lens--key-column-field-index))
+;; (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
+;;   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
+;;    corresponding to csv-lens-key-column-field-index."
+;;   (-list-item-in-list-where-item-in-other-list values column-indices csv-lens--key-column-field-index))
 
-(defun csv-lens--constant-columns (candidate-constant-columns key-column-index current-values previous-values)
-  "Return a list of indices for which `current-values' and `previous-values' are equal 
-and which occur in `candidate-constant-columns'.  Also note that
-the values at `key-column-index' are always considered equal, even if
-they are not (they are not compared).  So `key-column-index' is
-never removed from the result.
+(defun csv-lens--constant-columns (candidate-constant-columns current-values previous-values)
+  "Return a sublist of CANDIDATE-CONSTANT-COLUMN for which CURRENT-VALUES and PREVIOUS-VALUES are equal.
 
 The order of the indices in the result is the same as the order in
 input `candidate-constant-columns'."
   (--filter 
-   (or (equal it key-column-index)
-       (equal (ht-get previous-values it)
-              (ht-get current-values it)))
+   (equal (ht-get previous-values it)
+	  (ht-get current-values it))
    candidate-constant-columns))
 
 
 ;;; FIXME, no more key index etc.
-(defun csv-lens-constant-columns ()
-  "Analyzes a csv buffer and returns a list of the column names that contain constant values."
+(defun csv-lens-constant-columns (key-indices)
+  "Analyzes a csv buffer and returns a list of the column names that contain constant values.
+Constant is defined as heving the same value for all occurance with identical key.
+The key is determined by the values at KEY-INDICES."
   (interactive)
   (let* ((constant-columns-indices (csv-lens--indices-of-columns))
          (all-columns-indices constant-columns-indices)
@@ -836,18 +833,18 @@ input `candidate-constant-columns'."
     (while (and (cdr constant-columns-indices)
 		(forward-line) 
 		(not (eobp)))
-      (progress-reporter-update reporter (incf line-number))
+      (progress-reporter-update reporter (cl-incf line-number))
 
       ;; Processing new line
       (let* ((current-values-ht (csv-lens--get-cells-ht constant-columns-indices))
-             (key-value (ht-get current-values-ht csv-lens--key-column-field-index))
-	     (previous (ht-get previous-cells key-value)))
-        (ht-set previous-cells key-value current-values-ht)
+             (key-values (mapcar (lambda (index) (ht-get current-values-ht index))
+				 key-indices))
+	     (previous (ht-get previous-cells key-values)))
+        (ht-set previous-cells key-values current-values-ht)
         (when previous
           (let ((previous-number-of-constant-columns (length constant-columns-indices)))
             (setq constant-columns-indices 
                   (csv-lens--constant-columns constant-columns-indices 
-                                              csv-lens--key-column-field-index
                                               current-values-ht
                                               previous))
             (when (not (equal previous-number-of-constant-columns (length constant-columns-indices)))
@@ -857,8 +854,8 @@ input `candidate-constant-columns'."
                (format "%d possible constant columns left... " (- (length constant-columns-indices) 1))))))))
 
       ;; Remove key column from constant list
-      (setq constant-columns-indices (delete csv-lens--key-column-field-index 
-                                             constant-columns-indices))
+      (setq constant-columns-indices 
+	    (-difference constant-columns-indices key-indices))
 
       (progress-reporter-done reporter)
       (goto-char (point-min))
