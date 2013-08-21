@@ -790,24 +790,21 @@ Post conditions:
     (beginning-of-line)
     found))
 
-(defun csv-lens--indices-of-columns()
-  "Returns a list of indices of all the columns."
+(defun csv-lens--indices-of-columns ()
+  "Return a list of indices of all the columns."
   (let (column-indices)
     (--dotimes (length (csv-lens--get-columns))
       (!cons it column-indices))
     (nreverse column-indices)))
 
-;;; FIXME, no more key index etc.
-;; (defun csv-lens--key-value-from-column-indices-and-values (column-indices values)
-;;   "Given a list of COLUMN-INDICES and a corresponding list of VALUES, returns the value
-;;    corresponding to csv-lens-key-column-field-index."
-;;   (-list-item-in-list-where-item-in-other-list values column-indices csv-lens--key-column-field-index))
-
 (defun csv-lens--constant-columns (candidate-constant-columns current-values previous-values)
-  "Return a sublist of CANDIDATE-CONSTANT-COLUMN for which CURRENT-VALUES and PREVIOUS-VALUES are equal.
+  "The sublist of CANDIDATE-CONSTANT-COLUMNS for which the values are equal.
+It contains all values of CANDIDATE-CONSTANT-COLUMNS for which
+the value in CURRENT-VALUES is equal to the value in
+PREVIOUS-VALUES.
 
-The order of the indices in the result is the same as the order in
-input `candidate-constant-columns'."
+CURRENT-VALUES and PREVIOUS-VALUES should be hash tables wich are indexed
+by the values in candidate-constant-columns."
   (--filter 
    (equal (ht-get previous-values it)
 	  (ht-get current-values it))
@@ -874,11 +871,11 @@ The key is determined by the values at KEY-INDICES."
     (kill-buffer)
     (pop-to-buffer source)))
 
-(defun csv-lens-kill-both-buffers ()
-  "Expected to be performed from the detail buffer."
-  (interactive)
-  (kill-buffer (marker-buffer csv-lens-source-marker))
-  (csv-lens-kill-detail-buffer))
+;; (defun csv-lens-kill-both-buffers ()
+;;   "Expected to be performed from the detail buffer."
+;;   (interactive)
+;;   (kill-buffer (marker-buffer csv-lens-source-marker))
+;;   (csv-lens-kill-detail-buffer))
 
 (provide 'csv-lens)
 ;;; csv-lens.el ends here
