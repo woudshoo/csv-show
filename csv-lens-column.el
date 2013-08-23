@@ -96,14 +96,12 @@ See also `csv-lens-column-state'"
       (push (cons column (list (cons state value))) csv-lens-column-state))))
 
 
-(defun csv-lens-column-state (column &optional key)
-  "Return the state of the COLUMN.
-The return value is eithe an alist of keys to values,
-or the value of KEY."
-  (let ((all-keys (assoc-default column csv-lens-column-state)))
-    (if key
-      (assoc-default key all-keys)
-      all-keys)))
+(defun csv-lens-column-state (column key)
+  "Return the state of the COLUMN for KEY.
+If the value for KEY at COLUMN is nil or does not exist, fallback
+to looking up the KEY in the default section."
+  (or (assoc-default key (assoc-default column csv-lens-column-state))
+      (assoc-default key (assoc-default t csv-lens-column-state))))
 
 (defun csv-lens-column-state-toggle (column key)
   "Toggle for COLUMN the value of KEY.
