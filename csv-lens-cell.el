@@ -12,13 +12,9 @@
 
 
 ;;; Column --
-
-
-
 ;;;  String -> Value              :default string->number
 ;;;  Value,Value -> Number        :default -
 ;;;
-
 
 
 ;;; Default format functions
@@ -50,18 +46,18 @@
 (defun csv-lens-cell-format-big-number-of-bytes (big-number-of-bytes)
  ""
  (interactive)
- (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
+ (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary))
 
 (defun csv-lens-cell-format-big-number-of-kilobytes (big-number-of-kilobytes)
  ""
  (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
+  (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary)
   "*"))
 
 (defun csv-lens-cell-format-big-number-of-blocks (big-number-of-blocks)
  ""
  (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
+  (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary)
   "*"))
 
 
