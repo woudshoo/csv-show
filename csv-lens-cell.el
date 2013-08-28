@@ -13,6 +13,8 @@
 
 (setq csv-lens-cell-column-format-functions
   `(("StatisticTime" . csv-lens-cell-format-statistictime)
+    ("PeriodStartTime" . csv-lens-cell-format-statistictime)
+    ("PeriodEndTime" . csv-lens-cell-format-statistictime)
     ("IM_OriginalStatisticTime" . csv-lens-cell-format-statistictime)
     ("UsageRestriction" . csv-lens-cell-format-usagerestriction)
     ("Consumed" . csv-lens-cell-format-huge-number)
@@ -31,6 +33,10 @@
     ("SwitchWWPN" . csv-lens-cell-format-wwn)
     ("DeviceID" . csv-lens-cell-format-wwn)
     ("ElementName" . csv-lens-cell-format-wwn)
+    ("DependentElementWWN" . csv-lens-cell-format-wwn)
+    ("DependentFCPortWWN" . csv-lens-cell-format-wwn)
+    ("AntecedentElementWWN" . csv-lens-cell-format-wwn)
+    ("AntecedentFCPortWWN" . csv-lens-cell-format-wwn)
     ("EMCWWN" . csv-lens-cell-format-wwn)
     ("OtherIdentifyingInfo" . csv-lens-cell-format-wwn)
     ("Speed" . csv-lens-cell-format-big-number-of-bytes)))
