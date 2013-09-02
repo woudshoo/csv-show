@@ -24,6 +24,7 @@
     ("KBytesTransferred" . csv-lens-cell-format-big-number-of-kilobytes)
     ("KBytesWritten" . csv-lens-cell-format-big-number-of-kilobytes)
     ("MaxSpeed" . csv-lens-cell-format-big-number-of-bytes)
+    ("Capacity" . csv-lens-cell-format-big-number-of-bytes)
     ("RequestedSpeed" . csv-lens-cell-format-big-number-of-bytes)
     ("EMCKBytesSPARead" . csv-lens-cell-format-big-number-of-kilobytes)
     ("EMCKBytesSPBRead" . csv-lens-cell-format-big-number-of-kilobytes)
@@ -39,6 +40,9 @@
     ("AntecedentFCPortWWN" . csv-lens-cell-format-wwn)
     ("EMCWWN" . csv-lens-cell-format-wwn)
     ("OtherIdentifyingInfo" . csv-lens-cell-format-wwn)
+    ("IM_WWNOfExternalVolume" . csv-lens-cell-format-wwn)
+    ("PreferredWWPN" . csv-lens-cell-format-wwn)
+    ("ActiveWWPN" . csv-lens-cell-format-wwn)
     ("Speed" . csv-lens-cell-format-big-number-of-bytes)))
 
 (defun csv-lens-cell-format-function-for-column (column)
