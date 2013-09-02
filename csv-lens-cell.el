@@ -78,7 +78,9 @@
 (defun csv-lens-cell-format-big-number-of-bytes (big-number-of-bytes)
  ""
  (interactive)
- (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
+ (concat
+  (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary )
+ "*"))
 
 (defun csv-lens-cell-format-big-number-of-kilobytes (big-number-of-kilobytes)
  ""
