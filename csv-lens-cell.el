@@ -34,6 +34,7 @@
     ("SwitchWWPN" . csv-lens-cell-format-wwn)
     ("DeviceID" . csv-lens-cell-format-wwn)
     ("ElementName" . csv-lens-cell-format-wwn)
+    ("NameFormat" . csv-lens-cell-format-nameformat)
     ("DependentElementWWN" . csv-lens-cell-format-wwn)
     ("DependentFCPortWWN" . csv-lens-cell-format-wwn)
     ("AntecedentElementWWN" . csv-lens-cell-format-wwn)
@@ -54,6 +55,19 @@
 
 ;;; Default format functions
 
+(defun csv-lens-cell-format-nameformat (nameformat)
+  (cond ((s-equals? nameformat "1") "Other*")
+        ((s-equals? nameformat "2") "VPD83NAA6 (deprecated)*")
+        ((s-equals? nameformat "3") "VPD83NAA5 (deprecated)*")
+        ((s-equals? nameformat "4") "BPD83Type2 (deprecated)*")
+        ((s-equals? nameformat "5") "BPD83Type1 (deprecated)*")
+        ((s-equals? nameformat "6") "BPD83Type0 (deprecated)*")
+        ((s-equals? nameformat "7") "SNVM*")
+        ((s-equals? nameformat "8") "NodeWWN (deprecated)*")
+        ((s-equals? nameformat "9") "NAA*")
+        ((s-equals? nameformat "10") "EUI64*")
+        ((s-equals? nameformat "11") "T10VID*")
+        (t nameformat)))
 
 (defun csv-lens-cell-format-wwn (wwn)
   "Returns a nicely formatted WWN."
