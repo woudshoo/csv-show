@@ -34,6 +34,7 @@
     ("SwitchWWPN" . csv-lens-cell-format-wwn)
     ("DeviceID" . csv-lens-cell-format-wwn)
     ("ElementName" . csv-lens-cell-format-wwn)
+    ("Name" . csv-lens-cell-format-wwn)
     ("NameFormat" . csv-lens-cell-format-nameformat)
     ("DependentElementWWN" . csv-lens-cell-format-wwn)
     ("DependentFCPortWWN" . csv-lens-cell-format-wwn)
