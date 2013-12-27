@@ -13,6 +13,7 @@
 ;; Homepage: http://github.com/woudshoo/csv-show
 ;; Package-Requires: ((cl-lib "1.0")
 ;;                    (s "1.6.1")
+;;                    (f "0.6")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
 ;;                    (sparkline "0.3")
@@ -56,7 +57,6 @@
 (require 'ht)
 (require 'calc)
 (require 'simple)
-(require 'vendor-from-wwn)
 (require 'csv-lens-sparkline)
 (require 'csv-lens-column)
 (require 'csv-lens-cell)
@@ -138,8 +138,8 @@ it should be a CSV file and it will return (point-marker)."
   (declare (indent 1))
   `(csv-lens--in-source-buffer ,(append 
 				 '((csv-lens-source-marker (point-marker))
-				  (csv-lens-source-line-no (line-number-at-pos (point)))
-				  (csv-lens-cells (csv-lens--get-cells)))
+				   (csv-lens-source-line-no (line-number-at-pos (point)))
+				   (csv-lens-cells (csv-lens--get-cells)))
 				 additional-bindings)
      ,@body
      (beginning-of-line)))
@@ -169,11 +169,9 @@ of the current line as a table.
       (let ((map (make-sparse-keymap)))
 	(set-keymap-parent map special-mode-map)
 	(define-key map "n" 'csv-lens-next)
-;	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-statistictime 1)))
 	(define-key map "N" (lambda () (interactive) (csv-lens-next/prev-record 1)))
 	(define-key map "." 'csv-lens-current)
 	(define-key map "p" 'csv-lens-prev)
-;	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-statistictime -1)))
 	(define-key map "P" (lambda () (interactive) (csv-lens-next/prev-record -1)))
 	(define-key map "h" 'csv-lens-hide-column)
         (define-key map "c" 'csv-lens-hide-constant-columns)
@@ -274,10 +272,8 @@ When  INDICES is specified, returns a list with values on those INDICES."
                        (and indices
                             (equal index (car indices)))))
           (push current-value result)
-          (pop indices)
-          )
-        )) ;break
-      (nreverse result)))
+          (pop indices)))) 
+    (nreverse result)))
 
 (defun csv-lens-parse-line-vec ()
   "Dumb `csv-lens-parse-line' that is fast but not always correct."

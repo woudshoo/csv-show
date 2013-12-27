@@ -4,7 +4,7 @@
 
 ;;; Code:
 
-(require 'vendor-from-wwn)
+;; (require 'vendor-from-wwn)
 (require 'format-human-readable-big-number)
 
 
