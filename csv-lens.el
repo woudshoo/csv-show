@@ -193,6 +193,30 @@ of the current line as a table.
         (define-key map ">" 'csv-lens-jump-last-line-for-key-value)
 	map))
 
+(easy-menu-define csv-lens-menu csv-lens-detail-map
+  "Menu for CSV Lens buffers."
+  '("CSV Lens"
+    ["Next Record" csv-lens-next]
+    ["Previous Record" csv-lens-prev]
+    ["Refresh Record" csv-lens-current]
+    ["Next Different Value" csv-lens-next-value]
+    ["Previous Different Value" csv-lens-prev-value]
+    ["First Record same Key" csv-lens-jump-first-line-for-key-value]
+    ["Last Record same Key" csv-lens-jump-last-line-for-key-value]
+    "----"
+    ["Switch to Source" csv-lens-switch-to-source-buffer]
+    "----"
+    ["Hide Column" csv-lens-hide-column]
+    ["Show Hidden Columns" csv-lens-column-ignore-state-toggle]
+    ["Bold Column" csv-lens-bold-column]
+    ["Key Column" csv-lens-toggle-key-column]
+    ["(Un)format Column" csv-lens-format-toggle]
+    ["Unmark All" csv-lens-normal-all]
+    "----"
+    ["Sparkline Column" csv-lens-spark-line]
+    ["Sparkline All" csv-lens-spark-line-for-all-visible-columns]
+    ["Plot Value/Delta" csv-lens-spark-line-toggle-incremental]))
+
 (define-generic-mode csv-lens-detail-mode
   nil nil nil nil '(csv-lens--detail-setup)
   "Major mode for viewing CSV file records.
