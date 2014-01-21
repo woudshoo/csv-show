@@ -16,7 +16,10 @@
     ("PeriodStartTime" . csv-lens-cell-format-statistictime)
     ("PeriodEndTime" . csv-lens-cell-format-statistictime)
     ("IM_OriginalStatisticTime" . csv-lens-cell-format-statistictime)
+    ("IM_CollectorTime" . csv-lens-cell-format-statistictime)
+    ("IM_TimeLastSampled" . csv-lens-cell-format-statistictime)
     ("UsageRestriction" . csv-lens-cell-format-usagerestriction)
+    ("Usage" . csv-lens-cell-format-usage)
     ("Consumed" . csv-lens-cell-format-huge-number)
     ("ConsumableBlocks" . csv-lens-cell-format-big-number-of-blocks)
     ("NumberOfBlocks" . csv-lens-cell-format-big-number-of-blocks)
@@ -125,6 +128,29 @@
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
+(defun csv-lens-cell-format-usage (usage)
+  "Returns a nicely formatted USAGE."
+  (interactive)
+  (or
+   (assoc-default usage
+                  '(("1" . "Other*")
+                    ("2" . "Unrestricted*")
+                    ("3" . "Reserved for ComputerSystem (the block server)*")
+                    ("4" . "Reserved by Replication Services*")
+                    ("5" . "Reserved by Migration Services*")
+                    ("6" . "Local Replica Source*")
+                    ("7" . "Remote Replica Source*")
+                    ("8" . "Local Replica Target*")
+                    ("9" . "Remote Replica Target*")
+                    ("10" . "Local Replica Source or Target*")
+                    ("11" . "Remote Replica Source or Target*")
+                    ("12" . "Delta Replica Target*")
+                    ("13" . "Element Component*")
+                    ("14" . "Reserved as Pool Contributor*")
+                    ("15" . "Composite Volume Member*")
+                    ("16" . "Composite LogicalDisk Member*")
+                    ("17" . "Reserved for Sparing*")))
+   usage))
 
 (defun csv-lens-cell-format-statistictime (statistictime)
   "Returns a nicely formatted STATISTICTIME."
