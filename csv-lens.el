@@ -130,6 +130,8 @@ it should be a CSV file and it will return (point-marker)."
     (point-marker)))
 
 (defmacro csv-lens--in-source-buffer (bindings &rest body)
+  "Execute BODY in the source buffer.
+See `in-other-buffer'."
   (declare (indent 1))
   `(in-other-buffer (csv-lens--marker-for-source-buffer) ,bindings ,@body))
 
@@ -479,7 +481,7 @@ See also `csv-lens-hide-column'"
   (csv-lens-fill-buffer))
 
 (defun csv-lens--insert-cell (column cell)
-  ""
+  "Insert COLUMN value CELL into the buffer, optionally formatted."
   (if csv-lens-format-toggle
       (insert (funcall (csv-lens-cell-format-function-for-column column) cell))
     (insert cell)))
@@ -514,7 +516,6 @@ The maximum width of all columns is WIDTH."
   (move-to-column (+ 4 width) t))
 
 (defun csv-lens--fill-line (column width cell cell-width previous-cell)
-  
   (csv-lens--insert-column-header column width)
   (csv-lens--insert-cell column cell)
   (move-to-column (+ 4 width cell-width 1) t)
@@ -656,31 +657,21 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   (csv-lens-next/prev -1))
 
 (defun csv-lens--get-current-value-for-index (index)
-  "Returns the value of the INDEXth item on the current line. Returns nil when index not given."
+  "Return the value of the INDEXth item on the current line.
+Returns nil when index not given."
   (when index
     (beginning-of-line)
     (car (csv-lens-parse-line (list index)))))
 
-;; (defun csv-lens-next/prev-statistictime (&optional dir)
-;;   "Shows the next or previous record for which the StatisticTime
-;; field is different than the current, and InstanceID is
-;; identical."
-;;   (interactive)
-;;   (setq csv-lens-previous-cells csv-lens-cells)
-;;   (setq csv-lens-previous-line csv-lens-source-line-no)
-;;   (let ((column-index (csv-lens--field-index-for-column "StatisticTime")))
-;;     (csv-lens--in-source-buffer
-;; 	((csv-lens-source-marker (point-marker))
-;; 	 (csv-lens-source-line-no (line-number-at-pos (point)))
-;; 	 (csv-lens-cells (csv-lens--get-cells)))
-      
-;;       (csv-lens--next/prev-value column-index (or dir 1))))
-;;   (csv-lens-fill-buffer))
 
 (defun csv-lens-next/prev-record (&optional dir)
-  "Shows the next or previous record for which the StatisticTime
-field is different than the current, and InstanceID is
-identical."
+  "Show the next or previous record with the same key.
+
+It will search forward or backward in the source csv file for a record
+with the same values for the key fields as the currently displayed record.
+
+The direction is indicated by DIR.  If DIR is 1 or nil it moves forward
+and if DIR is -1 it moves backward."
   (interactive)
   (setq csv-lens-previous-cells csv-lens-cells)
   (setq csv-lens-previous-line csv-lens-source-line-no)
@@ -691,9 +682,9 @@ identical."
 
 
 (defun csv-lens-next/prev-value (&optional dir)
-  "Shows the next or previous record for which the value of the
-current column is different than the current value for the
-current column, and InstanceID is identical."
+  "Show the next or previous record with a different field value.
+
+If DIR is +1 or nil it searches forward, if DIR is -1 backwards."
   (interactive)
   (setq csv-lens-previous-cells csv-lens-cells)
   (setq csv-lens-previous-line csv-lens-source-line-no)
@@ -747,17 +738,6 @@ source file that has the same value for `csv-lens-key-column' as the current lin
   (interactive)
   (csv-lens-jump-first/last-line-for-key-value 'last))
 
-;; ;;; FIXME, no more key index etc.
-;; (defun csv-lens--all-key-values ()
-;;   "Return a list of all values for the `csv-lens-key-column'."
-;;   (let ((key-values (ht-create)))
-;;     (csv-lens--in-source-buffer nil
-;;      (goto-char (point-min))
-;;      (while (and (forward-line)
-;;                  (not (eobp)))
-;;        (let ((current-key-value (car (csv-lens--get-cells-fast (list csv-lens--key-column-field-index)))))
-;;          (ht-set key-values current-key-value 1))))
-;;     (ht-keys key-values)))
 
 (defun csv-lens-next-value ()
   "Show next record for which the current field is different.
