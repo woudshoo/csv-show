@@ -1,5 +1,8 @@
 ;;; csv-lens-column.el --- Data structure to store column information
 
+
+;;; Commentary:
+
 ;;;
 ;;;
 ;;;  Column --->   Formatter        = function
@@ -20,17 +23,10 @@
 
 ;; (("Column" :format-function value :key-1 value :column-index))
 
-;; (lens-column-info 
-;;  ((:value-type cumulative :format-function 'csv-lens-cell-format-huge-number))
-;;  ((("StatisticTime" "IM_OriginalStatisticTime") (:format-function 'csv-lens-cell-format-statistictime :value-type point :value-function smis-time-to-float :plot nil))
-;;   ("UsageRestriction" (:format-function 'csv-lens-cell-format-usagerestriction :plot nil :value-type nil))
-;;   (("PermanentAddress" "SwitchWWPN" "DeviceID" "ElementName") (:format-function 'csv-lens-cell-format-wwn))
-;;   ("Speed" (:value-type point))))
 
 
 ;;; Code:
 
-(require 'csv-lens-smis-time)
 
 (defvar csv-lens-column-state)
 (make-variable-buffer-local 'csv-lens-column-state)
@@ -38,35 +34,7 @@
 ;; Declare again so the functions here will not give a warning.
 (defvar csv-lens-columns)
 
-(defvar csv-lens-default-column-state
-  `(("InstanceID" :key t :diff-function csv-lens-diff-always-nil)
-    ("ElementType" :diff-function csv-lens-diff-always-nil)
-
-    ("StatisticTime" :diff-function csv-lens-diff-statistictime)
-    (("StatisticTime" "PeriodStartTime" "PeriodEndTime" "IM_OriginalStatisticTime") 
-     :format-function csv-lens-cell-format-statistictime)
-    
-    ("UsageRestriction" :format-function csv-lens-cell-format-usagerestriction)
-
-    ("Consumed" :format-function csv-lens-cell-format-huge-number)
-
-    (("NumberOfBlocks" "ConsumableBlocks") 
-     :format-function csv-lens-cell-format-big-number-of-blocks)
-
-    (("EMCKBytesSPBWritten" "EMCKBytesSPAWritten" 
-      "EMCKBytesSPBRead" "EMCKBytesSPARead" 
-      "KBytesWritten" "KBytesTransferred" "KBytesRead") 
-     :format-function csv-lens-cell-format-big-number-of-kilobytes)
-
-    (("RequestedSpeed" "Speed" "MaxSpeed") 
-     :format-function csv-lens-cell-format-big-number-of-bytes)
-
-    (("OtherIdentifyingInfo" "EMCWWN" 
-      "AntecedentFCPortWWN" "AntecedentElementWWN" 
-      "DependentFCPortWWN" "DependentElementWWN" 
-      "ElementName" "DeviceID" 
-      "SwitchWWPN" "PermanentAddress") 
-     :format-function csv-lens-cell-format-wwn)))
+(defvar csv-lens-default-column-state nil)
 
 
 ;;;; Initialization code
@@ -84,8 +52,8 @@
 
 ;;;; Manipulation functions
 (defun csv-lens-set-column-state (column state &optional value)
-  "Sets the state of `column' to `state'.  
-Optionally the state can have a value.
+  "Set the state of COLUMN to STATE.
+Optionally the state can have a VALUE.
 See also `csv-lens-column-state'"
   (let ((assoc-pair (assoc column csv-lens-column-state)))
     (if assoc-pair
@@ -131,7 +99,7 @@ Assumes we are only interested in generalized boolean value of the key."
 
 
 (defun csv-lens-diff-number (num1 num2)
-  "Given two strings num1 and num2 containing arbitrary numbers,
+  "Given two strings NUM1 and NUM2 containing arbitrary numbers,
 returns a string representing the difference.
 Think of it as num1 - num2."
   (let ((num1 (math-read-number num1))

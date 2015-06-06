@@ -1,5 +1,10 @@
 ;;; csv-lens-test.el --- Tests for the csv-lens and related code
 
+;;; Commentary:
+;;;
+;;;  Some simple tests used during development.
+;;;
+;;; Code:
 
 (require 'csv-lens)
 (require 'ert)
@@ -11,13 +16,6 @@
 (ert-deftest csv-lens-diff-values-test ()
   (should (equal '(1 1 1) (csv-lens-diff-values '(10 11 12 13)))))
 
-
-;; (ert-deftest csv-lens--make-sure-string-doesnt-start-with-test ()
-;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000123") "123"))
-;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "") ""))
-;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "" "00000123") "00000123"))
-;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with "0" "00000000") "0"))
-;;   (should (equal (csv-lens--make-sure-string-doesnt-start-with " " "       ") " ")))
 
 (ert-deftest csv-lens--diff-number-test ()
   (should (equal (csv-lens--diff-number "5" "3") "2"))
