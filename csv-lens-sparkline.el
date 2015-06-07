@@ -2,10 +2,10 @@
 ;;
 
 
+;;; Commentary:
 
 ;; Code:
 (require 'sparkline)
-
 
 (defun csv-lens-diff-values (list)
   (let ((first-value (first list))
