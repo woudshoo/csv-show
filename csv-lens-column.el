@@ -38,7 +38,7 @@
 ;; Declare again so the functions here will not give a warning.
 (defvar csv-lens-columns)
 
-(defvar csv-lens-default-column-state
+(setq csv-lens-default-column-state
   `(("InstanceID" :key t :diff-function csv-lens-diff-always-nil)
     ("ElementType" :diff-function csv-lens-diff-always-nil)
 
@@ -47,6 +47,7 @@
      :format-function csv-lens-cell-format-statistictime)
     
     ("UsageRestriction" :format-function csv-lens-cell-format-usagerestriction)
+    ("VolumeType" :format-function csv-lens-cell-format-volumetype)
 
     ("Consumed" :format-function csv-lens-cell-format-huge-number)
 
@@ -58,7 +59,8 @@
       "KBytesWritten" "KBytesTransferred" "KBytesRead") 
      :format-function csv-lens-cell-format-big-number-of-kilobytes)
 
-    (("RequestedSpeed" "Speed" "MaxSpeed") 
+    (("RequestedSpeed" "Speed" "MaxSpeed"
+      "RemainingManagedSpace" "SpaceLimit" "TotalManagedSpace" "ThinProvisionMetaDataSpace") 
      :format-function csv-lens-cell-format-big-number-of-bytes)
 
     (("OtherIdentifyingInfo" "EMCWWN" 

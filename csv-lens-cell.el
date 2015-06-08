@@ -72,6 +72,16 @@
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
+(defun csv-lens-cell-format-volumetype (type)
+  (interactive)
+  (or 
+   (assoc-default type
+		  '(("0" . "Unknown*")
+		    ("1" . "Base*")
+		    ("2" . "Physical Copy*")
+		    ("3" . "Virtual Copy")
+		    ("4" . "Remote Copy")))
+   type))
 
 (defun csv-lens-cell-format-statistictime (statistictime)
   "Returns a nicely formatted STATISTICTIME."
