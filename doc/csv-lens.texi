@@ -7,7 +7,7 @@
 @copying
 This is the CSV Lens manual, version 0.8
 
-Copyright @copyright{} 2013 Willem Rein Oudshoorn.
+Copyright @copyright{} 2013, 2015 Willem Rein Oudshoorn.
 @end copying
 
 @titlepage
@@ -36,7 +36,7 @@ This is a description of the CSV Lens mode
 @node Installing, Using CSV Lens, Top, Top
 @chapter Installing
 
-CSV is installed by adding the directory of the source files to the emacs load path and
+CSV Lens is installed by adding the directory of the source files to the emacs load path and
 requiring @code{csv-lens} like this:
 
 @lisp
@@ -182,14 +182,17 @@ Update the content of the CSV Detail buffer to show the content for point in the
 @node Columns,  , Navigating, Using CSV Lens
 @section Columns
 
-Each column in the CSV file is shown as a line in the CSV Detail buffer.  N  ot all columns are equal, some are key columns, some you might want to hide etc.
-The properties of the column can be modified with the following key bindings
+Each column in the CSV file is shown as a line in the CSV Detail buffer.
+Not all columns are equal, some are key columns, some you might want to
+hide etc.  The properties of the column can be modified with the
+following key bindings
 
 @table @kbd
 @item K
-Mark the column as key column.  (If the column is already a key column un-mark the column.)
-Key columns are important because they determine which rows in the CSV file go together.  This
-is used for navigation and plotting the spark-lines. [ADD XREF for both].
+Mark the column as key column.  (If the column is already a key column
+un-mark the column.)  Key columns are important because they determine
+which rows in the CSV file go together.  This is used for navigation and
+plotting the spark-lines. [ADD XREF for both].
 
 @item h
 Hide the column from display.  Or un-hide the column if it is already hidden.
@@ -275,4 +278,53 @@ This function is active unless formatting is disabled by @kbd{f}.
 
 The default is @code{identity}.
 @end table
+
+
+
+@menu
+* Multiple Sets of Configurations::
+@end menu
+
+
+@node Multiple Sets of Configurations,  , Customizing, Customizing
+@comment  node-name,  next,  previous,  up
+@section Multiple Sets of Configurations
+
+Different CSV files have different needs for formating.  It is therefore
+possible to switch between sets of configurations.  Also, the mode will
+try to select automatically the best configuration for the particular
+CSV file.
+
+@lisp
+(name configuration)
+(name configuration compare-function)
+@end lisp
+
+Here @code{name} is a string that names the configuration.  This name
+can be used to force CSV-Lens to use a specific configuration if the
+automatic detection does not work correctly.  
+
+The @code{configuration} part is either a list of specifications, as
+documented INCLUDE-XREF, or a function returning such a configuration. 
+
+If @code{configuration} it should be a function taking one argument,
+which is a list of strings containing the column headers.
+
+The optional @code{compare-function} is used to decide which
+configuration is used for the file.
+
+This function has three arguments @code{configuration},
+@code{best-upto-now}, and @code{columns}.  The return value of this
+function should be either @code{nil} or a @code{configuration}, which is
+considered the best upto now, and will be used as the
+@code{best-upto-now} argument in the next invocation of a compare
+function.
+
+The default implementation does a lexical compare between @code{(columns
+- configuration, configuration - columns)}.  If it is a tie, it returns
+the @code{best-upto-now} configuration, ensuring the first listed
+configuration wins.
+
+
+
 @bye
