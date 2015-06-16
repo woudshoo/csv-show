@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2006  Alex Schroeder <alex@gnu.org>
 ;; Copyright (C) 2013  Tom Koelman
-;; Copyright (C) 2013  Willem Rein Oudshoorn <woudshoo@xs4all.nl>
+;; Copyright (C) 2013, 2015  Willem Rein Oudshoorn <woudshoo@xs4all.nl>
 ;;
 ;; Author: Alex Shroeder <alex@gnu.org>
 ;;     Tom Koelman
@@ -668,18 +668,19 @@ This function requires that the current buffer is a *CSV-Detail* buffer."
   (csv-lens-fill-buffer))
 
 (defun csv-lens-next/prev (&optional dir)
-  "Shows the next or previous record."
+  "Show the next or previous record.
+DIR is the line number offset, +1 advances one line, -1 goes back one line."
   (interactive "p")
   (csv-lens--mark-forward/backward dir t)
   (csv-lens-fill-buffer))
 
 (defun csv-lens-next ()
-  "Shows the next record of the underlying CSV file."
+  "Show the next record of the underlying CSV file."
   (interactive)
   (csv-lens-next/prev 1))
 
 (defun csv-lens-prev ()
-  "Shows the previous record of the underlying CSV file."
+  "Show the previous record of the underlying CSV file."
   (interactive)
   (csv-lens-next/prev -1))
 

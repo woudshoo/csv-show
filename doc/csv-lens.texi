@@ -135,9 +135,12 @@ of the underlying CSV file to be displayed.  The most basic of navigational comm
 
 @table @kbd
 @item n
+@itemx csv-lens-next
 Show the content of the next line of the underlying CSV file.
 This command ignores any setting of key columns.
+
 @item p
+@itemx csv-lens-prev
 Show the content of the previous line of the underlying CSV file.
 Like the @kbd{n} command, it ignores any setting of key columns.
 @end table
@@ -147,15 +150,20 @@ More sophisticated navigation take into account the values of the key columns
 
 @table @kbd
 @item N
+@itemx csv-lens-next/prev-record
 Show the content of the next line for which the values of the key columns
 are the same as the currently selected row.
 @item P
+@itemx csv-lens-next/prev-record
 Similarly to the @kbd{N} command, but looks backwards.
 @item <
+@itemx csv-lens-jump-first-line-for-key-value
 Shows the content of the first line in the CSV file for which the key columns have the same value as for the currently selected row.
 @item >
+@itemx csv-lens-jump-last-line-for-key-value
 This will show the last line in the CSV file for which the key columns have the same value the current selected row.
 @item j
+@itemx csv-lens-next-value
 Show the content of the first line for which the value for the selected column is different,
 but for which the key column values are the same.
 
@@ -164,17 +172,21 @@ the CSV Lens Detail buffer.  If the cursor is on a key column it will
 give an error, because looking at all rows for which the key columns are
 the same will obviously not find a new value for the selected column.
 @item k
+@itemx csv-lens-prev-value
 The same as @kbd{j} but this command looks backwards in the file.
 @end table
 
 Additionally it is possible to re-synchronize the CSV Lens Detail buffer with the underlying CSV buffer.
 
 @table @kbd
-@item C-return
+@item C-@key{RET}
+@itemx M-x csv-lens-switch-to-source-buffer
 Select the buffer of the underlying CSV file.  This will not move point in the CSV buffer, nor update the CSV Detail buffer.
 @item o
+@itemx M-x csv-lens-switch-to-source-buffer
 Select the buffer of the underlying CSV file, and move point in the CSV buffer to the currently selected row in the CSV Detail Buffer.
 @item .
+@itemx csv-lens-current
 Update the content of the CSV Detail buffer to show the content for point in the underlying CSV buffer.
 @end table
 
@@ -189,26 +201,31 @@ following key bindings
 
 @table @kbd
 @item K
+@itemx csv-lens-toggle-key-column
 Mark the column as key column.  (If the column is already a key column
 un-mark the column.)  Key columns are important because they determine
 which rows in the CSV file go together.  This is used for navigation and
 plotting the spark-lines. [ADD XREF for both].
 
 @item h
+@itemx csv-lens-hide-column
 Hide the column from display.  Or un-hide the column if it is already hidden.
 A hidden column is not shown, unless the show all is activated
 (See XREF show all).
 To un-hide a hidden column, first use the show all to show the hidden columns, then un hide it with @kbd{h} again.
 
 @item b
+@itemx csv-lens-bold-column
 Highlight the column (bold).  This will make the column stand out between the other columns.
 Like all other column state, when used on a highlighted column, un-highlight it.
 
 @item c
+@itemx csv-lens-hide-constant-columns
 Hide all constant columns.  A column is considered constant if the values for the column
 are constant for each key(s) separately.
 
 @item S
+@itemx csv-lens-spark-line
 Show a spark line for the values of the column for the current keys.
 Note that the spark line is not dynamically updated when a new key is selected.
 @end table
@@ -217,13 +234,16 @@ The following changes cannot be made for individual columns but are global (they
 
 @table @kbd
 @item s
+@itemx csv-lens-column-ignore-state-toggle
 Show all, this will ignore the hide state of any column and show them again.
 This is convenient to bring back hidden columns.
 
 @item U
+@itemx csv-lens-normal-all
 Remove all marks from the columns and reverting them to normal.
 
 @item I
+@itemx csv-lens-spark-line-toggle-incremental
 Toggle the logic for drawing spark lines between 'value' and 'delta'.
 Normally spark lines are drawn taking the values as is ('value').  If
 'delta' is selected, the values plotted are the difference between successive values.
@@ -231,9 +251,11 @@ Normally spark lines are drawn taking the values as is ('value').  If
 The first line in the CSV Lens Detail buffer shows which mode is used.
 
 @item Z
+@itemx csv-lens-spark-line-for-all-visible-columns
 Draw spark lines for all columns.  (See XREF explanation for S).
 
 @item f
+@itemx csv-lens-format-toggle
 Toggle the formatting of the columns.  (See XREF explanation of formatting).
 
 @end table

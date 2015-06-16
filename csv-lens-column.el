@@ -40,6 +40,7 @@
 ;;;; Initialization code
 
 (defun csv-lens-column-initialize-defaults ()
+  "Setup the buffer local column properties."
   (dolist (format-pair  csv-lens-default-column-state)
     (dolist (key (-list-guaranteed (car format-pair)))
       (let ((values (cdr format-pair)))
@@ -110,9 +111,15 @@ Think of it as num1 - num2."
 
 
 (defun csv-lens-diff-always-nil (a b)
+  "Constant nil.  Usefull for columns which do not have a meaningfull diff.
+The arguments A and B are ignored."
   nil)
 
 (defun csv-lens-cell-diff-function-for-column (column)
+  "Return a function for calculating the diff for COLUMN.
+This function is looked up in the column configuration data, and
+defaults to `csv-lens-diff-number' if it is not present in the
+configuraiton data."
   (or 
    (csv-lens-column-state column :diff-function) 
    #'csv-lens-diff-number))
@@ -121,14 +128,14 @@ Think of it as num1 - num2."
 (make-variable-buffer-local 'csv-lens-spark-line-incremental)
 
 (defun csv-lens-spark-line-toggle-incremental ()
-  "Toggle between using diff's of values for the sparkle lines"
+  "Toggle between using diff's or values for the sparkle lines."
   (interactive)
   (setq csv-lens-spark-line-incremental (not csv-lens-spark-line-incremental))
   (csv-lens-fill-buffer))
 
 
 (defun csv-lens-column-key-indices ()
-  "Returns a list of column numbers which are the key columns.
+  "Return a list of column numbers which are the key columns.
 The list is sorted from low to high.
 Assumed to be called in the Lens buffer."
   (let ((result nil)
