@@ -48,6 +48,71 @@
 	  (csv-lens-set-column-state key (car values) (cadr values))
 	  (setq values (cddr values)))))))
 
+;;;; Code to find the best configuration
+;;;;
+(defun csv-lens-defined-columns-in-configuration (configuration)
+  "Return the columns defined in CONFIGURATION."
+  (let (result)
+    (dolist (format-pair configuration result)
+      (dolist (key (-list-guaranteed (car format-pair)))
+	(when (stringp key)
+	  (setq result (cl-adjoin key result :test #'string=)))))))
+
+
+(defun csv-lens-column-best-configuration (columns named-configurations)
+  "Return given the COLUMNS the best configuration.
+The best configuration is choosen from the list NAMED-CONFIGURATIONS.
+Each entry in NAMED-CONFIGURATIONS is a list of two or three elements:
+
+- (name configuration) or
+- (name configuration compare-function).
+
+Name is string which is used for identification by the user.
+The configuration is a configuration as defined in XXXX.
+The compare-function is used to find the best match between configurations
+and has the following signature:
+
+   (compare-function COLUMNS ENTRY-1 ENTRY-2) => ENTRY
+
+The columns argument is passed through from this function, 
+ENTRY-1 is the entry under consideration, and ENTRY-2 is the best
+match up to know (which can be nil of no best configuration is found yet.)
+The return value should be an ENTRY or nil."
+
+  (let (best-entry)
+    (dolist (entry named-configurations best-entry)
+      (let ((compare-function (or (third entry) #'csv-lens-column-default-compare)))
+	(setq best-entry (funcall compare-function columns entry best-entry)))))) 
+
+(defun csv-lens-score-configuration (columns configuration)
+  "Calculate how well COLUMNS are described by CONFIGURATION.
+
+The return value is a cons (a . b), with A and B numbers.  A
+score (A . B) is better than (X . Y) if (A . B) is lexically
+smaller than (X . Y)."
+
+  (let ((configuration-columns (csv-lens-defined-columns-in-configuration configuration)))
+    (cons (length (cl-set-difference columns configuration-columns :test #'string=))
+	  (length (cl-set-difference configuration-columns columns :test #'string=)))))
+
+(defun csv-lens-score-lexical-compare (score-a score-b)
+  "Return a number describing how SCORE-A compares to SCORE-B.
+The return value is 
+- negative, if SCORE-A comes before SCORE-B
+- zero if SCORE-A and SCORE-B are the same.
+- positive if SCORE-A comes after SCORE-B."
+  (cond
+   ((< (car score-a) (car score-b)) -1)
+   ((> (car score-a) (car score-b) 1))
+   (t (- (cdr score-a) (cdr score-b)))))
+
+(defun csv-lens-column-default-compare (columns current-entry best-entry)
+  "Return for COLUMNS the best entry of CURRENT-ENTRY or BEST-ENTRY."
+  (let ((current-score (csv-lens-score-configuration columns current-entry))
+	(best-score (csv-lens-score-configuration columns best-entry)))
+    (if (> 0 (csv-lens-score-lexical-compare current-score best-score))
+	current-entry
+      best-entry)))
 
 
 
