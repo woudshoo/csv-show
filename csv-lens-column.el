@@ -103,13 +103,13 @@ The return value is
 - positive if SCORE-A comes after SCORE-B."
   (cond
    ((< (car score-a) (car score-b)) -1)
-   ((> (car score-a) (car score-b) 1))
+   ((> (car score-a) (car score-b))  1)
    (t (- (cdr score-a) (cdr score-b)))))
 
 (defun csv-lens-column-default-compare (columns current-entry best-entry)
   "Return for COLUMNS the best entry of CURRENT-ENTRY or BEST-ENTRY."
-  (let ((current-score (csv-lens-score-configuration columns current-entry))
-	(best-score (csv-lens-score-configuration columns best-entry)))
+  (let ((current-score (csv-lens-score-configuration columns (second current-entry)))
+	(best-score (csv-lens-score-configuration columns (second best-entry))))
     (if (> 0 (csv-lens-score-lexical-compare current-score best-score))
 	current-entry
       best-entry)))
