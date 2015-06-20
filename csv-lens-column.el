@@ -33,7 +33,7 @@
 
 ;; Declare again so the functions here will not give a warning.
 (defvar csv-lens-columns)
-
+(defvar csv-lens-configuration-name)
 ;(defvar csv-lens-default-column-state nil)
 
 (defvar csv-lens-configurations nil
@@ -51,9 +51,6 @@
 	  (funcall function key (car values) (cadr values))
 	  (setq values (cddr values)))))))
 
-;; (defun csv-lens-column-initialize-defaults ()
-;;   "Setup the buffer local column properties."
-;;   (csv-lens-map-configuration-key-values #'csv-lens-set-column-state csv-lens-default-column-state))
 
 (defun csv-lens-column-set-column-state-from-configuration (configuration)
   "Updates the column states from CONFIGURATION.
@@ -70,6 +67,18 @@ This will set the column state from the CONFIGURATION, but only
 if it is not already set."
   (csv-lens-map-configuration-key-values #'csv-lens-set-column-state-if-not-set
 					 configuration))
+
+;;; Code to update state for new columns
+
+(defun csv-lens-column-configure-for-columns (columns)
+  "Initialize current CSV-Lens buffer to display COLUMNS."
+  (setq csv-lens-columns columns)
+  (let ((configuration-entry
+	 (csv-lens-column-best-configuration csv-lens-columns
+					     csv-lens-configurations)))
+    
+    (csv-lens-column-enrich-column-state-from-configuration (second configuration-entry))
+    (setq csv-lens-configuration-name (first configuration-entry))))
 
 ;;;; Code to find the best configuration
 ;;;;

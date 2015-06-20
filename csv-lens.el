@@ -130,6 +130,9 @@ If t, show all values, if nil hide the :hidden values.")
   "Determines if the raw values are shown, or the formatted values.
 If t format the values, if nil show the raw valus.")
 
+(defvar csv-lens-configuration-name nil
+  "The name of the current used configuration.")
+
 (defvar csv-lens-columns nil
   "A list containing the column names in order.")
 
@@ -271,13 +274,12 @@ the `csv-lens-select' function."
   (make-local-variable 'csv-lens-source-line-no)
   (make-local-variable 'csv-lens-columns)
   (make-local-variable 'csv-lens-cells)
+  (make-local-variable 'csv-lens-configuration-name)
   (make-local-variable 'csv-lens-previous-cells)
   (make-local-variable 'csv-lens-previous-line)
   (setq-local csv-lens-column-state-toggle nil)
   (setq-local csv-lens-format-toggle t)
-  (setq buffer-read-only t)
-;  (csv-lens-column-initialize-defaults)
-  )
+  (setq buffer-read-only t))
 
 (defun csv-lens-parse-field (start)
   "Return field starting at START and ending at point."
@@ -577,12 +579,13 @@ The maximum width of all columns is WIDTH."
       (erase-buffer)
 
       (insert "FILE: " (buffer-name (marker-buffer csv-lens-source-marker))
+	      " Type: " (or csv-lens-configuration-name "<UNKNOWN>")
 	      " Spark Lines use " (if csv-lens-spark-line-incremental
 				      "DIFFs" "Values") 
 	      " for plotting"
 	      "\n\n")
       
-      (let ((width (reduce 'max csv-lens-columns :key 'length))
+      (let ((width (cl-reduce 'max csv-lens-columns :key 'length))
             (cell-width (csv-lens-fill-buffer-cell-width))
             (display-columns (cons "Line" csv-lens-columns))
             (display-cells (cons (format "%d" csv-lens-source-line-no) csv-lens-cells)))
@@ -653,10 +656,7 @@ For updating the content see the function `csv-lens-fill-buffer'."
 	((new-show-columns (unless do-not-parse-headers (csv-lens--get-columns))))
       (forward-line (or dir 1)))
     (unless do-not-parse-headers
-      (setq csv-lens-columns new-show-columns)
-      (csv-lens-column-enrich-column-state-from-configuration
-       (second (csv-lens-column-best-configuration csv-lens-columns
-						   csv-lens-configurations))))))
+      (csv-lens-column-configuration new-show-columns))))
 
 (defun csv-lens-current (&optional do-not-parse-headers)
   "Update the content of the *CSV-Detail* buffer with the content
