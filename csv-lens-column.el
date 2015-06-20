@@ -34,19 +34,42 @@
 ;; Declare again so the functions here will not give a warning.
 (defvar csv-lens-columns)
 
-(defvar csv-lens-default-column-state nil)
+;(defvar csv-lens-default-column-state nil)
+
+(defvar csv-lens-configurations nil
+  "XXX Long doc string needed here!")
 
 
 ;;;; Initialization code
 
-(defun csv-lens-column-initialize-defaults ()
-  "Setup the buffer local column properties."
-  (dolist (format-pair  csv-lens-default-column-state)
+(defun csv-lens-map-configuration-key-values (function configuration)
+  "Call FUNCTION for each (column, key, value) combination in CONFIGURATION."
+  (dolist (format-pair configuration)
     (dolist (key (-list-guaranteed (car format-pair)))
       (let ((values (cdr format-pair)))
 	(while values
-	  (csv-lens-set-column-state key (car values) (cadr values))
+	  (funcall function key (car values) (cadr values))
 	  (setq values (cddr values)))))))
+
+;; (defun csv-lens-column-initialize-defaults ()
+;;   "Setup the buffer local column properties."
+;;   (csv-lens-map-configuration-key-values #'csv-lens-set-column-state csv-lens-default-column-state))
+
+(defun csv-lens-column-set-column-state-from-configuration (configuration)
+  "Updates the column states from CONFIGURATION.
+
+This will overwrite any setting with the settings from the CONFIGURATION.
+It will not remove settings that are not specified in CONFIGURATION."
+  (csv-lens-map-configuration-key-values #'csv-lens-default-column-state
+					 configuration))
+
+(defun csv-lens-column-enrich-column-state-from-configuration (configuration)
+  "Update the column states from CONFIGURATION.
+
+This will set the column state from the CONFIGURATION, but only
+if it is not already set."
+  (csv-lens-map-configuration-key-values #'csv-lens-set-column-state-if-not-set
+					 configuration))
 
 ;;;; Code to find the best configuration
 ;;;;
@@ -127,6 +150,17 @@ See also `csv-lens-column-state'"
 	  (if value-pair
 	      (setcdr value-pair value)
 	    (push (cons state value) (cdr assoc-pair))))
+      (push (cons column (list (cons state value))) csv-lens-column-state))))
+
+(defun csv-lens-set-column-state-if-not-set (column state &optional value)
+  "Set the state of COLUMN to STATE, but only if not set yet.
+
+Optionally the state can have a VALUE.
+See also `csv-lens-column-state' and `csv-lens-set-column-state'"
+  (let ((assoc-pair (assoc column csv-lens-column-state)))
+    (if assoc-pair
+	(unless (assoc state (cdr assoc-pair))
+	  (push (cons state value) (cdr assoc-pair)))
       (push (cons column (list (cons state value))) csv-lens-column-state))))
 
 

@@ -276,7 +276,8 @@ the `csv-lens-select' function."
   (setq-local csv-lens-column-state-toggle nil)
   (setq-local csv-lens-format-toggle t)
   (setq buffer-read-only t)
-  (csv-lens-column-initialize-defaults))
+;  (csv-lens-column-initialize-defaults)
+  )
 
 (defun csv-lens-parse-field (start)
   "Return field starting at START and ending at point."
@@ -652,7 +653,10 @@ For updating the content see the function `csv-lens-fill-buffer'."
 	((new-show-columns (unless do-not-parse-headers (csv-lens--get-columns))))
       (forward-line (or dir 1)))
     (unless do-not-parse-headers
-      (setq csv-lens-columns new-show-columns))))
+      (setq csv-lens-columns new-show-columns)
+      (csv-lens-column-enrich-column-state-from-configuration
+       (second (csv-lens-column-best-configuration csv-lens-columns
+						   csv-lens-configurations))))))
 
 (defun csv-lens-current (&optional do-not-parse-headers)
   "Update the content of the *CSV-Detail* buffer with the content
