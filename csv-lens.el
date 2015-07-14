@@ -656,7 +656,7 @@ For updating the content see the function `csv-lens-fill-buffer'."
 	((new-show-columns (unless do-not-parse-headers (csv-lens--get-columns))))
       (forward-line (or dir 1)))
     (unless do-not-parse-headers
-      (csv-lens-column-configuration new-show-columns))))
+      (csv-lens-column-configure-for-columns new-show-columns))))
 
 (defun csv-lens-current (&optional do-not-parse-headers)
   "Update the content of the *CSV-Detail* buffer with the content
