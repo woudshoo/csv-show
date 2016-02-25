@@ -18,12 +18,14 @@
 
 (defun parse-smis-time-string (smis-time)
   "Convert SMIS-TIME to a time."
-  (date-to-time (smis-time-to-time-string smis-time)))
+  (or (ignore-errors (date-to-time (smis-time-to-time-string smis-time)))
+      smis-time))
 
 
 (defun float-smis-time (smis-time)
   "Return a float representing the epoch for SMIS-TIME."
-  (float-time (parse-smis-time-string smis-time)))
+  (or (ignore-errors (float-time (parse-smis-time-string smis-time)))
+      0.0))
 
 
 (defun diff-smis-times (smis-time1 smis-time2)

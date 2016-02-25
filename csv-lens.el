@@ -503,6 +503,7 @@ The maximum width of all columns is WIDTH."
     (let ((diff (csv-lens--diff-cells column cell previous-cell)))
       (move-to-column (+ 4 width cell-width 1 cell-width 1) t)
       (when diff
+;	(csv-lens--insert-cell column diff)
 	(insert diff)
 	(move-to-column (+ 4 width cell-width 1 cell-width 1 cell-width 1) t))))
   (insert " \n"))

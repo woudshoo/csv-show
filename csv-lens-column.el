@@ -63,10 +63,13 @@
       "RemainingManagedSpace" "SpaceLimit" "TotalManagedSpace" "ThinProvisionMetaDataSpace") 
      :format-function csv-lens-cell-format-big-number-of-bytes)
 
-    (("OtherIdentifyingInfo" "EMCWWN" 
+    (("OtherIdentifyingInfo" "EMCWWN"
+      "IM_NameOfExternalVolume"
+      "ActiveWWPN"
+      "UniqueID"
       "AntecedentFCPortWWN" "AntecedentElementWWN" 
       "DependentFCPortWWN" "DependentElementWWN" 
-      "ElementName" "DeviceID" 
+      "ElementName" "DeviceID" "StorageID" "SystemName"
       "SwitchWWPN" "PermanentAddress") 
      :format-function csv-lens-cell-format-wwn)))
 
