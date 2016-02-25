@@ -1,11 +1,49 @@
 * Code structuur
+** File dependencies
+
+| File                                | Abbreviation |
+|-------------------------------------+--------------|
+| csv-lens-cell.el                    | Cell         |
+| csv-lens-column.el                  | Column       |
+| csv-lens-smis-time.el               | SM-T         |
+| csv-lens-sparkline.el               | SL           |
+| csv-lens-test.el                    | TEST         |
+| csv-lens.el                         | LENS         |
+| format-human-readable-big-number.el | FHRBN        |
+|-------------------------------------+--------------|
+| Other files / packages              |              |
+|-------------------------------------+--------------|
+| vendor-from-wwn                     | VFWWN        |
+
+#+BEGIN_SRC dot :file /tmp/structure.png
+digraph G {
+  LENS -> SL;
+  LENS -> Column;
+  LENS -> Cell;
+
+  SL -> sparkline;
+
+  Column -> SM_T;
+  Cell -> VFWWN;
+  Cell -> FHRBN;
+
+  TEST -> LENS;
+}
+#+END_SRC
+
+#+RESULTS:
+[[file:/tmp/structure.png]]
+
+
+
+
 ** defun namen zo structureren dat we makkelijk aan de naam kunnen zien
 *** Of de verwachting is om ze in detail of source uit te voeren
 *** Of ze outward-facing bedoeld zijn
 *** Of ze LINE veranderen (jump?)
 ** indentatie van macro's fixen
 ** Kolom formattering in aparte source file
-
+   
 * sparke lines weg kunnen halen
 * Kolom annotatie (key, time, cumulative, ...?)
 ** Annotaties kunnen onthouden
