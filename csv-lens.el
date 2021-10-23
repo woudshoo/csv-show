@@ -808,13 +808,13 @@ Pre conditions are:
 
 Post conditions:
  - point is at the beginning of the new line."
-  (let* ((current-key-values (csv-lens--get-cells key-indices))
+  (let* ((current-key-values (and key-indices (csv-lens--get-cells key-indices)))
          (found t))
 
     (unless (equal (forward-line dir) 0)
       (error "No more records")
       (setq found nil))
-    (while (not (equal current-key-values (csv-lens--get-cells key-indices)))
+    (while (not (equal current-key-values (and key-indices (csv-lens--get-cells key-indices))))
       (beginning-of-line)
       (unless (equal (forward-line dir) 0)
 	(error "No more records")
