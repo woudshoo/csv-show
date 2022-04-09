@@ -54,7 +54,6 @@
 (require 'f)
 (require 's)
 (require 'dash)
-(require 'vl)
 (require 'ht)
 (require 'calc)
 (require 'simple)

@@ -45,7 +45,7 @@
 (defun csv-lens-map-configuration-key-values (function configuration)
   "Call FUNCTION for each (column, key, value) combination in CONFIGURATION."
   (dolist (format-pair configuration)
-    (dolist (key (-list-guaranteed (car format-pair)))
+    (dolist (key (-list (car format-pair)))
       (let ((values (cdr format-pair)))
 	(while values
 	  (funcall function key (car values) (cadr values))
@@ -86,7 +86,7 @@ if it is not already set."
   "Return the columns defined in CONFIGURATION."
   (let (result)
     (dolist (format-pair configuration result)
-      (dolist (key (-list-guaranteed (car format-pair)))
+      (dolist (key (-list (car format-pair)))
 	(when (stringp key)
 	  (setq result (cl-adjoin key result :test #'string=)))))))
 
