@@ -272,11 +272,15 @@ of the current line as a table.
    ("b" "bold" csv-lens-bold-column)
    ("K" "key"  csv-lens-toggle-key-column)
    ("f" (lambda() (interactive) (if csv-lens-format-toggle "unformat" "format")) csv-lens-format-toggle)
+   ("c" "hide constants" csv-lens-hide-constant-columns)
    ("U" "unmark all" csv-lens-normal-all)]
   ["Plot"
    ("S" "sparkline" csv-lens-spark-line)
    ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
-   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]])
+   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]
+  [""
+   ("q" "quit lens" csv-lens-kill-detail-buffer :transient nil)]
+  ])
 
 (define-generic-mode csv-lens-detail-mode
   nil nil nil nil '(csv-lens--detail-setup)
