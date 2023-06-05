@@ -84,10 +84,10 @@ See also `csv-lens-cells'.")
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
     (define-key map "n" 'csv-lens-next)
-    (define-key map "N" (lambda () (interactive) (csv-lens-next/prev-record 1)))
+    (define-key map "N" 'csv-lens-next-record)
     (define-key map "." 'csv-lens-current)
     (define-key map "p" 'csv-lens-prev)
-    (define-key map "P" (lambda () (interactive) (csv-lens-next/prev-record -1)))
+    (define-key map "P" 'csv-lens-prev-record)
     (define-key map "h" 'csv-lens-hide-column)
     (define-key map "c" 'csv-lens-hide-constant-columns)
     (define-key map "b" 'csv-lens-bold-column)
@@ -502,7 +502,7 @@ See also `csv-lens-column-state-toggle'"
   (csv-lens-column-state-toggle (csv-lens-column-name) :hidden)
   (csv-lens-fontify-detail-buffer)
   (when csv-lens-column-state-toggle
-    (next-line)))
+    (forward-line)))
 
 
 (defun csv-lens-normal-all ()
@@ -518,7 +518,7 @@ See also `csv-lens-column-state-toggle'"
   (interactive)
   (csv-lens-column-state-toggle (csv-lens-column-name) :bold)
   (csv-lens-fontify-detail-buffer)
-  (next-line))
+  (forward-line))
 
 (defun csv-lens-column-ignore-state-toggle ()
   "Toggle between showing or hiding the columns marked for hiding.
@@ -735,6 +735,22 @@ and if DIR is -1 it moves backward."
       (csv-lens--next/prev-record (or dir 1) key-indices)))
   (csv-lens-fill-buffer))
 
+
+(defun csv-lens-prev-record ()
+  "Show the previous record (row in csv line with the same key values).
+
+It will search backward in the source csv file for a record
+with the same values for the key fields as the currently displayed record."
+  (interactive)
+  (csv-lens-next/prev-record -1))
+
+(defun csv-lens-next-record ()
+  "Show the next record (row in csv line with the same key values).
+
+It will search forward in the source csv file for a record
+with the same values for the key fields as the currently displayed record."
+  (interactive)
+  (csv-lens-next/prev-record 1))
 
 (defun csv-lens-next/prev-value (&optional dir)
   "Show the next or previous record with a different field value.
