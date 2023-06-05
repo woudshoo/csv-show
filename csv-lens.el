@@ -16,7 +16,8 @@
 ;;                    (cl-lib "1.0")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
-;;                    (sparkline "0.3"))
+;;                    (sparkline "0.3")
+;;                    (transient "0.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -57,6 +58,7 @@
 (require 'simple)
 (require 'csv-lens-sparkline)
 (require 'csv-lens-column)
+(require 'transient)
 
 (defvar csv-lens-source-line-no nil
   "The line nr in the original CSV file.
