@@ -257,6 +257,8 @@ of the current line as a table.
   ["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
+   ("N" "next same value" (lambda () (interactive) (csv-lens-next/prev-record 1)))
+   ("P" "previous same value" (lambda () (interactive) (csv-lens-next/prev-record -1)))
    ("." "refresh"        csv-lens-current)
    ("j" "next value"     csv-lens-next-value)
    ("k" "previous value" csv-lens-prev-value)
