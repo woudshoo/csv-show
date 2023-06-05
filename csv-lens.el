@@ -253,8 +253,8 @@ of the current line as a table.
 
 (transient-define-prefix transient-csv-lens ()
   :transient-suffix     'transient--do-stay
-  :transient-non-suffix 'transient--do-warn
-  ["Navigate"
+  :transient-non-suffix 'transient--do-stay
+  [["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
    ("N" "next same value" (lambda () (interactive) (csv-lens-next/prev-record 1)))
@@ -276,7 +276,7 @@ of the current line as a table.
   ["Plot"
    ("S" "sparkline" csv-lens-spark-line)
    ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
-   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)])
+   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]])
 
 (define-generic-mode csv-lens-detail-mode
   nil nil nil nil '(csv-lens--detail-setup)
