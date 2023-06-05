@@ -10,7 +10,7 @@
 ;; Maintainer: ???
 ;; Created: 2013
 ;; Version: 0.1
-;; Keywords: data
+;; Keywords: file
 ;; Homepage: http://github.com/woudshoo/csv-show
 ;; Package-Requires: ((emacs "24")
 ;;                    (cl-lib "1.0")
@@ -224,14 +224,17 @@ This is a minor mode to show in a separate buffer the content
 of the current line as a table.
 
 \\{csv-show-map}"
-  nil " csv-lens" csv-lens-map) ;; FIXME
+  :lighter " csv-lens"
+  :keymap csv-lens-map) 
 
 
 (easy-menu-define csv-lens-menu csv-lens-detail-map
   "Menu for CSV Lens buffers."
   '("CSV Lens"
-    ["Next Record" csv-lens-next]
-    ["Previous Record" csv-lens-prev]
+    ["Next Line" csv-lens-next]
+    ["Previous Line" csv-lens-prev]
+    ["Next Record" csv-lens-next-record]
+    ["Previous Record" csv-lens-prev-record]
     ["Refresh Record" csv-lens-current]
     ["Next Different Value" csv-lens-next-value]
     ["Previous Different Value" csv-lens-prev-value]

@@ -1,32 +1,41 @@
 ;;; csv-lens-column.el --- Data structure to store column information
 
+;; Copyright (C) 2013 Tom Koelman, Willem Rein Oudshoorn
+;;
+;; Author: Tom Koelman
+;;         Willem Rein Oudshoorn
+;; Maintainer: ???
+;; Created: 2013
+;; Version: 0.1
+;; Package-Requires: ((emacs "24")
+;;                    (cl-lib "1.0")
+;;                    (dash "1.5.0"))
+
 
 ;;; Commentary:
 
-;;;
-;;;
-;;;  Column --->   Formatter        = function
-;;;         --->   value-type      [cummulative|point|category|...]
-;;;         --->   value-function
-;;;         --->   diff-function
-;;;                plotable
-;;;         --->   column-type     [key|x-axis|...]
-;;;                display  [hidden|...]
-;;;
-;;;   Private
-;;;         --->  index (column nummer)
-;;;
-;;;  Sparklify  : String         ---> Number
-;;;             : String, String ---> Number
-;;;
-
-
+;;
+;;
+;;  Column --->   Formatter        = function
+;;         --->   value-type      [cummulative|point|category|...]
+;;         --->   value-function
+;;         --->   diff-function
+;;                plotable
+;;         --->   column-type     [key|x-axis|...]
+;;                display  [hidden|...]
+;;
+;;   Private
+;;         --->  index (column nummer)
+;;
+;;  Sparklify  : String         ---> Number
+;;             : String, String ---> Number
+;;
 ;; (("Column" :format-function value :key-1 value :column-index))
-
-
 
 ;;; Code:
 
+(require 'cl-lib)
+(require 'dash)
 
 (defvar csv-lens-column-state)
 (make-variable-buffer-local 'csv-lens-column-state)
