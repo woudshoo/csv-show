@@ -12,7 +12,7 @@
 ;; Version: 0.1
 ;; Keywords: file
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((emacs "24")
+;; Package-Requires: ((emacs "28.1")
 ;;                    (cl-lib "1.0")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
@@ -256,10 +256,12 @@ of the current line as a table.
 
 (transient-define-prefix transient-csv-lens ()
   :transient-suffix     'transient--do-stay
-  :transient-non-suffix 'transient--do-warn
-  ["Navigate"
+  :transient-non-suffix 'transient--do-stay
+  [["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
+   ("N" "next same value" csv-lens-next-record)
+   ("P" "previous same value" csv-lens-prev-record)
    ("." "refresh"        csv-lens-current)
    ("j" "next value"     csv-lens-next-value)
    ("k" "previous value" csv-lens-prev-value)
@@ -273,11 +275,15 @@ of the current line as a table.
    ("b" "bold" csv-lens-bold-column)
    ("K" "key"  csv-lens-toggle-key-column)
    ("f" (lambda() (interactive) (if csv-lens-format-toggle "unformat" "format")) csv-lens-format-toggle)
+   ("c" "hide constants" csv-lens-hide-constant-columns)
    ("U" "unmark all" csv-lens-normal-all)]
   ["Plot"
    ("S" "sparkline" csv-lens-spark-line)
    ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
-   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)])
+   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]
+  [""
+   ("q" "quit lens" csv-lens-kill-detail-buffer :transient nil)]
+  ])
 
 (define-generic-mode csv-lens-detail-mode
   nil nil nil nil '(csv-lens--detail-setup)
