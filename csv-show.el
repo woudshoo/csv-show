@@ -345,15 +345,6 @@ if it exists."
 		    ("4" .    "Not restricted*")))
    usagerestriction))
 
-(require 'vendor-from-wwn)
-(defun csv-show--format-wwn (wwn)
-  "Returns a nicely formatted WWN."
-  (interactive)
-  (if (and (vendor-from-wwn/valid-wwn wwn)
-           (vendor-from-wwn wwn))
-      (concat (vendor-from-wwn/vendor-specific-nice-wwn wwn) " ("  (vendor-from-wwn wwn) ")*" )
-    wwn))
-
 (defun csv-show--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
   (interactive)
@@ -405,12 +396,6 @@ if it exists."
     ("EMCKBytesSPBRead" . csv-show--format-big-number-of-kilobytes)
     ("EMCKBytesSPAWritten" . csv-show--format-big-number-of-kilobytes)
     ("EMCKBytesSPBWritten" . csv-show--format-big-number-of-kilobytes)
-    ("PermanentAddress" . csv-show--format-wwn)
-    ("SwitchWWPN" . csv-show--format-wwn)
-    ("DeviceID" . csv-show--format-wwn)
-    ("ElementName" . csv-show--format-wwn)
-    ("EMCWWN" . csv-show--format-wwn)
-    ("OtherIdentifyingInfo" . csv-show--format-wwn)
     ("Speed" . csv-show--format-big-number-of-bytes)))
 
 (defun csv-show--format-function-for-column (column)
