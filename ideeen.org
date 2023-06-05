@@ -1,3 +1,30 @@
+* TODO EW 2023
+
+** History in documentation and Copyright
+
+It is based on https://www.emacswiki.org/emacs/csv-nav.el by Alex Schroeder (mentioned in the files)
+- Need to check how much is still present and if we need to keep him listed as Author.
+- Will need to list the hietory in the documentation.
+
+** Documentation
+
+- dir file and info file need to in the toplevel directory to be found.
+- Do we need a make file for the documentation?
+- Readme.org in the repository?
+
+
+** Code cleanup
+
+- csv-lens-sparkline :: Need to remove hardcoded checks on SMI-S column names.
+  - Probably need to move this to the configuration variable.
+  - Key columns should be excluded by default.
+  - Need to check dependencies.
+
+- csv-lens-column ::
+  - Write the long doc string for the 'csv-lens-configurations'
+  - Fix the library headers.
+
+
 * Code structuur
 ** File dependencies
 
@@ -15,7 +42,7 @@
 |-------------------------------------+--------------|
 | vendor-from-wwn                     | VFWWN        |
 
-#+BEGIN_SRC dot :file /tmp/structure.png
+#+BEGIN_SRC dot :file structure.png
 digraph G {
   LENS -> SL;
   LENS -> Column;
