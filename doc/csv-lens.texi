@@ -10,6 +10,11 @@ This is the CSV Lens manual, version 0.8
 Copyright @copyright{} 2013, 2015 Willem Rein Oudshoorn.
 @end copying
 
+@dircategory Emacs
+@direntry
+* CSV-Lens: (csv-lens).         Some text.
+@end direntry
+
 @titlepage
 @title CSV Lens
 @page

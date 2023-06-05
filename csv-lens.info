@@ -1,0 +1,361 @@
+This is csv-lens.info, produced by makeinfo version 6.8 from
+csv-lens.texi.
+
+This is the CSV Lens manual, version 0.8
+
+   Copyright (C) 2013, 2015 Willem Rein Oudshoorn.
+INFO-DIR-SECTION Emacs
+START-INFO-DIR-ENTRY
+* CSV-Lens: (csv-lens).         Some text.
+END-INFO-DIR-ENTRY
+
+
+File: csv-lens.info,  Node: Top,  Next: Installing,  Prev: (dir),  Up: (dir)
+
+CSV Lens
+********
+
+This is a description of the CSV Lens mode
+
+* Menu:
+
+* Installing::
+* Using CSV Lens::
+* Customizing::
+
+
+File: csv-lens.info,  Node: Installing,  Next: Using CSV Lens,  Prev: Top,  Up: Top
+
+1 Installing
+************
+
+CSV Lens is installed by adding the directory of the source files to the
+emacs load path and requiring 'csv-lens' like this:
+
+     (add-to-list 'load-path "~/<directory>/csv-lens/" t)
+     (require 'csv-lens)
+
+* Menu:
+
+* Activating::
+
+
+File: csv-lens.info,  Node: Activating,  Prev: Installing,  Up: Installing
+
+1.1 Activating
+==============
+
+When in a CSV buffer you can start using CSV Lens by issuing the command
+'csv-lens-select'.  Which is bound by default to the key <C-return> in
+the minor mode 'csv-lens-mode'.
+
+   By adding the following code to the '.emacs' file the minor mode will
+be activated by default for all CSV files.
+
+     (add-hook 'csv-mode-hook 'csv-lens-mode)
+
+
+File: csv-lens.info,  Node: Using CSV Lens,  Next: Customizing,  Prev: Installing,  Up: Top
+
+2 Using CSV Lens
+****************
+
+If installed as suggested the key binding <C-return> on a line in a CSV
+file will bring up a 'csv-lens-detail-mode' buffer, which will show the
+data of the line in the CSV file under point in a column view.
+
+   When applied to the following CSV file
+
+     System,Disk,Time,IO Rate,Bytes Transferred,Reads Rate,Write Rate
+     Alpha,C:,20130602190751.532000-240,1000,1232,800,200
+     Alpha,D:,20130602190752.532000-240,12000,1232,800,200
+     Beta,C:,20130602191711.532000-240,9000,1232,800,200
+     Alpha,C:,20130602191712.532000-240,1200,1232,800,200
+     Alpha,D:,20130602191712.533000-240,14000,1232,800,200
+     Beta,C:,20130602191751.532000-240,10000,1232,800,200
+     Alpha,C:,20130602192751.532000-240,1800,1232,800,200
+     Alpha,D:,20130602192751.532000-240,15000,1232,800,200
+     Beta,C:,20130602192751.532000-240,12000,1232,800,200
+     Alpha,C:,20130602193751.532000-240,2100,1232,800,200
+     Alpha,D:,20130602193751.532000-240,15500,1232,800,200
+     Beta,C:,20130602193751.532000-240,13400,1232,800,200
+     Alpha,C:,20130602194751.532000-240,2200,1232,800,200
+     Alpha,D:,20130602194751.532000-240,18000,1232,800,200
+     Beta,C:,20130602194751.532000-240,15000,1232,800,200
+     Alpha,C:,20130602195751.532000-240,2500,1232,800,200
+     Alpha,D:,20130602195751.532000-240,21000,1232,800,200
+     Beta,C:,20130602195751.532000-240,18000,1232,800,200
+
+   at the second line, the column view will look like
+
+     FILE: demo.csv Spark Lines use Values for plotting
+
+       Line:                 2
+       System:               Alpha
+       Disk:                 C:
+       Time:                 20130602190751.532000-240
+       IO Rate:              1000
+       Bytes Transferred:    1232
+       Reads Rate:           800
+       Write Rate:           200
+
+   Depending on the CSV file this might be easier to read than the
+original CSV file.
+
+* Menu:
+
+* Navigating::
+* Columns::
+
+
+File: csv-lens.info,  Node: Navigating,  Next: Columns,  Prev: Using CSV Lens,  Up: Using CSV Lens
+
+2.1 Navigating
+==============
+
+When in the CSV Lens Detail buffer you can select a different row of the
+underlying CSV file to be displayed.  The most basic of navigational
+commands are
+
+'n'
+'csv-lens-next'
+     Show the content of the next line of the underlying CSV file.  This
+     command ignores any setting of key columns.
+
+'p'
+'csv-lens-prev'
+     Show the content of the previous line of the underlying CSV file.
+     Like the 'n' command, it ignores any setting of key columns.
+
+   More sophisticated navigation take into account the values of the key
+columns [see xref key column etc.]
+
+'N'
+'csv-lens-next/prev-record'
+     Show the content of the next line for which the values of the key
+     columns are the same as the currently selected row.
+'P'
+'csv-lens-next/prev-record'
+     Similarly to the 'N' command, but looks backwards.
+'<'
+'csv-lens-jump-first-line-for-key-value'
+     Shows the content of the first line in the CSV file for which the
+     key columns have the same value as for the currently selected row.
+'>'
+'csv-lens-jump-last-line-for-key-value'
+     This will show the last line in the CSV file for which the key
+     columns have the same value the current selected row.
+'j'
+'csv-lens-next-value'
+     Show the content of the first line for which the value for the
+     selected column is different, but for which the key column values
+     are the same.
+
+     The selected column is the column corresponding the row under point
+     in the CSV Lens Detail buffer.  If the cursor is on a key column it
+     will give an error, because looking at all rows for which the key
+     columns are the same will obviously not find a new value for the
+     selected column.
+'k'
+'csv-lens-prev-value'
+     The same as 'j' but this command looks backwards in the file.
+
+   Additionally it is possible to re-synchronize the CSV Lens Detail
+buffer with the underlying CSV buffer.
+
+'C-<RET>'
+'M-x csv-lens-switch-to-source-buffer'
+     Select the buffer of the underlying CSV file.  This will not move
+     point in the CSV buffer, nor update the CSV Detail buffer.
+'o'
+'M-x csv-lens-switch-to-source-buffer'
+     Select the buffer of the underlying CSV file, and move point in the
+     CSV buffer to the currently selected row in the CSV Detail Buffer.
+'.'
+'csv-lens-current'
+     Update the content of the CSV Detail buffer to show the content for
+     point in the underlying CSV buffer.
+
+
+File: csv-lens.info,  Node: Columns,  Prev: Navigating,  Up: Using CSV Lens
+
+2.2 Columns
+===========
+
+Each column in the CSV file is shown as a line in the CSV Detail buffer.
+Not all columns are equal, some are key columns, some you might want to
+hide etc.  The properties of the column can be modified with the
+following key bindings
+
+'K'
+'csv-lens-toggle-key-column'
+     Mark the column as key column.  (If the column is already a key
+     column un-mark the column.)  Key columns are important because they
+     determine which rows in the CSV file go together.  This is used for
+     navigation and plotting the spark-lines.  [ADD XREF for both].
+
+'h'
+'csv-lens-hide-column'
+     Hide the column from display.  Or un-hide the column if it is
+     already hidden.  A hidden column is not shown, unless the show all
+     is activated (See XREF show all).  To un-hide a hidden column,
+     first use the show all to show the hidden columns, then un hide it
+     with 'h' again.
+
+'b'
+'csv-lens-bold-column'
+     Highlight the column (bold).  This will make the column stand out
+     between the other columns.  Like all other column state, when used
+     on a highlighted column, un-highlight it.
+
+'c'
+'csv-lens-hide-constant-columns'
+     Hide all constant columns.  A column is considered constant if the
+     values for the column are constant for each key(s) separately.
+
+'S'
+'csv-lens-spark-line'
+     Show a spark line for the values of the column for the current
+     keys.  Note that the spark line is not dynamically updated when a
+     new key is selected.
+
+   The following changes cannot be made for individual columns but are
+global (they apply to all columns).
+
+'s'
+'csv-lens-column-ignore-state-toggle'
+     Show all, this will ignore the hide state of any column and show
+     them again.  This is convenient to bring back hidden columns.
+
+'U'
+'csv-lens-normal-all'
+     Remove all marks from the columns and reverting them to normal.
+
+'I'
+'csv-lens-spark-line-toggle-incremental'
+     Toggle the logic for drawing spark lines between 'value' and
+     'delta'.  Normally spark lines are drawn taking the values as is
+     ('value').  If 'delta' is selected, the values plotted are the
+     difference between successive values.
+
+     The first line in the CSV Lens Detail buffer shows which mode is
+     used.
+
+'Z'
+'csv-lens-spark-line-for-all-visible-columns'
+     Draw spark lines for all columns.  (See XREF explanation for S).
+
+'f'
+'csv-lens-format-toggle'
+     Toggle the formatting of the columns.  (See XREF explanation of
+     formatting).
+
+
+File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
+
+3 Customizing
+*************
+
+You can customize CVS Lens by setting the variable
+CSV-LENS-DEFAULT-COLUMN-STATE.  This variable determines the default
+settings for each column in the CSV Lens Detail buffers.  In addition it
+is the only way to spefiy format functions for the different fields.
+
+   The value of CSV-LENS-DEFAULT-COLUMN-STATE is an alist whose keys are
+column names or a list of column names.  The values are property lists
+containing the default state of the columns.
+
+   So in general the format is a list of specifications, where each
+specification looks like:
+'(COLUMN-NAME . PROPERTY-LIST)'
+'((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)'
+
+   The 'PROPERTY-LIST' can contain the following keys
+':key'
+     A boolean, 't' if the column is considered a key column.  The
+     default value is 'nil'.
+':bold'
+     A boolean, 't' if the column should standout.  The default value is
+     'nil'.
+':hidden'
+     A boolean, 't' if the column should be hidden.  The default value
+     is 'nil'.
+':diff-function'
+     A function taking two arguments, each being the un parsed string
+     value of a value of column and returning a string representation of
+     the difference.
+
+     This function is used for displaying the difference between two
+     subsequent records.  See 'N' and 'P' for ways to display the
+     difference.
+
+     If no function is specified it defaults to 'csv-lens-diff-number'.
+     This function will try to parse the argument as numbers and display
+     their difference.
+':format-function'
+     A function taking one argument, the un parsed string value, and
+     returning a string to display.  This function is active unless
+     formatting is disabled by 'f'.
+
+     The default is 'identity'.
+
+* Menu:
+
+* Multiple Sets of Configurations::
+
+
+File: csv-lens.info,  Node: Multiple Sets of Configurations,  Prev: Customizing,  Up: Customizing
+
+3.1 Multiple Sets of Configurations
+===================================
+
+Different CSV files have different needs for formating.  It is therefore
+possible to switch between sets of configurations.  Also, the mode will
+try to select automatically the best configuration for the particular
+CSV file.
+
+     (name configuration)
+     (name configuration compare-function)
+
+   Here 'name' is a string that names the configuration.  This name can
+be used to force CSV-Lens to use a specific configuration if the
+automatic detection does not work correctly.
+
+   The 'configuration' part is either a list of specifications, as
+documented INCLUDE-XREF, or a function returning such a configuration.
+
+   If 'configuration' it should be a function taking one argument, which
+is a list of strings containing the column headers.
+
+   The optional 'compare-function' is used to decide which configuration
+is used for the file.
+
+   This function has three arguments 'configuration', 'best-upto-now',
+and 'columns'.  The return value of this function should be either 'nil'
+or a 'configuration', which is considered the best upto now, and will be
+used as the 'best-upto-now' argument in the next invocation of a compare
+function.
+
+   The default implementation does a lexical compare between '(columns -
+configuration, configuration - columns)'.  If it is a tie, it returns
+the 'best-upto-now' configuration, ensuring the first listed
+configuration wins.
+
+
+
+Tag Table:
+Node: Top277
+Node: Installing480
+Node: Activating829
+Node: Using CSV Lens1279
+Node: Navigating3304
+Node: Columns5817
+Node: Customizing8385
+Node: Multiple Sets of Configurations10245
+
+End Tag Table
+
+
+Local Variables:
+coding: utf-8
+End:
