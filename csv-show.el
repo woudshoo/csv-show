@@ -319,21 +319,6 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
 
-(defun csv-show--statistictime-to-string (statistictime)
-  "Returns a nicely formatted STATISTICTIME."
-  (interactive)
-  (if (> (length statistictime) 18)
-      (let (year month day hour minute second offset)
-	(setq year (substring statistictime 0 4)
-	      month (substring statistictime 4 6)
-	      day (substring statistictime 6 8)
-	      hour (substring statistictime 8 10)
-	      minute (substring statistictime 10 12)
-	      second (substring statistictime 12 14)
-	      offset (number-to-string (/ (string-to-number (substring statistictime -4)) 60)))
-	(concat year "-" month "-" day " " hour ":" minute ":" second " (" offset ")*" ))
-    statistictime))
-
 (defun csv-show--usagerestriction-to-string (usagerestriction)
   "Returns a nicely formatted USAGERESTRICTION."
   (interactive)
@@ -381,9 +366,7 @@ if it exists."
 (defvar csv-show-column-format-functions nil)
 
 (setq csv-show-column-format-functions
-  `(("StatisticTime" . csv-show--statistictime-to-string)
-    ("IM_OriginalStatisticTime" . csv-show--statistictime-to-string)
-    ("UsageRestriction" . csv-show--usagerestriction-to-string)
+  `(("UsageRestriction" . csv-show--usagerestriction-to-string)
     ("Consumed" . csv-show--format-huge-number)
     ("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
     ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
