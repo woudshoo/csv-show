@@ -921,11 +921,5 @@ The key is determined by the values at KEY-INDICES."
     (kill-buffer)
     (pop-to-buffer source)))
 
-;; (defun csv-lens-kill-both-buffers ()
-;;   "Expected to be performed from the detail buffer."
-;;   (interactive)
-;;   (kill-buffer (marker-buffer csv-lens-source-marker))
-;;   (csv-lens-kill-detail-buffer))
-
 (provide 'csv-lens)
 ;;; csv-lens.el ends here
