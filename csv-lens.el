@@ -12,7 +12,7 @@
 ;; Version: 0.1
 ;; Keywords: data
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((emacs "24")
+;; Package-Requires: ((emacs "28.1")
 ;;                    (cl-lib "1.0")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
