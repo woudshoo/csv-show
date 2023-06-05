@@ -12,9 +12,8 @@
 ;; Version: 0.1
 ;; Keywords: data
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((cl-lib "1.0")
-;;                    (s "1.6.1")
-;;                    (f "0.6")
+;; Package-Requires: ((emacs "24")
+;;                    (cl-lib "1.0")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
 ;;                    (sparkline "0.3"))
@@ -52,8 +51,6 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'f)
-(require 's)
 (require 'dash)
 (require 'ht)
 (require 'calc)
@@ -292,7 +289,7 @@ the `csv-lens-select' function."
 	    (replace-regexp-in-string
 	     "\r" "" (replace-regexp-in-string
 		      "\"\"" "\"" (substring field 1 -1)))))
-    (s-trim field)))
+    (string-trim field)))
     
 
 (defun csv-lens-parse-line (&optional indices)
@@ -417,7 +414,7 @@ The assumption is that indices is sorted from low to high!"
 
 (defun csv-lens-buffer-name-for-lens-buffer (csv-buffer)
   "Return a suggested name for the Lens buffer based upon CSV-BUFFER."
-  (concat "*CSV Lens " (f-filename (buffer-file-name csv-buffer)) "*" ))
+  (concat "*CSV Lens " (file-name-nondirectory (directory-file-name (buffer-file-name csv-buffer))) "*" ))
 
 (defun csv-lens-select ()
   "Show the current row."
