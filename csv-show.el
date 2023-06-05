@@ -319,40 +319,7 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
 
-(require 'format-human-readable-big-number)
-
-(defun csv-show--format-big-number-of-bytes (big-number-of-bytes)
- ""
- (interactive)
- (format-human-readable-big-number (string-to-number big-number-of-bytes) "%0.1f" *exceptional-format* "B" t :binary ))
-
-(defun csv-show--format-big-number-of-kilobytes (big-number-of-kilobytes)
- ""
- (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-kilobytes) 1024.0) "%0.1f" *exceptional-format* "B" t :binary )
-  "*"))
-
-(defun csv-show--format-big-number-of-blocks (big-number-of-blocks)
- ""
- (concat
-  (format-human-readable-big-number (* (string-to-number big-number-of-blocks) 512.0) "%0.1f" *exceptional-format* "B" t :binary )
-  "*"))
-
 (defvar csv-show-column-format-functions nil)
-
-(setq csv-show-column-format-functions
-  `(("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
-    ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
-    ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
-    ("KBytesTransferred" . csv-show--format-big-number-of-kilobytes)
-    ("KBytesWritten" . csv-show--format-big-number-of-kilobytes)
-    ("MaxSpeed" . csv-show--format-big-number-of-bytes)
-    ("RequestedSpeed" . csv-show--format-big-number-of-bytes)
-    ("EMCKBytesSPARead" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBRead" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPAWritten" . csv-show--format-big-number-of-kilobytes)
-    ("EMCKBytesSPBWritten" . csv-show--format-big-number-of-kilobytes)
-    ("Speed" . csv-show--format-big-number-of-bytes)))
 
 (defun csv-show--format-function-for-column (column)
   "Return the format function for COLUMN."
