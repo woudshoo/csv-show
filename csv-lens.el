@@ -11,8 +11,8 @@
 ;; Version: 0.1
 ;; Keywords: data
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((cl-lib "1.0")
-;;                    (s "1.6.1")
+;; Package-Requires: ((emacs "24")
+;;                    (cl-lib "1.0")
 ;;                    (dash "1.5.0")
 ;;                    (ht "1.3")
 ;;                    (sparkline "0.3"))
@@ -50,7 +50,6 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 's)
 (require 'dash)
 (require 'ht)
 (require 'calc)
@@ -289,7 +288,7 @@ the `csv-lens-select' function."
 	    (replace-regexp-in-string
 	     "\r" "" (replace-regexp-in-string
 		      "\"\"" "\"" (substring field 1 -1)))))
-    (s-trim field)))
+    (string-trim field)))
     
 
 (defun csv-lens-parse-line (&optional indices)
