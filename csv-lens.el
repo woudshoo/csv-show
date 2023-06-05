@@ -105,6 +105,7 @@ See also `csv-lens-cells'.")
     (define-key map "f" 'csv-lens-format-toggle)
     (define-key map "<" 'csv-lens-jump-first-line-for-key-value)
     (define-key map ">" 'csv-lens-jump-last-line-for-key-value)
+    (define-key map "?" 'transient-csv-lens)
     map)
   "The keymap of the Lens buffers.")
 
@@ -248,6 +249,31 @@ of the current line as a table.
     ["Sparkline Column" csv-lens-spark-line]
     ["Sparkline All" csv-lens-spark-line-for-all-visible-columns]
     ["Plot Value/Delta" csv-lens-spark-line-toggle-incremental]))
+
+(transient-define-prefix transient-csv-lens ()
+  :transient-suffix     'transient--do-stay
+  :transient-non-suffix 'transient--do-warn
+  ["Navigate"
+   ("n" "next"           csv-lens-next)
+   ("p" "previous"       csv-lens-prev)
+   ("." "refresh"        csv-lens-current)
+   ("j" "next value"     csv-lens-next-value)
+   ("k" "previous value" csv-lens-prev-value)
+   ("<" "first record same key" csv-lens-jump-first-line-for-key-value)
+   (">" "last record same key" csv-lens-jump-last-line-for-key-value)]
+  ["Source"
+   ("o" "switch to source" csv-lens-switch-to-source-buffer :transient nil)]
+  ["Column"
+   ("h" "hide" csv-lens-hide-column)
+   ("s" (lambda() (interactive) (if csv-lens-column-state-toggle "hide hidden" "show hidden")) csv-lens-column-ignore-state-toggle)
+   ("b" "bold" csv-lens-bold-column)
+   ("K" "key"  csv-lens-toggle-key-column)
+   ("f" (lambda() (interactive) (if csv-lens-format-toggle "unformat" "format")) csv-lens-format-toggle)
+   ("U" "unmark all" csv-lens-normal-all)]
+  ["Plot"
+   ("S" "sparkline" csv-lens-spark-line)
+   ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
+   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)])
 
 (define-generic-mode csv-lens-detail-mode
   nil nil nil nil '(csv-lens--detail-setup)
