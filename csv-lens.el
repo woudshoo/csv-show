@@ -56,8 +56,6 @@
 (require 'simple)
 (require 'csv-lens-sparkline)
 (require 'csv-lens-column)
-(require 'csv-lens-cell)
-
 
 (defvar csv-lens-source-line-no nil
   "The line nr in the original CSV file.
