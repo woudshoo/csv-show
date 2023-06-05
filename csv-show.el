@@ -319,17 +319,6 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
 
-(defun csv-show--usagerestriction-to-string (usagerestriction)
-  "Returns a nicely formatted USAGERESTRICTION."
-  (interactive)
-  (or
-   (assoc-default usagerestriction
-		  '(("0" .    "Unknown*")
-		    ("2" .    "Front-end only*")
-		    ("3" .    "Back-end only*")
-		    ("4" .    "Not restricted*")))
-   usagerestriction))
-
 (defun csv-show--format-huge-number (hugenumber)
   "Returns a nicely formatted HUGENUMBER."
   (interactive)
@@ -366,8 +355,7 @@ if it exists."
 (defvar csv-show-column-format-functions nil)
 
 (setq csv-show-column-format-functions
-  `(("UsageRestriction" . csv-show--usagerestriction-to-string)
-    ("Consumed" . csv-show--format-huge-number)
+  `(("Consumed" . csv-show--format-huge-number)
     ("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
     ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
     ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
