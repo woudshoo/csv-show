@@ -319,20 +319,6 @@ if it exists."
 	(with-current-buffer detail-buffer
 	  (csv-show-current t))))))
 
-(defun csv-show--format-huge-number (hugenumber)
-  "Returns a nicely formatted HUGENUMBER."
-  (interactive)
-  (let (groups)
-    (while (> (length hugenumber) 0)
-      (if (>= (length hugenumber) 3)
-          (progn
-            (push (substring hugenumber -3) groups)
-            (setq hugenumber (substring hugenumber 0 (- (length hugenumber) 3))))
-        (progn
-         (push hugenumber groups)
-         (setq hugenumber ""))))
-    (concat (mapconcat 'identity groups " ") "*")))
-
 (require 'format-human-readable-big-number)
 
 (defun csv-show--format-big-number-of-bytes (big-number-of-bytes)
@@ -355,8 +341,7 @@ if it exists."
 (defvar csv-show-column-format-functions nil)
 
 (setq csv-show-column-format-functions
-  `(("Consumed" . csv-show--format-huge-number)
-    ("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
+  `(("ConsumableBlocks" . csv-show--format-big-number-of-blocks)
     ("NumberOfBlocks" . csv-show--format-big-number-of-blocks)
     ("KBytesRead" . csv-show--format-big-number-of-kilobytes)
     ("KBytesTransferred" . csv-show--format-big-number-of-kilobytes)
