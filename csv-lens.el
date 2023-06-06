@@ -257,13 +257,16 @@ of the current line as a table.
   [["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
-   ("N" "next same value" csv-lens-next-record-same-keys)
-   ("P" "previous same value" csv-lens-prev-record-same-keys)
    ("." "refresh"        csv-lens-current)
-   ("j" "next value"     csv-lens-next-value)
-   ("k" "previous value" csv-lens-prev-value)
-   ("<" "first record same key" csv-lens-jump-first-line-for-key-value)
-   (">" "last record same key" csv-lens-jump-last-line-for-key-value)]
+   ]
+   ["Record"
+   ("M-n" "next" csv-lens-next-record-same-keys)
+   ("M-p" "previous" csv-lens-prev-record-same-keys)
+   ("C-n" "next value"     csv-lens-next-value)
+   ("C-p" "previous value" csv-lens-prev-value)
+   ("<" "first record" csv-lens-jump-first-line-for-key-value)
+   (">" "last record" csv-lens-jump-last-line-for-key-value)
+   ]
   ["Source"
    ("o" "switch to source" csv-lens-switch-to-source-buffer :transient nil)]
   ["Column"
