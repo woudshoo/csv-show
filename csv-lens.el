@@ -12,12 +12,7 @@
 ;; Version: 0.1
 ;; Keywords: file
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((emacs "28.1")
-;;                    (cl-lib "1.0")
-;;                    (dash "1.5.0")
-;;                    (ht "1.3")
-;;                    (sparkline "0.3")
-;;                    (transient "0.3"))
+;; Package-Requires: ((emacs "28.1") (cl-lib "1.0") (dash "1.5.0") (ht "1.3") (sparkline "0.3") (transient "0.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 

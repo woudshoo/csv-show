@@ -1,9 +1,18 @@
 ;;; csv-lens-test.el --- Tests for the csv-lens and related code
 
+;; Copyright (C) 2013, 2015, 2023 Willem Rein Oudshoorn <woudshoo@xs4all.nl>
+;; Copyright (C) 2013, 2023 Tom Koelman
+;;
+;; Author: Willem Rein Oudshoorn <woudshoo@xs4all.nl>
+;;         Tom Koelman
+;; Created: 2013
+;; Homepage: http://github.com/woudshoo/csv-show
+;; Package-Requires: ((emacs "25.0") csv-lens csv-lens-column ert)
+;; 
 ;;; Commentary:
-;;;
-;;;  Some simple tests used during development.
-;;;
+;;
+;;  Some simple tests used during development.
+;;
 ;;; Code:
 
 (require 'csv-lens)

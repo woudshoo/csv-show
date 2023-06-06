@@ -24,10 +24,17 @@ It is based on https://www.emacswiki.org/emacs/csv-nav.el by Alex Schroeder (men
   - Write the long doc string for the 'csv-lens-configurations'
   - Fix the library headers.
 
-** Version
+** Version/Dependencies
 
 - Check all dependencies and versions required
 
+- current depenendencies:
+  - cl-lib
+  - emacs
+  - sparkline :: Depends on: cl-lib 0.3
+  - dash  :: Depends on nothing
+  - ht :: Depends on dash
+    
 
 ** Column types
 

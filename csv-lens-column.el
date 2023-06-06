@@ -3,13 +3,10 @@
 ;; Copyright (C) 2013 Tom Koelman, Willem Rein Oudshoorn
 ;;
 ;; Author: Tom Koelman
-;;         Willem Rein Oudshoorn
+;;         Willem Rein Oudshoorn <woudshoo@xs4all.nl>
 ;; Maintainer: ???
 ;; Created: 2013
-;; Version: 0.1
-;; Package-Requires: ((emacs "24")
-;;                    (cl-lib "1.0")
-;;                    (dash "1.5.0"))
+;; Package-Requires: ((emacs "24") (cl-lib "1.0") (dash "1.5.0"))
 
 
 ;;; Commentary:

@@ -5,10 +5,8 @@
 ;; Author: Willem Rein Oudshoorn <woudshoo@xs4all.nl>
 ;; Maintainer: ???
 ;; Created: 2013
-;; Version: 0.1
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((emacs "25.0")
-;;                    (sparkline "0.3"))
+;; Package-Requires: ((emacs "25.0") (sparkline "0.3"))
 ;;
 ;;
 ;; This file is not part of GNU Emacs.
