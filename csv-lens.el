@@ -12,7 +12,7 @@
 ;; Version: 0.1
 ;; Keywords: file
 ;; Homepage: http://github.com/woudshoo/csv-show
-;; Package-Requires: ((emacs "28.1") (cl-lib "1.0") (dash "1.5.0") (ht "1.3") (sparkline "0.3") (transient "0.3"))
+;; Package-Requires: ((emacs "28.1") (cl-lib "1.0") (dash "1.5.0") (ht "1.3") (transient "0.3"))
 ;;
 ;; This file is not part of GNU Emacs.
 
@@ -51,7 +51,6 @@
 (require 'ht)
 (require 'calc)
 (require 'simple)
-(require 'csv-lens-sparkline)
 (require 'csv-lens-column)
 (require 'transient)
 
@@ -88,12 +87,8 @@ See also `csv-lens-cells'.")
     (define-key map "h" 'csv-lens-hide-column)
     (define-key map "c" 'csv-lens-hide-constant-columns)
     (define-key map "b" 'csv-lens-bold-column)
-					;	(define-key map "u" 'csv-lens-normal-column)
     (define-key map "U" 'csv-lens-normal-all)
     (define-key map "s" 'csv-lens-column-ignore-state-toggle)
-    (define-key map "S" 'csv-lens-spark-line)
-    (define-key map "Z" 'csv-lens-spark-line-for-all-visible-columns)
-    (define-key map "I" 'csv-lens-spark-line-toggle-incremental)
     (define-key map "o" 'csv-lens-switch-to-source-buffer)
     (define-key map "j" 'csv-lens-next-value)
     (define-key map "k" 'csv-lens-prev-value)
@@ -246,10 +241,11 @@ of the current line as a table.
     ["Key Column" csv-lens-toggle-key-column]
     ["(Un)format Column" csv-lens-format-toggle]
     ["Unmark All" csv-lens-normal-all]
-    "----"
-    ["Sparkline Column" csv-lens-spark-line]
-    ["Sparkline All" csv-lens-spark-line-for-all-visible-columns]
-    ["Plot Value/Delta" csv-lens-spark-line-toggle-incremental]))
+;    "----"
+;    ["Sparkline Column" csv-lens-spark-line]
+;    ["Sparkline All" csv-lens-spark-line-for-all-visible-columns]
+;    ["Plot Value/Delta" csv-lens-spark-line-toggle-incremental]
+    )) 
 
 (transient-define-prefix transient-csv-lens ()
   :transient-suffix     'transient--do-stay
@@ -274,10 +270,10 @@ of the current line as a table.
    ("f" (lambda() (interactive) (if csv-lens-format-toggle "unformat" "format")) csv-lens-format-toggle)
    ("c" "hide constants" csv-lens-hide-constant-columns)
    ("U" "unmark all" csv-lens-normal-all)]
-  ["Plot"
-   ("S" "sparkline" csv-lens-spark-line)
-   ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
-   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]
+;  ["Plot"
+;   ("S" "sparkline" csv-lens-spark-line)
+;   ("Z" "sparkline all" csv-lens-spark-line-for-all-visible-columns)
+;   ("I" "plot value/data" csv-lens-spark-line-toggle-incremental)]
   [""
    ("q" "quit lens" csv-lens-kill-detail-buffer :transient nil)]
   ])
@@ -607,9 +603,11 @@ The maximum width of all columns is WIDTH."
 
       (insert "FILE: " (buffer-name (marker-buffer csv-lens-source-marker))
 	      " Type: " (or csv-lens-configuration-name "<UNKNOWN>")
-	      " Spark Lines use " (if csv-lens-spark-line-incremental
-				      "DIFFs" "Values") 
-	      " for plotting"
+	      (if (boundp 'csv-lens-sparkline-incremental)
+		  (concat   " Spark Lines use " (if csv-lens-sparkline-incremental
+						    "DIFFs" "Values") 
+			    " for plotting")
+		"")
 	      "\n\n")
       
       (let ((width (cl-reduce 'max csv-lens-columns :key 'length))
