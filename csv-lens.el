@@ -81,10 +81,10 @@ See also `csv-lens-cells'.")
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
     (define-key map "n" 'csv-lens-next)
-    (define-key map "N" 'csv-lens-next-record)
+    (define-key map "N" 'csv-lens-next-record-same-keys)
     (define-key map "." 'csv-lens-current)
     (define-key map "p" 'csv-lens-prev)
-    (define-key map "P" 'csv-lens-prev-record)
+    (define-key map "P" 'csv-lens-prev-record-same-keys)
     (define-key map "h" 'csv-lens-hide-column)
     (define-key map "c" 'csv-lens-hide-constant-columns)
     (define-key map "b" 'csv-lens-bold-column)
@@ -230,8 +230,8 @@ of the current line as a table.
   '("CSV Lens"
     ["Next Line" csv-lens-next]
     ["Previous Line" csv-lens-prev]
-    ["Next Record" csv-lens-next-record]
-    ["Previous Record" csv-lens-prev-record]
+    ["Next Record" csv-lens-next-record-same-keys]
+    ["Previous Record" csv-lens-prev-record-same-keys]
     ["Refresh Record" csv-lens-current]
     ["Next Different Value" csv-lens-next-value]
     ["Previous Different Value" csv-lens-prev-value]
@@ -257,8 +257,8 @@ of the current line as a table.
   [["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
-   ("N" "next same value" csv-lens-next-record)
-   ("P" "previous same value" csv-lens-prev-record)
+   ("N" "next same value" csv-lens-next-record-same-keys)
+   ("P" "previous same value" csv-lens-prev-record-same-keys)
    ("." "refresh"        csv-lens-current)
    ("j" "next value"     csv-lens-next-value)
    ("k" "previous value" csv-lens-prev-value)
@@ -740,7 +740,7 @@ and if DIR is -1 it moves backward."
   (csv-lens-fill-buffer))
 
 
-(defun csv-lens-prev-record ()
+(defun csv-lens-prev-record-same-keys ()
   "Show the previous record (row in csv line with the same key values).
 
 It will search backward in the source csv file for a record
@@ -748,7 +748,7 @@ with the same values for the key fields as the currently displayed record."
   (interactive)
   (csv-lens-next/prev-record -1))
 
-(defun csv-lens-next-record ()
+(defun csv-lens-next-record-same-keys ()
   "Show the next record (row in csv line with the same key values).
 
 It will search forward in the source csv file for a record
