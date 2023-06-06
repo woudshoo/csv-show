@@ -8,10 +8,10 @@ It is based on https://www.emacswiki.org/emacs/csv-nav.el by Alex Schroeder (men
 
 ** Documentation
 
-- dir file and info file need to in the toplevel directory to be found.
-- Do we need a make file for the documentation?
-- Readme.org in the repository?
-
+- [X] dir file and info file need to in the toplevel directory to be found.
+- [X] Do we need a make file for the documentation?
+- [ ] Readme.org in the repository?
+- [ ] Readme as long description.
 
 ** Code cleanup
 
@@ -24,7 +24,23 @@ It is based on https://www.emacswiki.org/emacs/csv-nav.el by Alex Schroeder (men
   - Write the long doc string for the 'csv-lens-configurations'
   - Fix the library headers.
 
+** Version
 
+- Check all dependencies and versions required
+
+
+** Column types
+
+This needs to be documented, but currently we have:
+
+- :hidden ::
+- :bold ::
+- :key ::
+- :constant ::
+- :format-function ::
+- :diff-function ::
+  Hm, does not seem to be used for plotting.  That only works with numbers.
+    
 * Code structuur
 ** File dependencies
 

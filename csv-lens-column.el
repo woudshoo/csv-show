@@ -43,7 +43,6 @@
 ;; Declare again so the functions here will not give a warning.
 (defvar csv-lens-columns)
 (defvar csv-lens-configuration-name)
-;(defvar csv-lens-default-column-state nil)
 
 (defvar csv-lens-configurations nil
   "XXX Long doc string needed here!")
@@ -60,14 +59,6 @@
 	  (funcall function key (car values) (cadr values))
 	  (setq values (cddr values)))))))
 
-
-(defun csv-lens-column-set-column-state-from-configuration (configuration)
-  "Updates the column states from CONFIGURATION.
-
-This will overwrite any setting with the settings from the CONFIGURATION.
-It will not remove settings that are not specified in CONFIGURATION."
-  (csv-lens-map-configuration-key-values #'csv-lens-default-column-state
-					 configuration))
 
 (defun csv-lens-column-enrich-column-state-from-configuration (configuration)
   "Update the column states from CONFIGURATION.
