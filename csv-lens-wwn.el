@@ -40,7 +40,6 @@
 
 (defun csv-lens-cell-format-wwn (wwn)
   "Return a nicely formatted WWN."
-  (interactive)
   (if (and (vendor-from-wwn/valid-wwn wwn)
            (vendor-from-wwn wwn))
       (concat (vendor-from-wwn/vendor-specific-nice-wwn wwn) " ("  (vendor-from-wwn wwn) ")*" )
