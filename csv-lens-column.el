@@ -50,6 +50,11 @@ Each formatter in this list is a list of two elements. The first
 being the name of the formatter as a string. The second being the
 function to call to format a value.")
 
+(add-to-list 'csv-lens-formatters
+             '("value is in B" (lambda(bytes) (concat (file-size-human-readable (string-to-number bytes) 'iec " ") "*"))))
+(add-to-list 'csv-lens-formatters
+             '("value is in KiB" (lambda(kilo-bytes) (concat (file-size-human-readable (* 1024 (string-to-number kilo-bytes)) 'iec " ") "*"))))
+
 
 ;;;; Initialization code
 
