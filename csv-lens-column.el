@@ -44,6 +44,17 @@
 (defvar csv-lens-configurations nil
   "XXX Long doc string needed here!")
 
+(defvar csv-lens-formatters nil
+  "A list of formatters that can me chosen for a particular column.
+Each formatter in this list is a list of two elements. The first
+being the name of the formatter as a string. The second being the
+function to call to format a value.")
+
+(add-to-list 'csv-lens-formatters
+             '("value is in B" (lambda(bytes) (concat (file-size-human-readable (string-to-number bytes) 'iec " ") "*"))))
+(add-to-list 'csv-lens-formatters
+             '("value is in KiB" (lambda(kilo-bytes) (concat (file-size-human-readable (* 1024 (string-to-number kilo-bytes)) 'iec " ") "*"))))
+
 
 ;;;; Initialization code
 
@@ -197,6 +208,7 @@ Assumes we are only interested in generalized boolean value of the key."
 (defun csv-lens-cell-format-function-for-column (column)
   "Return the format function for COLUMN."
   (or
+   (cl-second (csv-lens-column-state column :manual-format-function))
    (csv-lens-column-state column :format-function)
    #'identity))
 
@@ -244,6 +256,22 @@ Assumed to be called in the Lens buffer."
       (setq index (+ 1 index)))
     (nreverse result)))
 
+
+;;; Listing of formatters
+
+(defun csv-lens-column-available-formatter-names ()
+  "Return a list of available formatter-names"
+  (--map (-first-item it) csv-lens-formatters))
+
+(defvar csv-lens-column-formatter-history nil)
+
+(defun csv-lens-column-completing-formatter (&optional initial-input)
+  "Present a list of formatters to choose from"
+  (interactive)
+  (completing-read "Formatter: "
+                   (-flatten (-list "<none>" (csv-lens-column-available-formatter-names)))
+                   nil nil initial-input
+                   'csv-lens-column-formatter-history))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
