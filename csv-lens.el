@@ -556,7 +556,9 @@ See also `csv-lens-hide-column'"
 
 (defun csv-lens--insert-cell (column cell)
   "Insert COLUMN value CELL into the buffer, optionally formatted."
-  (if csv-lens-format-toggle
+  (if (and
+       csv-lens-format-toggle
+       (> (length cell) 0))
       (insert (funcall (csv-lens-cell-format-function-for-column column) cell))
     (insert cell)))
 
