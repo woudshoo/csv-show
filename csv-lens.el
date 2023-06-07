@@ -252,8 +252,6 @@ of the current line as a table.
     ["Plot Value/Delta" csv-lens-spark-line-toggle-incremental]))
 
 (transient-define-prefix transient-csv-lens ()
-  :transient-suffix     'transient--do-stay
-  :transient-non-suffix 'transient--do-stay
   [["Navigate"
    ("n" "next"           csv-lens-next)
    ("p" "previous"       csv-lens-prev)
