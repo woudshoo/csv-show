@@ -264,7 +264,7 @@ Assumed to be called in the Lens buffer."
   "Present a list of formatters to choose from"
   (interactive)
   (completing-read "Formatter: "
-                   (-list "<none>" (csv-lens-column-available-formatter-names))
+                   (-flatten (-list "<none>" (csv-lens-column-available-formatter-names)))
                    nil nil initial-input
                    'csv-lens-column-formatter-history))
 
