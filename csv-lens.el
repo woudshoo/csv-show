@@ -94,7 +94,7 @@ See also `csv-lens-cells'.")
     (define-key map "k" 'csv-lens-prev-value)
     (define-key map "K" 'csv-lens-toggle-key-column)
     (define-key map "Q" 'csv-lens-kill-detail-buffer)
-    (define-key map [C-return] 'csv-lens-switch-to-source-buffer)
+    (define-key map [C-return] 'csv-lens-pop-to-source-buffer)
     (define-key map "f" 'csv-lens-format-toggle)
     (define-key map "F" 'csv-lens-set-key-column-formatter)
     (define-key map "<" 'csv-lens-jump-first-line-for-key-value)
@@ -953,6 +953,16 @@ The key is determined by the values at KEY-INDICES."
       (when constant-columns-indices
         (csv-lens--get-cells constant-columns-indices))))
 
+(defun csv-lens-pop-to-source-buffer ()
+  "Switch to the buffer containing the underyling CSV file.
+
+This will not update point in the CSV file, which means
+that after using navigation to other csv rows in the detail buffer
+the point in the CSV buffer will still be in the original row."
+  (interactive)
+  (pop-to-buffer (marker-buffer csv-lens-source-marker)))
+
+  
 (defun csv-lens-switch-to-source-buffer ()
   "Switch to the source line in the underlying CSV file."
   (interactive)
@@ -961,7 +971,7 @@ The key is determined by the values at KEY-INDICES."
       (goto-line line-no)))
 
 (defun csv-lens-kill-detail-buffer ()
-  "Expected to be performed from the detail buffer."
+  "Kill this buffer and return to underlying CSV buffer."
   (interactive)
   (let ((source (marker-buffer csv-lens-source-marker)))
     (kill-buffer)
