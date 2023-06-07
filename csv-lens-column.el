@@ -74,8 +74,8 @@ if it is not already set."
 	 (csv-lens-column-best-configuration csv-lens-columns
 					     csv-lens-configurations)))
     
-    (csv-lens-column-enrich-column-state-from-configuration (second configuration-entry))
-    (setq csv-lens-configuration-name (first configuration-entry))))
+    (csv-lens-column-enrich-column-state-from-configuration (cl-second configuration-entry))
+    (setq csv-lens-configuration-name (cl-first configuration-entry))))
 
 ;;;; Code to find the best configuration
 ;;;;
@@ -110,7 +110,7 @@ The return value should be an ENTRY or nil."
 
   (let (best-entry)
     (dolist (entry named-configurations best-entry)
-      (let ((compare-function (or (third entry) #'csv-lens-column-default-compare)))
+      (let ((compare-function (or (cl-third entry) #'csv-lens-column-default-compare)))
 	(setq best-entry (funcall compare-function columns entry best-entry)))))) 
 
 (defun csv-lens-score-configuration (columns configuration)
@@ -137,8 +137,8 @@ The return value is
 
 (defun csv-lens-column-default-compare (columns current-entry best-entry)
   "Return for COLUMNS the best entry of CURRENT-ENTRY or BEST-ENTRY."
-  (let ((current-score (csv-lens-score-configuration columns (second current-entry)))
-	(best-score (csv-lens-score-configuration columns (second best-entry))))
+  (let ((current-score (csv-lens-score-configuration columns (cl-second current-entry)))
+	(best-score (csv-lens-score-configuration columns (cl-second best-entry))))
     (if (> 0 (csv-lens-score-lexical-compare current-score best-score))
 	current-entry
       best-entry)))
@@ -197,6 +197,7 @@ Assumes we are only interested in generalized boolean value of the key."
 (defun csv-lens-cell-format-function-for-column (column)
   "Return the format function for COLUMN."
   (or
+   (cl-second (csv-lens-column-state column :manual-format-function))
    (csv-lens-column-state column :format-function)
    #'identity))
 

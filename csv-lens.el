@@ -593,8 +593,8 @@ The maximum width of all columns is WIDTH."
                 (cell (pop cells)))
             (push (length (funcall (csv-lens-cell-format-function-for-column column) cell))
                   widths)))
-        (reduce 'max widths))
-    (reduce 'max csv-lens-cells :key 'length)))
+        (cl-reduce 'max widths))
+    (cl-reduce 'max csv-lens-cells :key 'length)))
 
 (defun csv-lens-fill-buffer ()
   "Fills the buffer with the content of the cells."
