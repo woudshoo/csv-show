@@ -201,8 +201,7 @@ Assumes we are only interested in generalized boolean value of the key."
    #'identity))
 
 
-;;; sparkline related functions, diff
-
+;;; diff functions
 
 (defun csv-lens-diff-number (num1 num2)
   "Given two strings NUM1 and NUM2 containing arbitrary numbers,
@@ -229,16 +228,8 @@ configuraiton data."
    (csv-lens-column-state column :diff-function) 
    #'csv-lens-diff-number))
 
-(defvar csv-lens-spark-line-incremental)
-(make-variable-buffer-local 'csv-lens-spark-line-incremental)
-
-(defun csv-lens-spark-line-toggle-incremental ()
-  "Toggle between using diff's or values for the sparkle lines."
-  (interactive)
-  (setq csv-lens-spark-line-incremental (not csv-lens-spark-line-incremental))
-  (csv-lens-fill-buffer))
-
-
+
+;;; key functions
 (defun csv-lens-column-key-indices ()
   "Return a list of column numbers which are the key columns.
 The list is sorted from low to high.
