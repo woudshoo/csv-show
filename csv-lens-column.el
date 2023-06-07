@@ -44,6 +44,12 @@
 (defvar csv-lens-configurations nil
   "XXX Long doc string needed here!")
 
+(defvar csv-lens-formatters nil
+  "A list of formatters that can me chosen for a particular column.
+Each formatter in this list is a list of two elements. The first
+being the name of the formatter as a string. The second being the
+function to call to format a value.")
+
 
 ;;;; Initialization code
 
@@ -245,6 +251,22 @@ Assumed to be called in the Lens buffer."
       (setq index (+ 1 index)))
     (nreverse result)))
 
+
+;;; Listing of formatters
+
+(defun csv-lens-column-available-formatter-names ()
+  "Return a list of available formatter-names"
+  (--map (-first-item it) csv-lens-formatters))
+
+(defvar csv-lens-column-formatter-history nil)
+
+(defun csv-lens-column-completing-formatter (&optional initial-input)
+  "Present a list of formatters to choose from"
+  (interactive)
+  (completing-read "Formatter: "
+                   (-list "<none>" (csv-lens-column-available-formatter-names))
+                   nil nil initial-input
+                   'csv-lens-column-formatter-history))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
