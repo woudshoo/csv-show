@@ -7,7 +7,7 @@
 @copying
 This is the CSV Lens manual, version 0.8
 
-Copyright @copyright{} 2013, 2015 Willem Rein Oudshoorn.
+Copyright @copyright{} 2013, 2015, 2023 Willem Rein Oudshoorn.
 @end copying
 
 @dircategory Emacs
@@ -17,6 +17,8 @@ Copyright @copyright{} 2013, 2015 Willem Rein Oudshoorn.
 
 @titlepage
 @title CSV Lens
+@subtitle Viewing a CSV File one Line at the Time
+@author Willem Rein Oudshoorn
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -74,6 +76,19 @@ will be activated by default for all CSV files.
 @node  Using CSV Lens, Customizing, Installing, Top
 @chapter Using CSV Lens
 
+
+
+@c ----------------------------------------
+
+@menu
+* Example::
+* Navigating::
+* Columns::
+@end menu
+
+@node Example, Navigating, Using CSV Lens, Using CSV Lens
+@section Example
+
 If installed as suggested the key binding @key{C-return} on a line in a
 CSV file will bring up a @command{csv-lens-detail-mode} buffer, which
 will show the data of the line in the CSV file under point in a column
@@ -83,7 +98,7 @@ When applied to the following CSV file
 
 @cartouche
 @example
-System,Disk,Time,IO Rate,Bytes Transferred,Reads Rate,Write Rate
+System,Disk,Time,IO Rate,Bytes Transferred,Read Rate,Write Rate
 Alpha,C:,20130602190751.532000-240,1000,1232,800,200
 Alpha,D:,20130602190752.532000-240,12000,1232,800,200
 Beta,C:,20130602191711.532000-240,9000,1232,800,200
@@ -117,22 +132,139 @@ FILE: demo.csv Spark Lines use Values for plotting
   Time:                 20130602190751.532000-240
   IO Rate:              1000
   Bytes Transferred:    1232
-  Reads Rate:           800
+  Read Rate:            800
   Write Rate:           200
 @end example
 @end cartouche
 
-Depending on the CSV file this might be easier to read than the original 
-CSV file.
+While in this buffer we can navigate to other rows in the CSV file by
+using the @kbd{n} and @kbd{p} key, which will go to the next respectively previous
+row in the underlying CSV file.
 
-@c ----------------------------------------
+@heading Formatting
 
-@menu
-* Navigating::
-* Columns::
-@end menu
+The timestamps are still a bit hard to read.   If we are looking at these
+files a lot, it is worth configuring CSV Lens so it will display these timestamps nicely.
 
-@node Navigating, Columns, Using CSV Lens, Using CSV Lens
+One way of doing this is to apply do the following:
+
+@cartouche
+@example lisp
+(defun example-format-time (time)
+  "Return a nicely formatted TIME."
+  (if (> (length time) 18)
+      (let ((year (substring time 0 4))
+            (month (substring time 4 6))
+            (day (substring time 6 8))
+            (hour (substring time 8 10))
+            (minute (substring time 10 12))
+            (second (substring time 12 14))
+            (offset (number-to-string
+                      (/ (string-to-number (substring time -4)) 60))))
+        (concat year "-" month "-" day " "
+                hour ":" minute ":" second " (" offset ")*" ))
+    time))
+
+(add-to-list 'csv-lens-configurations
+             '("Example"
+                (("Time"
+                  :format-function example-format-time))))
+@end example
+@end cartouche
+
+The details of how this works are explained later.  But the most important part is that
+you can see that we associate with the @samp{Time} column the function @code{example-format-time} function.
+
+After applying the above code the column view will look like this
+
+@cartouche
+@example
+FILE: example.csv Type: Example Spark Lines use Values for plotting
+
+  Line:              2                          
+  System:            Alpha                      
+  Disk:              C:                         
+  Time:              2013-06-02 19:07:51 (-4)*  
+  IO Rate:           1000                       
+  Bytes Transferred: 1232                       
+  ReadsRate:         800                        
+  Write Rate:        200                        
+@end example
+@end cartouche
+
+To see the original value in the CSV file you disable/enable the formatting by
+using @kbd{f} key, which is bound to @code{csv-lens-format-toggle}.
+
+@heading Keys
+
+In the underlying CSV file there are multiple rows about @samp{System}
+@samp{Alpha} and @samp{Disk} @samp{C:}, each for a different
+timestamp.  CSV Lens allows quick navigation to go to the next or previous
+rows describing the same thing.
+
+First step is telling CSV Lens what the columns are that identify the
+same thing.  This can be done by pressing the @kbd{K} key when point
+is on the line @samp{System} and @samp{Disk}.  This will indicate that
+these columns are considered key columns and the status of these
+columns is marked by the letter @samp{K} in the left column, like this
+
+@cartouche
+@example
+FILE: example.csv Type: Example Spark Lines use Values for plotting
+
+  Line:              2                          
+K System:            Alpha                      
+K Disk:              C:                         
+  Time:              2013-06-02 19:07:51 (-4)*  
+  IO Rate:           1000                       
+  Bytes Transferred: 1232                       
+  Reads Rate:        800                        
+  Write Rate:        200                        
+@end example
+@end cartouche
+
+After this step the keys @kbd{N} and @kbd{P} will move the next respectively the previous
+line in the CSV file for which the @samp{System} and @samp{Disk} fields have the same value.
+
+In addition, it will show the file now in three column mode, one column for the current
+row, one column for the previous displayed and one column showing the difference, like this:
+
+@fonttextsize 10
+@cartouche
+@example
+FILE: example.csv Type: Example Spark Lines use Values for plotting
+
+  Line:              5                         2                         3                          
+K System:            Alpha                     Alpha                                                
+K Disk:              C:                        C:                                                   
+  Time:              2013-06-02 19:17:12 (-4)* 2013-06-02 19:07:51 (-4)*                            
+  IO Rate:           1200                      1000                      200                        
+  Bytes Transferred: 1232                      1232                      0                          
+  Reads Rate:        800                       800                       0                          
+  Write Rate:        200                       200                       0                          
+@end example
+@end cartouche
+@fonttextsize 11
+
+The example above is the situation after pressing @kbd{N} in the previous screenshot.
+We see that we moved from line 2 to line 5.  The second column still shows the values
+of line 2 and the third column shows the difference.
+
+Just like the formatting function, we can specify that some columns are key columns by default:
+
+@cartouche
+@example lisp
+(add-to-list 'csv-lens-configurations
+             '("Example"
+                (("Time"
+                  :format-function example-format-time)
+                 (("System" "Disk") :key t))))
+@end example
+@end cartouche
+
+@c ----------------
+
+@node Navigating, Columns, Example, Using CSV Lens
 @section Navigating
 
 When in the CSV Lens Detail buffer you can select a different row
@@ -185,7 +317,7 @@ Additionally it is possible to re-synchronize the CSV Lens Detail buffer with th
 
 @table @kbd
 @item C-@key{RET}
-@itemx M-x csv-lens-switch-to-source-buffer
+@itemx M-x csv-lens-pop-to-source-buffer
 Select the buffer of the underlying CSV file.  This will not move point in the CSV buffer, nor update the CSV Detail buffer.
 @item o
 @itemx M-x csv-lens-switch-to-source-buffer
@@ -229,10 +361,12 @@ Like all other column state, when used on a highlighted column, un-highlight it.
 Hide all constant columns.  A column is considered constant if the values for the column
 are constant for each key(s) separately.
 
+@ignore
 @item S
 @itemx csv-lens-spark-line
 Show a spark line for the values of the column for the current keys.
 Note that the spark line is not dynamically updated when a new key is selected.
+@end ignore
 @end table
 
 The following changes cannot be made for individual columns but are global (they apply to all columns).
@@ -247,6 +381,7 @@ This is convenient to bring back hidden columns.
 @itemx csv-lens-normal-all
 Remove all marks from the columns and reverting them to normal.
 
+@ignore
 @item I
 @itemx csv-lens-spark-line-toggle-incremental
 Toggle the logic for drawing spark lines between 'value' and 'delta'.
@@ -258,7 +393,7 @@ The first line in the CSV Lens Detail buffer shows which mode is used.
 @item Z
 @itemx csv-lens-spark-line-for-all-visible-columns
 Draw spark lines for all columns.  (See XREF explanation for S).
-
+@end ignore
 @item f
 @itemx csv-lens-format-toggle
 Toggle the formatting of the columns.  (See XREF explanation of formatting).
@@ -269,12 +404,33 @@ Toggle the formatting of the columns.  (See XREF explanation of formatting).
 @node Customizing,  , Using CSV Lens, Top
 @chapter Customizing
 
-You can customize CVS Lens by setting the variable @var{csv-lens-default-column-state}.
-This variable determines the default settings for each column in the CSV Lens Detail buffers.
-In addition it is the only way to spefiy format functions for the different fields.
+When CSV Lens opens a detail buffer it goes through the following steps:
 
-The value of @var{csv-lens-default-column-state} is an alist whose keys
-are column names or a list of column names.  The values are property
+@enumerate
+@item
+Determine the header names of the columns of the CSV file
+
+@item
+Use the header names to determine a configuration
+
+@item
+Use the configuration to format the detail buffer.
+@end enumerate
+
+Step 1 is hardcoded, but step 2 and 3 together detemine how the detail buffer displays the underlying data.
+The following two sections describe these two steps.
+
+@menu
+* Configuration one Type of CSV File::
+* Multiple Sets of Configurations::
+@end menu
+
+@node Configuration one Type of CSV File,Multiple Sets of Configurations, Customizing, Customizing
+@comment  node-name,  next,  previous,  up
+@section Configuration one Type of CSV File
+
+A configuration for a CSV file is an alist whose keys
+are column names or a list of column names and the values are property
 lists containing the default state of the columns.
 
 So in general the format is a list of specifications, where each specification looks like:
@@ -308,12 +464,7 @@ The default is @code{identity}.
 
 
 
-@menu
-* Multiple Sets of Configurations::
-@end menu
-
-
-@node Multiple Sets of Configurations,  , Customizing, Customizing
+@node Multiple Sets of Configurations,  ,Multiple Sets of Configurations, Customizing
 @comment  node-name,  next,  previous,  up
 @section Multiple Sets of Configurations
 
@@ -321,6 +472,9 @@ Different CSV files have different needs for formating.  It is therefore
 possible to switch between sets of configurations.  Also, the mode will
 try to select automatically the best configuration for the particular
 CSV file.
+
+The list of configurations that are considered is stored in the variable @var{csv-lens-configurations}.
+Each entry of this list is list of either 2 or 3 elements like this:
 
 @lisp
 (name configuration)
@@ -332,10 +486,12 @@ can be used to force CSV-Lens to use a specific configuration if the
 automatic detection does not work correctly.  
 
 The @code{configuration} part is either a list of specifications, as
-documented INCLUDE-XREF, or a function returning such a configuration. 
+documented in @ref{Configuration one Type of CSV File}, or a function
+returning such a configuration.
 
-If @code{configuration} it should be a function taking one argument,
-which is a list of strings containing the column headers.
+If @code{configuration} is a function, it should be a function taking
+one argument, which is a list of strings containing the column
+headers.
 
 The optional @code{compare-function} is used to decide which
 configuration is used for the file.
@@ -347,11 +503,23 @@ considered the best upto now, and will be used as the
 @code{best-upto-now} argument in the next invocation of a compare
 function.
 
+A note about returning @code{nil}.  When implementing a
+@code{compare-function} one normally only returns @code{nil} if both
+hold true: The argument @code{configuration} is not a valid
+configuration for the @code{columns} and @code{best-upto-now} is
+@code{nil}. This is because the idea is that this function will return
+the best of the two arguments.
+
 The default implementation does a lexical compare between @code{(columns
 - configuration, configuration - columns)}.  If it is a tie, it returns
 the @code{best-upto-now} configuration, ensuring the first listed
 configuration wins.
 
-
-
+The lexical compare has the effect that it gives preference to:
+@enumerate
+@item
+The most columns in the CSV file have an entry in the configuration.
+@item
+If that is the same, the smallest configuration winds.
+@end enumerate
 @bye
