@@ -104,8 +104,9 @@ That is why we use :init.
 
 @menu
 * Example::
-* Navigating::
+* Navigating::n
 * Columns::
+* Compare/Difference::
 @end menu
 
 @node Example, Navigating, Using CSV Lens, Using CSV Lens
@@ -350,7 +351,7 @@ Update the content of the CSV Detail buffer to show the content for point in the
 @end table
 
 @c ----------------------------------------
-@node Columns,  , Navigating, Using CSV Lens
+@node Columns, Column Formatting, Navigating, Using CSV Lens
 @section Columns
 
 Each column in the CSV file is shown as a line in the CSV Detail buffer.
@@ -370,7 +371,7 @@ plotting the spark-lines. [ADD XREF for both].
 @itemx csv-lens-hide-column
 Hide the column from display.  Or un-hide the column if it is already hidden.
 A hidden column is not shown, unless the show all is activated
-(@xref{unhide-all,,csv-lens-column-ignore-state-toggle}).
+(@xref{unhide-all,,csv-lens-column-ignore-state-toggle}.)
 To un-hide a hidden column, first use the show all to show the hidden columns, then un hide it with @kbd{h} again.
 
 @item b
@@ -425,10 +426,11 @@ Toggle the formatting of the columns.  (@xref{Column Formatting}).
 
 @menu
 * Column Formatting::
+* Key Columns::
 @end menu
 
-@node Column Formatting, ,Columns,Columns
-@section Column Formatting
+@node Column Formatting,Key Columns,Columns,Columns
+@subsection Column Formatting
 
 The displayed values from the underlying CSV file can be formatted
 with formatting functions.  By default, the value is displayed as is.
@@ -448,7 +450,7 @@ If the user has manually selected a formatting function, the user specified form
 
 Manually selecting a formatting can be done by pressing @kbd{F}, or calling @code{csv-lens-set-key-column-formatter}.
 This will provide the user with the choice of the formatters listed in @code{csv-lens-formatters}. 
-@xref{Adding Formatters}.
+@xref{Formatters for Interactive Use}.
 
 @item
 If in the current configuration [ADD XREF] a format function is specified for this column, use that one.
@@ -459,16 +461,21 @@ Finally, if none of the above is relevant, use @code{identity} and use the strin
 @end enumerate
 
 
+@node Key Columns, ,Column Formatting, Columns
+@subsection Key Columns
+
+@node Compare/Difference, ,Columns,Using CSV Lens
+@section Compare/Difference
 
 @c --------------------------------------------------------------------------------
 @node Customizing,  , Using CSV Lens, Top
 @chapter Customizing
 
-There are two variables avaiable to modify the behaviour of CSV Lens:
+There are two variables available to modify the behaviour of CSV Lens:
 
 @table @code
 @item csv-lens-configurations
-This variable determines the default state of the columns being displayed.
+This variable determines the default state of the columns being displayed.  This is described in @ref{Multiple Sets of Configurations}.  The configuration options for a single configuration are descibed in @ref{Configuration one Type of CSV File}.
 
 @item csv-lens-formatters
 A list of formatters that are available for interactive use.
@@ -491,53 +498,12 @@ Step 1 is hardcoded, but step 2 and 3 together detemine how the detail buffer di
 The following two sections describe these two steps.
 
 @menu
-* Configuration one Type of CSV File::
 * Multiple Sets of Configurations::
+* Configuration one Type of CSV File::
+* Formatters for Interactive Use::
 @end menu
 
-@node Configuration one Type of CSV File,Multiple Sets of Configurations, Customizing, Customizing
-@comment  node-name,  next,  previous,  up
-@section Configuration one Type of CSV File
-
-A configuration for a CSV file is an alist whose keys
-are column names or a list of column names and the values are property
-lists containing the default state of the columns.
-
-So in general the format is a list of specifications, where each specification looks like:
-@table @code
-@item (COLUMN-NAME . PROPERTY-LIST)
-@item ((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)
-@end table
-
-The @code{COLUMN-NAME} is normally a string, which is compared to the column headers in the CSV file (case sensitive).  As a special case @code{COLUMN-NAME} can be @t{t}, which matches any column and can be used to provide
-default values for all columns in the CSV file.
-
-The @code{PROPERTY-LIST} describes the column and can contain the following keys
-@table @code
-@item :key
-A boolean, @code{t} if the column is considered a key column.  The default value is @code{nil}.
-@item :bold
-A boolean, @code{t} if the column should standout.  The default value is @code{nil}.
-@item :hidden
-A boolean, @code{t} if the column should be hidden.  The default value is @code{nil}.
-@item :diff-function
-A function taking two arguments, each being the un parsed string value of a value of column and returning a string representation of the difference.
-
-This function is used for displaying the difference between two subsequent records.
-See @kbd{N} and @kbd{P} for ways to display the difference.
-
-If no function is specified it defaults to @code{csv-lens-diff-number}.  This function
-will try to parse the argument as numbers and display their difference.
-@item :format-function
-A function taking one argument, the un parsed string value, and returning a string to display.
-This function is active unless formatting is disabled by @kbd{f}.
-
-The default is @code{identity}.
-@end table
-
-
-
-@node Multiple Sets of Configurations,  ,Multiple Sets of Configurations, Customizing
+@node Multiple Sets of Configurations, Configuration one Type of CSV File ,Customizing, Customizing
 @comment  node-name,  next,  previous,  up
 @section Multiple Sets of Configurations
 
@@ -546,7 +512,7 @@ possible to switch between sets of configurations.  Also, the mode will
 try to select automatically the best configuration for the particular
 CSV file.
 
-The list of configurations that are considered is stored in the variable @var{csv-lens-configurations}.
+The list of configurations that are considered is stored in the variable @code{csv-lens-configurations}.
 Each entry of this list is list of either 2 or 3 elements like this:
 
 @lisp
@@ -595,4 +561,48 @@ The most columns in the CSV file have an entry in the configuration.
 @item
 If that is the same, the smallest configuration winds.
 @end enumerate
+
+@node Configuration one Type of CSV File, Formatters for Interactive Use, Multiple Sets of Configurations, Customizing
+@comment  node-name,  next,  previous,  up
+@section Configuration one Type of CSV File
+
+A configuration for a CSV file is an alist whose keys
+are column names or a list of column names and the values are property
+lists containing the default state of the columns.
+
+So in general the format is a list of specifications, where each specification looks like:
+@table @code
+@item (COLUMN-NAME . PROPERTY-LIST)
+@item ((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)
+@end table
+
+The @code{COLUMN-NAME} is normally a string, which is compared to the column headers in the CSV file (case sensitive).  As a special case @code{COLUMN-NAME} can be @t{t}, which matches any column and can be used to provide
+default values for all columns in the CSV file.
+
+The @code{PROPERTY-LIST} describes the column and can contain the following keys
+@table @code
+@item :key
+A boolean, @code{t} if the column is considered a key column.  The default value is @code{nil}.
+@item :bold
+A boolean, @code{t} if the column should standout.  The default value is @code{nil}.
+@item :hidden
+A boolean, @code{t} if the column should be hidden.  The default value is @code{nil}.
+@item :diff-function
+A function taking two arguments, each being the un parsed string value of a value of column and returning a string representation of the difference.
+
+This function is used for displaying the difference between two subsequent records.
+See @kbd{N} and @kbd{P} for ways to display the difference.
+
+If no function is specified it defaults to @code{csv-lens-diff-number}.  This function
+will try to parse the argument as numbers and display their difference.
+@item :format-function
+A function taking one argument, the un parsed string value, and returning a string to display.
+This function is active unless formatting is disabled by @kbd{f} (@code{csv-lens-format-toggle}).
+
+The default is @code{identity}.
+@end table
+
+@node Formatters for Interactive Use,  , Configuration one Type of CSV File, Customizing
+@section Formatters for Interactive Use
+
 @bye

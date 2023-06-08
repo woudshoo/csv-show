@@ -56,7 +56,7 @@ File: csv-lens.info,  Node: Activating,  Prev: Installing,  Up: Installing
 ==============
 
 When in a CSV buffer you can start using CSV Lens by issuing the command
-'csv-lens-select'.  Which is bound by default to the key <C-return> in
+'csv-lens-select'.  Which is bound by default to the key 'C-return' in
 the minor mode 'csv-lens-mode'.
 
    By adding the following code to the '.emacs' file the minor mode will
@@ -88,7 +88,7 @@ File: csv-lens.info,  Node: Example,  Next: Navigating,  Prev: Using CSV Lens,  
 2.1 Example
 ===========
 
-If installed as suggested the key binding <C-return> on a line in a CSV
+If installed as suggested the key binding 'C-return' on a line in a CSV
 file will bring up a 'csv-lens-detail-mode' buffer, which will show the
 data of the line in the CSV file under point in a column view.
 
@@ -294,7 +294,7 @@ columns [see xref key column etc.]
    Additionally it is possible to re-synchronize the CSV Lens Detail
 buffer with the underlying CSV buffer.
 
-'C-<RET>'
+'C-RET'
 'M-x csv-lens-pop-to-source-buffer'
      Select the buffer of the underlying CSV file.  This will not move
      point in the CSV buffer, nor update the CSV Detail buffer.
@@ -330,8 +330,8 @@ following key bindings
      Hide the column from display.  Or un-hide the column if it is
      already hidden.  A hidden column is not shown, unless the show all
      is activated (*Note csv-lens-column-ignore-state-toggle:
-     unhide-all.).  To un-hide a hidden column, first use the show all
-     to show the hidden columns, then un hide it with 'h' again.
+     unhide-all.)  To un-hide a hidden column, first use the show all to
+     show the hidden columns, then un hide it with 'h' again.
 
 'b'
 'csv-lens-bold-column'
@@ -370,6 +370,34 @@ File: csv-lens.info,  Node: Column Formatting,  Prev: Columns,  Up: Columns
 2.4 Column Formatting
 =====================
 
+The displayed values from the underlying CSV file can be formatted with
+formatting functions.  By default, the value is displayed as is.  If
+that is not required, a formatting function can be applied.  A
+formatting function is a function that takes one argument, the value to
+be converted, which is a string.  The result of the formatting function
+should also be a string.
+
+   The actual formatting function being used is determined by the column
+name, in the following way:
+
+  1. If the formatting is disabled, use the 'identity' function, which
+     returns the string as is.  By default formatting is enabled.  This
+     can be toggled with 'f' or 'csv-lens-format-toggle'.
+  2. If the user has manually selected a formatting function, the user
+     specified format function is used.
+
+     Manually selecting a formatting can be done by pressing 'F', or
+     calling 'csv-lens-set-key-column-formatter'.  This will provide the
+     user with the choice of the formatters listed in
+     'csv-lens-formatters'.
+
+  3. If in the current configuration [ADD XREF] a format function is
+     specified for this column, use that one.
+  4. If in the current configuration the column t has a format function
+     specified, use that one.
+  5. Finally, if none of the above is relevant, use 'identity' and use
+     the string as is.
+
 
 File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
 
@@ -378,11 +406,11 @@ File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
 
 There are two variables avaiable to modify the behaviour of CSV Lens:
 
-CSV-LENS-CONFIGURATIONS
+'csv-lens-configurations'
      This variable determines the default state of the columns being
      displayed.
 
-CSV-LENS-FORMATTERS
+'csv-lens-formatters'
      A list of formatters that are available for interactive use.
 
    -----------------
@@ -419,8 +447,8 @@ specification looks like:
 
    The 'COLUMN-NAME' is normally a string, which is compared to the
 column headers in the CSV file (case sensitive).  As a special case
-'COLUMN-NAME' can be t, which matches any column and can be used provide
-default values for all columns in the CSV file.
+'COLUMN-NAME' can be t, which matches any column and can be used to
+provide default values for all columns in the CSV file.
 
    The 'PROPERTY-LIST' describes the column and can contain the
 following keys
@@ -514,12 +542,12 @@ Node: Activating1229
 Node: Using CSV Lens1854
 Node: Example2033
 Node: Navigating8370
-Node: Columns10873
-Ref: unhide-all12397
-Node: Column Formatting12808
-Node: Customizing12932
-Node: Configuration one Type of CSV File13755
-Node: Multiple Sets of Configurations15694
+Node: Columns10871
+Ref: unhide-all12394
+Node: Column Formatting12805
+Node: Customizing14255
+Node: Configuration one Type of CSV File15082
+Node: Multiple Sets of Configurations17024
 
 End Tag Table
 
