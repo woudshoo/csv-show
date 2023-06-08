@@ -96,7 +96,7 @@ See also `csv-lens-cells'.")
     (define-key map "Q" 'csv-lens-kill-detail-buffer)
     (define-key map [C-return] 'csv-lens-pop-to-source-buffer)
     (define-key map "f" 'csv-lens-format-toggle)
-    (define-key map "F" 'csv-lens-set-key-column-formatter)
+    (define-key map "F" 'csv-lens-set-column-formatter)
     (define-key map "<" 'csv-lens-jump-first-line-for-key-value)
     (define-key map ">" 'csv-lens-jump-last-line-for-key-value)
     (define-key map "?" 'transient-csv-lens)
@@ -240,7 +240,7 @@ of the current line as a table.
     ["Show Hidden Columns" csv-lens-column-ignore-state-toggle]
     ["Bold Column" csv-lens-bold-column]
     ["Key Column" csv-lens-toggle-key-column]
-    ["Choose Formatter" csv-lens-set-key-column-formatter]
+    ["Choose Formatter" csv-lens-set-column-formatter]
     ["(Un)format Column" csv-lens-format-toggle]
     ["Unmark All" csv-lens-normal-all]
 ;    "----"
@@ -272,7 +272,7 @@ of the current line as a table.
    ("s" (lambda() (interactive) (if csv-lens-column-state-toggle "hide hidden" "show hidden")) csv-lens-column-ignore-state-toggle)
    ("b" "bold" csv-lens-bold-column)
    ("K" "key"  csv-lens-toggle-key-column)
-   ("F" "choose formatter" csv-lens-set-key-column-formatter)
+   ("F" "choose formatter" csv-lens-set-column-formatter)
    ("f" (lambda() (interactive) (if csv-lens-format-toggle "unformat" "format")) csv-lens-format-toggle)
    ("c" "hide constants" csv-lens-hide-constant-columns)
    ("U" "unmark all" csv-lens-normal-all)]
@@ -495,18 +495,14 @@ buffer."
   (csv-lens-column-state-toggle (csv-lens-column-name) :key)
   (csv-lens-fontify-detail-buffer))
 
-(defun csv-lens-set-key-column-formatter ()
+(defun csv-lens-set-column-formatter (column formatter-name)
   "Will present a list of possible formatters and sets the chosen one for the current column."
-  (interactive)
-  (let* ((column (csv-lens-column-name))
-         (current-formatter-name (car (csv-lens-column-state column :manual-format-function)))
-         (chosen-formatter (csv-lens-column-completing-formatter current-formatter-name))
-         (new-formatter))
-    (unless (string-equal chosen-formatter "<none>")
-      (setq new-state (assoc chosen-formatter csv-lens-formatters)))
-    (csv-lens-set-column-state column :manual-format-function new-state))
-  (setq csv-lens-format-toggle 1)
-  (csv-lens-fill-buffer))
+  (interactive (csv-lens-column-completing-formatter))
+  (let ((new-state  (unless (string-equal formatter-name "<none>")
+		      (assoc formatter-name csv-lens-formatters))))
+    (csv-lens-set-column-state column :manual-format-function new-state)
+    (setq csv-lens-format-toggle 1)
+    (csv-lens-fill-buffer)))
 
 (defun csv-lens-hide-column ()
   "Will mark the column on the current row for hiding. 

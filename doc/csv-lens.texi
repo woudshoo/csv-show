@@ -33,11 +33,37 @@ Copyright @copyright{} 2013, 2015, 2023 Willem Rein Oudshoorn.
 This is a description of the CSV Lens mode
 @end ifnottex
 
-
 @menu
 * Installing::
 * Using CSV Lens::
 * Customizing::
+
+@detailmenu
+ --- The Detailed Node Listing ---
+
+Installing
+
+* Activating::
+
+Using CSV Lens
+
+* Example::
+* Navigating::                  n
+* Columns::
+* Compare/Difference::
+
+Columns
+
+* Column Formatting::
+* Key Columns::
+
+Customizing
+
+* Multiple Sets of Configurations::
+* Configuration one Type of CSV File::
+* Formatters for Interactive Use::
+
+@end detailmenu
 @end menu
 
 @node Installing, Using CSV Lens, Top, Top
@@ -104,7 +130,7 @@ That is why we use :init.
 
 @menu
 * Example::
-* Navigating::n
+* Navigating::                  n
 * Columns::
 * Compare/Difference::
 @end menu
@@ -448,7 +474,7 @@ By default formatting is enabled.  This can be toggled with @kbd{f} or @code{csv
 @item
 If the user has manually selected a formatting function, the user specified format function is used.
 
-Manually selecting a formatting can be done by pressing @kbd{F}, or calling @code{csv-lens-set-key-column-formatter}.
+Manually selecting a formatting can be done by pressing @kbd{F}, or calling @code{csv-lens-set-column-formatter}.
 This will provide the user with the choice of the formatters listed in @code{csv-lens-formatters}. 
 @xref{Formatters for Interactive Use}.
 

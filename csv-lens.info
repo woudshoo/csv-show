@@ -23,6 +23,31 @@ This is a description of the CSV Lens mode
 * Using CSV Lens::
 * Customizing::
 
+ -- The Detailed Node Listing --
+
+Installing
+
+* Activating::
+
+Using CSV Lens
+
+* Example::
+* Navigating::                  n
+* Columns::
+* Compare/Difference::
+
+Columns
+
+* Column Formatting::
+* Key Columns::
+
+Customizing
+
+* Multiple Sets of Configurations::
+* Configuration one Type of CSV File::
+* Formatters for Interactive Use::
+
+
 
 File: csv-lens.info,  Node: Installing,  Next: Using CSV Lens,  Prev: Top,  Up: Top
 
@@ -79,8 +104,9 @@ File: csv-lens.info,  Node: Using CSV Lens,  Next: Customizing,  Prev: Installin
 * Menu:
 
 * Example::
-* Navigating::
+* Navigating::                  n
 * Columns::
+* Compare/Difference::
 
 
 File: csv-lens.info,  Node: Example,  Next: Navigating,  Prev: Using CSV Lens,  Up: Using CSV Lens
@@ -308,7 +334,7 @@ buffer with the underlying CSV buffer.
      point in the underlying CSV buffer.
 
 
-File: csv-lens.info,  Node: Columns,  Prev: Navigating,  Up: Using CSV Lens
+File: csv-lens.info,  Node: Columns,  Next: Column Formatting,  Prev: Navigating,  Up: Using CSV Lens
 
 2.3 Columns
 ===========
@@ -363,12 +389,13 @@ global (they apply to all columns).
 * Menu:
 
 * Column Formatting::
+* Key Columns::
 
 
-File: csv-lens.info,  Node: Column Formatting,  Prev: Columns,  Up: Columns
+File: csv-lens.info,  Node: Column Formatting,  Next: Key Columns,  Prev: Columns,  Up: Columns
 
-2.4 Column Formatting
-=====================
+2.3.1 Column Formatting
+-----------------------
 
 The displayed values from the underlying CSV file can be formatted with
 formatting functions.  By default, the value is displayed as is.  If
@@ -389,7 +416,7 @@ name, in the following way:
      Manually selecting a formatting can be done by pressing 'F', or
      calling 'csv-lens-set-key-column-formatter'.  This will provide the
      user with the choice of the formatters listed in
-     'csv-lens-formatters'.
+     'csv-lens-formatters'.  *Note Formatters for Interactive Use::.
 
   3. If in the current configuration [ADD XREF] a format function is
      specified for this column, use that one.
@@ -399,16 +426,31 @@ name, in the following way:
      the string as is.
 
 
+File: csv-lens.info,  Node: Key Columns,  Prev: Column Formatting,  Up: Columns
+
+2.3.2 Key Columns
+-----------------
+
+
+File: csv-lens.info,  Node: Compare/Difference,  Prev: Columns,  Up: Using CSV Lens
+
+2.4 Compare/Difference
+======================
+
+
 File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
 
 3 Customizing
 *************
 
-There are two variables avaiable to modify the behaviour of CSV Lens:
+There are two variables available to modify the behaviour of CSV Lens:
 
 'csv-lens-configurations'
      This variable determines the default state of the columns being
-     displayed.
+     displayed.  This is described in *note Multiple Sets of
+     Configurations::.  The configuration options for a single
+     configuration are descibed in *note Configuration one Type of CSV
+     File::.
 
 'csv-lens-formatters'
      A list of formatters that are available for interactive use.
@@ -427,63 +469,14 @@ describe these two steps.
 
 * Menu:
 
-* Configuration one Type of CSV File::
 * Multiple Sets of Configurations::
+* Configuration one Type of CSV File::
+* Formatters for Interactive Use::
 
 
-File: csv-lens.info,  Node: Configuration one Type of CSV File,  Next: Multiple Sets of Configurations,  Prev: Customizing,  Up: Customizing
+File: csv-lens.info,  Node: Multiple Sets of Configurations,  Next: Configuration one Type of CSV File,  Prev: Customizing,  Up: Customizing
 
-3.1 Configuration one Type of CSV File
-======================================
-
-A configuration for a CSV file is an alist whose keys are column names
-or a list of column names and the values are property lists containing
-the default state of the columns.
-
-   So in general the format is a list of specifications, where each
-specification looks like:
-'(COLUMN-NAME . PROPERTY-LIST)'
-'((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)'
-
-   The 'COLUMN-NAME' is normally a string, which is compared to the
-column headers in the CSV file (case sensitive).  As a special case
-'COLUMN-NAME' can be t, which matches any column and can be used to
-provide default values for all columns in the CSV file.
-
-   The 'PROPERTY-LIST' describes the column and can contain the
-following keys
-':key'
-     A boolean, 't' if the column is considered a key column.  The
-     default value is 'nil'.
-':bold'
-     A boolean, 't' if the column should standout.  The default value is
-     'nil'.
-':hidden'
-     A boolean, 't' if the column should be hidden.  The default value
-     is 'nil'.
-':diff-function'
-     A function taking two arguments, each being the un parsed string
-     value of a value of column and returning a string representation of
-     the difference.
-
-     This function is used for displaying the difference between two
-     subsequent records.  See 'N' and 'P' for ways to display the
-     difference.
-
-     If no function is specified it defaults to 'csv-lens-diff-number'.
-     This function will try to parse the argument as numbers and display
-     their difference.
-':format-function'
-     A function taking one argument, the un parsed string value, and
-     returning a string to display.  This function is active unless
-     formatting is disabled by 'f'.
-
-     The default is 'identity'.
-
-
-File: csv-lens.info,  Node: Multiple Sets of Configurations,  Prev: Multiple Sets of Configurations,  Up: Customizing
-
-3.2 Multiple Sets of Configurations
+3.1 Multiple Sets of Configurations
 ===================================
 
 Different CSV files have different needs for formating.  It is therefore
@@ -492,7 +485,7 @@ try to select automatically the best configuration for the particular
 CSV file.
 
    The list of configurations that are considered is stored in the
-variable CSV-LENS-CONFIGURATIONS.  Each entry of this list is list of
+variable 'csv-lens-configurations'.  Each entry of this list is list of
 either 2 or 3 elements like this:
 
      (name configuration)
@@ -535,19 +528,79 @@ configuration wins.
   2. If that is the same, the smallest configuration winds.
 
 
+File: csv-lens.info,  Node: Configuration one Type of CSV File,  Next: Formatters for Interactive Use,  Prev: Multiple Sets of Configurations,  Up: Customizing
+
+3.2 Configuration one Type of CSV File
+======================================
+
+A configuration for a CSV file is an alist whose keys are column names
+or a list of column names and the values are property lists containing
+the default state of the columns.
+
+   So in general the format is a list of specifications, where each
+specification looks like:
+'(COLUMN-NAME . PROPERTY-LIST)'
+'((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)'
+
+   The 'COLUMN-NAME' is normally a string, which is compared to the
+column headers in the CSV file (case sensitive).  As a special case
+'COLUMN-NAME' can be t, which matches any column and can be used to
+provide default values for all columns in the CSV file.
+
+   The 'PROPERTY-LIST' describes the column and can contain the
+following keys
+':key'
+     A boolean, 't' if the column is considered a key column.  The
+     default value is 'nil'.
+':bold'
+     A boolean, 't' if the column should standout.  The default value is
+     'nil'.
+':hidden'
+     A boolean, 't' if the column should be hidden.  The default value
+     is 'nil'.
+':diff-function'
+     A function taking two arguments, each being the un parsed string
+     value of a value of column and returning a string representation of
+     the difference.
+
+     This function is used for displaying the difference between two
+     subsequent records.  See 'N' and 'P' for ways to display the
+     difference.
+
+     If no function is specified it defaults to 'csv-lens-diff-number'.
+     This function will try to parse the argument as numbers and display
+     their difference.
+':format-function'
+     A function taking one argument, the un parsed string value, and
+     returning a string to display.  This function is active unless
+     formatting is disabled by 'f' ('csv-lens-format-toggle').
+
+     The default is 'identity'.
+
+
+File: csv-lens.info,  Node: Formatters for Interactive Use,  Prev: Configuration one Type of CSV File,  Up: Customizing
+
+3.3 Formatters for Interactive Use
+==================================
+
+
+
 Tag Table:
 Node: Top313
-Node: Installing516
-Node: Activating1229
-Node: Using CSV Lens1854
-Node: Example2033
-Node: Navigating8370
-Node: Columns10871
-Ref: unhide-all12394
-Node: Column Formatting12805
-Node: Customizing14255
-Node: Configuration one Type of CSV File15082
-Node: Multiple Sets of Configurations17024
+Node: Installing849
+Node: Activating1562
+Node: Using CSV Lens2187
+Node: Example2408
+Node: Navigating8745
+Node: Columns11246
+Ref: unhide-all12795
+Node: Column Formatting13222
+Node: Key Columns14737
+Node: Compare/Difference14857
+Node: Customizing14991
+Node: Multiple Sets of Configurations16046
+Node: Configuration one Type of CSV File18380
+Node: Formatters for Interactive Use20368
 
 End Tag Table
 

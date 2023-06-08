@@ -259,20 +259,17 @@ Assumed to be called in the Lens buffer."
 
 
 ;;; Listing of formatters
-
-(defun csv-lens-column-available-formatter-names ()
-  "Return a list of available formatter-names"
-  (--map (cl-first it) csv-lens-formatters))
-
 (defvar csv-lens-column-formatter-history nil)
 
-(defun csv-lens-column-completing-formatter (&optional initial-input)
+(defun csv-lens-column-completing-formatter ()
   "Present a list of formatters to choose from"
-  (interactive)
-  (completing-read "Formatter: "
-                   (cons "<none>" (csv-lens-column-available-formatter-names))
-                   nil nil initial-input
-                   'csv-lens-column-formatter-history))
+  (let ((column (csv-lens-column-name)))
+    (list column
+	  (completing-read (format "Formatter for %s: " column)
+			   (cons "<none>" csv-lens-formatters)
+			   nil nil nil
+			   'csv-lens-column-formatter-history
+			   (cl-first (csv-lens-column-state column  :manual-format-function))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
