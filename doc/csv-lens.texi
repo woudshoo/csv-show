@@ -12,7 +12,7 @@ Copyright @copyright{} 2013, 2015, 2023 Willem Rein Oudshoorn.
 
 @dircategory Emacs
 @direntry
-* CSV-Lens: (csv-lens).         Some text.
+* CSV-Lens: (csv-lens).         Viewing a CSV file one line at the time.
 @end direntry
 
 @titlepage
@@ -51,6 +51,17 @@ requiring @code{csv-lens} like this:
 (require 'csv-lens)
 @end lisp
 
+Alternatively when using @code{use-package} the following stanza will work
+
+@lisp
+(use-package csv-lens)
+@end lisp
+
+when installed with the package manager.  If it is manually installed, you have to supply
+the @code{:load-path} to @code{use-package}.
+
+Note that both methods above will not install any keybindings to use @code{csv-lens}.
+@xref{Activating} on how to add keybindings.
 
 @menu
 * Activating::
@@ -62,7 +73,7 @@ requiring @code{csv-lens} like this:
 
 When in a CSV buffer you can start using CSV Lens by issuing the command
 @command{csv-lens-select}.  Which is bound by default to the key
-@key{C-return} in the minor mode @command{csv-lens-mode}.
+@kbd{C-return} in the minor mode @command{csv-lens-mode}.
 
 By adding the following code to the @code{.emacs} file the minor mode
 will be activated by default for all CSV files.
@@ -71,7 +82,18 @@ will be activated by default for all CSV files.
 (add-hook 'csv-mode-hook 'csv-lens-mode)
 @end lisp
 
+Alternatively, when using @code{use-package} you should use the @code{:init} parameter like this:
 
+@lisp
+(use-package csv-lens
+  :init (add-hook 'csv-mode-hook 'csv-lens-mode))
+@end lisp
+@ignore
+The :init is executed before the package is loaded and :config after the package is loaded.
+However, because the package has autoloads, the :config is only executed
+after the first call to csv-lens-mode.  So the hook will not be added.
+That is why we use :init.
+@end ignore
 @c --------------------------------------------------------------------------------
 @node  Using CSV Lens, Customizing, Installing, Top
 @chapter Using CSV Lens
@@ -89,7 +111,7 @@ will be activated by default for all CSV files.
 @node Example, Navigating, Using CSV Lens, Using CSV Lens
 @section Example
 
-If installed as suggested the key binding @key{C-return} on a line in a
+If installed as suggested the key binding @kbd{C-return} on a line in a
 CSV file will bring up a @command{csv-lens-detail-mode} buffer, which
 will show the data of the line in the CSV file under point in a column
 view.
@@ -316,7 +338,7 @@ The same as @kbd{j} but this command looks backwards in the file.
 Additionally it is possible to re-synchronize the CSV Lens Detail buffer with the underlying CSV buffer.
 
 @table @kbd
-@item C-@key{RET}
+@item C-@kbd{RET}
 @itemx M-x csv-lens-pop-to-source-buffer
 Select the buffer of the underlying CSV file.  This will not move point in the CSV buffer, nor update the CSV Detail buffer.
 @item o
@@ -348,7 +370,7 @@ plotting the spark-lines. [ADD XREF for both].
 @itemx csv-lens-hide-column
 Hide the column from display.  Or un-hide the column if it is already hidden.
 A hidden column is not shown, unless the show all is activated
-(See XREF show all).
+(@xref{unhide-all,,csv-lens-column-ignore-state-toggle}).
 To un-hide a hidden column, first use the show all to show the hidden columns, then un hide it with @kbd{h} again.
 
 @item b
@@ -372,6 +394,7 @@ Note that the spark line is not dynamically updated when a new key is selected.
 The following changes cannot be made for individual columns but are global (they apply to all columns).
 
 @table @kbd
+@anchor{unhide-all}
 @item s
 @itemx csv-lens-column-ignore-state-toggle
 Show all, this will ignore the hide state of any column and show them again.
@@ -396,15 +419,62 @@ Draw spark lines for all columns.  (See XREF explanation for S).
 @end ignore
 @item f
 @itemx csv-lens-format-toggle
-Toggle the formatting of the columns.  (See XREF explanation of formatting).
-
+Toggle the formatting of the columns.  (@xref{Column Formatting}).
 @end table
+
+
+@menu
+* Column Formatting::
+@end menu
+
+@node Column Formatting, ,Columns,Columns
+@section Column Formatting
+
+The displayed values from the underlying CSV file can be formatted
+with formatting functions.  By default, the value is displayed as is.
+If that is not required, a formatting function can be applied.  A
+formatting function is a function that takes one argument, the value
+to be converted, which is a string.  The result of the formatting
+function should also be a string.
+
+The actual formatting function being used is determined by the column name, in the following way:
+
+@enumerate
+@item
+If the formatting is disabled, use the @code{identity} function, which returns the string as is.
+By default formatting is enabled.  This can be toggled with @kbd{f} or @code{csv-lens-format-toggle}.
+@item
+If the user has manually selected a formatting function, the user specified format function is used.
+
+Manually selecting a formatting can be done by pressing @kbd{F}, or calling @code{csv-lens-set-key-column-formatter}.
+This will provide the user with the choice of the formatters listed in @code{csv-lens-formatters}. 
+@xref{Adding Formatters}.
+
+@item
+If in the current configuration [ADD XREF] a format function is specified for this column, use that one.
+@item
+If in the current configuration the column @t{t} has a format function specified, use that one.
+@item
+Finally, if none of the above is relevant, use @code{identity} and use the string as is.
+@end enumerate
+
+
 
 @c --------------------------------------------------------------------------------
 @node Customizing,  , Using CSV Lens, Top
 @chapter Customizing
 
-When CSV Lens opens a detail buffer it goes through the following steps:
+There are two variables avaiable to modify the behaviour of CSV Lens:
+
+@table @code
+@item csv-lens-configurations
+This variable determines the default state of the columns being displayed.
+
+@item csv-lens-formatters
+A list of formatters that are available for interactive use.
+@end table
+
+--------------------------
 
 @enumerate
 @item
@@ -439,7 +509,10 @@ So in general the format is a list of specifications, where each specification l
 @item ((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)
 @end table
 
-The @code{PROPERTY-LIST} can contain the following keys
+The @code{COLUMN-NAME} is normally a string, which is compared to the column headers in the CSV file (case sensitive).  As a special case @code{COLUMN-NAME} can be @t{t}, which matches any column and can be used to provide
+default values for all columns in the CSV file.
+
+The @code{PROPERTY-LIST} describes the column and can contain the following keys
 @table @code
 @item :key
 A boolean, @code{t} if the column is considered a key column.  The default value is @code{nil}.

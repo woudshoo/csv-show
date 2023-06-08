@@ -6,7 +6,7 @@ This is the CSV Lens manual, version 0.8
    Copyright (C) 2013, 2015, 2023 Willem Rein Oudshoorn.
 INFO-DIR-SECTION Emacs
 START-INFO-DIR-ENTRY
-* CSV-Lens: (csv-lens).         Some text.
+* CSV-Lens: (csv-lens).         Viewing a CSV file one line at the time.
 END-INFO-DIR-ENTRY
 
 
@@ -35,6 +35,16 @@ emacs load path and requiring 'csv-lens' like this:
      (add-to-list 'load-path "~/<directory>/csv-lens/" t)
      (require 'csv-lens)
 
+   Alternatively when using 'use-package' the following stanza will work
+
+     (use-package csv-lens)
+
+   when installed with the package manager.  If it is manually
+installed, you have to supply the ':load-path' to 'use-package'.
+
+   Note that both methods above will not install any keybindings to use
+'csv-lens'.  *Note Activating:: on how to add keybindings.
+
 * Menu:
 
 * Activating::
@@ -53,6 +63,12 @@ the minor mode 'csv-lens-mode'.
 be activated by default for all CSV files.
 
      (add-hook 'csv-mode-hook 'csv-lens-mode)
+
+   Alternatively, when using 'use-package' you should use the ':init'
+parameter like this:
+
+     (use-package csv-lens
+       :init (add-hook 'csv-mode-hook 'csv-lens-mode))
 
 
 File: csv-lens.info,  Node: Using CSV Lens,  Next: Customizing,  Prev: Installing,  Up: Top
@@ -313,9 +329,9 @@ following key bindings
 'csv-lens-hide-column'
      Hide the column from display.  Or un-hide the column if it is
      already hidden.  A hidden column is not shown, unless the show all
-     is activated (See XREF show all).  To un-hide a hidden column,
-     first use the show all to show the hidden columns, then un hide it
-     with 'h' again.
+     is activated (*Note csv-lens-column-ignore-state-toggle:
+     unhide-all.).  To un-hide a hidden column, first use the show all
+     to show the hidden columns, then un hide it with 'h' again.
 
 'b'
 'csv-lens-bold-column'
@@ -342,8 +358,17 @@ global (they apply to all columns).
 
 'f'
 'csv-lens-format-toggle'
-     Toggle the formatting of the columns.  (See XREF explanation of
-     formatting).
+     Toggle the formatting of the columns.  (*Note Column Formatting::).
+
+* Menu:
+
+* Column Formatting::
+
+
+File: csv-lens.info,  Node: Column Formatting,  Prev: Columns,  Up: Columns
+
+2.4 Column Formatting
+=====================
 
 
 File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
@@ -351,7 +376,16 @@ File: csv-lens.info,  Node: Customizing,  Prev: Using CSV Lens,  Up: Top
 3 Customizing
 *************
 
-When CSV Lens opens a detail buffer it goes through the following steps:
+There are two variables avaiable to modify the behaviour of CSV Lens:
+
+CSV-LENS-CONFIGURATIONS
+     This variable determines the default state of the columns being
+     displayed.
+
+CSV-LENS-FORMATTERS
+     A list of formatters that are available for interactive use.
+
+   -----------------
 
   1. Determine the header names of the columns of the CSV file
 
@@ -383,7 +417,13 @@ specification looks like:
 '(COLUMN-NAME . PROPERTY-LIST)'
 '((COLUMN-NAME-1 COLUMN-NAME-2 ...) . PROPERTY-LIST)'
 
-   The 'PROPERTY-LIST' can contain the following keys
+   The 'COLUMN-NAME' is normally a string, which is compared to the
+column headers in the CSV file (case sensitive).  As a special case
+'COLUMN-NAME' can be t, which matches any column and can be used provide
+default values for all columns in the CSV file.
+
+   The 'PROPERTY-LIST' describes the column and can contain the
+following keys
 ':key'
      A boolean, 't' if the column is considered a key column.  The
      default value is 'nil'.
@@ -468,16 +508,18 @@ configuration wins.
 
 
 Tag Table:
-Node: Top283
-Node: Installing486
-Node: Activating835
-Node: Using CSV Lens1285
-Node: Example1464
-Node: Navigating7801
-Node: Columns10304
-Node: Customizing12184
-Node: Configuration one Type of CSV File12791
-Node: Multiple Sets of Configurations14447
+Node: Top313
+Node: Installing516
+Node: Activating1229
+Node: Using CSV Lens1854
+Node: Example2033
+Node: Navigating8370
+Node: Columns10873
+Ref: unhide-all12397
+Node: Column Formatting12808
+Node: Customizing12932
+Node: Configuration one Type of CSV File13755
+Node: Multiple Sets of Configurations15694
 
 End Tag Table
 

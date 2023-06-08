@@ -46,6 +46,7 @@
 
 (defvar csv-lens-formatters nil
   "A list of formatters that can me chosen for a particular column.
+
 Each formatter in this list is a list of two elements. The first
 being the name of the formatter as a string. The second being the
 function to call to format a value.")
@@ -261,7 +262,7 @@ Assumed to be called in the Lens buffer."
 
 (defun csv-lens-column-available-formatter-names ()
   "Return a list of available formatter-names"
-  (--map (-first-item it) csv-lens-formatters))
+  (--map (cl-first it) csv-lens-formatters))
 
 (defvar csv-lens-column-formatter-history nil)
 
@@ -269,7 +270,7 @@ Assumed to be called in the Lens buffer."
   "Present a list of formatters to choose from"
   (interactive)
   (completing-read "Formatter: "
-                   (-flatten (-list "<none>" (csv-lens-column-available-formatter-names)))
+                   (cons "<none>" (csv-lens-column-available-formatter-names))
                    nil nil initial-input
                    'csv-lens-column-formatter-history))
 
