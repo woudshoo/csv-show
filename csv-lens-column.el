@@ -262,7 +262,8 @@ Assumed to be called in the Lens buffer."
 (defvar csv-lens-column-formatter-history nil)
 
 (defun csv-lens-column-completing-formatter ()
-  "Present a list of formatters to choose from"
+  "Present a list of formatters to choose from. Returns a list of
+the current column name and the chosen formatter name."
   (let ((column (csv-lens-column-name)))
     (list column
 	  (completing-read (format "Formatter for %s: " column)

@@ -496,7 +496,9 @@ buffer."
   (csv-lens-fontify-detail-buffer))
 
 (defun csv-lens-set-column-formatter (column formatter-name)
-  "Will present a list of possible formatters and sets the chosen one for the current column."
+  "Sets the formatter for COLUMN to FORMATTER-NAME. When
+interactive presents a list of possible formatters and sets the
+chosen one for COLUMN."
   (interactive (csv-lens-column-completing-formatter))
   (let ((new-state  (unless (string-equal formatter-name "<none>")
 		      (assoc formatter-name csv-lens-formatters))))
